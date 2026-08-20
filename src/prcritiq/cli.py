@@ -1,4 +1,4 @@
-"""Command line interface for the PRCritiq M0 scaffold."""
+"""Command line interface for PRCritiq."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             "version": __version__,
             "environment": settings.env,
             "acceleration": settings.acceleration.value,
-            "implementation_status": "m0_scaffold",
+            "implementation_status": "m1_intake_dry_run",
         }
     elif args.command == "review":
         payload = build_scaffold_report(repo=args.repo, pr_number=args.pr).model_dump()

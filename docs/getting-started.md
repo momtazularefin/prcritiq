@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes the M0 scaffold. The reviewer engine is not implemented yet.
+This document describes the M1 intake and dry-run scaffold. The reviewer engine is not implemented yet.
 
 ## Requirements
 
@@ -29,6 +29,7 @@ uv run pytest
 
 - `GET /health` returns scaffold status.
 - `POST /demo/review` returns a scaffold dry-run report.
+- `POST /webhooks/github` verifies GitHub webhook signatures and accepts supported pull request events.
 - The CLI returns the same scaffold health and dry-run report.
 - No GitHub data is fetched.
 - No LLM provider is called.

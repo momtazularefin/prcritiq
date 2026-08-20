@@ -1,4 +1,4 @@
-"""Configuration for the PRCritiq scaffold."""
+"""Configuration for PRCritiq."""
 
 from __future__ import annotations
 
@@ -54,6 +54,10 @@ class Settings:
     min_publish_confidence: int = 78
     trace_provider: str = "none"
     acceleration: AccelerationMode = AccelerationMode.NONE
+    github_webhook_secret: str | None = None
+    github_token: str | None = None
+    github_api_base_url: str = "https://api.github.com"
+    github_request_timeout_seconds: int = 15
 
 
 def load_settings() -> Settings:
@@ -70,4 +74,8 @@ def load_settings() -> Settings:
         min_publish_confidence=_int_from_env("PRCRITIQ_MIN_PUBLISH_CONFIDENCE", 78),
         trace_provider=getenv("PRCRITIQ_TRACE_PROVIDER", "none"),
         acceleration=parse_acceleration(getenv("ACCELERATION")),
+        github_webhook_secret=getenv("GITHUB_WEBHOOK_SECRET") or None,
+        github_token=getenv("GITHUB_TOKEN") or None,
+        github_api_base_url=getenv("GITHUB_API_BASE_URL", "https://api.github.com"),
+        github_request_timeout_seconds=_int_from_env("GITHUB_REQUEST_TIMEOUT_SECONDS", 15),
     )

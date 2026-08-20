@@ -2,7 +2,7 @@
 
 ## Status
 
-M0 validates the public configuration surface. Most integrations are not used until later milestones.
+M1 validates the public configuration surface and uses webhook/GitHub API settings at the intake boundary. Most review integrations are not used until later milestones.
 
 ## Non-Secret Settings
 
@@ -18,6 +18,8 @@ M0 validates the public configuration surface. Most integrations are not used un
 | `PRCRITIQ_MIN_PUBLISH_CONFIDENCE` | `78` | Future minimum confidence percentage for posting. |
 | `PRCRITIQ_TRACE_PROVIDER` | `none` | Future tracing provider selection. |
 | `ACCELERATION` | `none` | Strict acceleration mode: `none`, `gpu`, or `npu`. |
+| `GITHUB_API_BASE_URL` | `https://api.github.com` | GitHub REST API base URL, overridden only for tests or enterprise installations. |
+| `GITHUB_REQUEST_TIMEOUT_SECONDS` | `15` | Timeout for GitHub API requests. |
 
 ## Secret Settings
 
@@ -26,6 +28,7 @@ These variables are listed in `.env.example` but must remain blank in committed 
 - `GITHUB_APP_ID`
 - `GITHUB_WEBHOOK_SECRET`
 - `GITHUB_PRIVATE_KEY`
+- `GITHUB_TOKEN`
 - `ANTHROPIC_API_KEY`
 - `OPENAI_API_KEY`
 - `DATABASE_URL`

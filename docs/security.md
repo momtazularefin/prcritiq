@@ -2,7 +2,7 @@
 
 ## Status
 
-M0 does not process live GitHub webhooks, run external tools, call model providers, or post PR comments.
+M1 verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is configured. It still does not run external tools, call model providers, or post PR comments.
 
 ## Standing Rules
 
@@ -14,9 +14,9 @@ M0 does not process live GitHub webhooks, run external tools, call model provide
 - Verify GitHub webhook signatures before accepting live webhook events.
 - Post comments only after line and evidence validation.
 
-## Current M0 Behavior
+## Current M1 Behavior
 
-- The scaffold has no credential requirement.
+- The scaffold requires `GITHUB_WEBHOOK_SECRET` for `/webhooks/github`.
 - The dry-run command does not fetch remote code.
 - The demo endpoint does not post comments.
 - Invalid `ACCELERATION` configuration fails explicitly.

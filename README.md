@@ -4,17 +4,18 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M0 scaffold is implemented locally:
+M1 intake and dry-run scaffold is implemented locally:
 
 - Python package layout.
-- FastAPI app with `GET /health` and scaffolded `POST /demo/review`.
+- FastAPI app with `GET /health`, scaffolded `POST /demo/review`, and signed `POST /webhooks/github`.
 - CLI scaffold for `health` and dry-run `review`.
+- GitHub webhook signature verification and pull-request idempotency key calculation.
+- Thin GitHub REST client boundary for PR metadata and changed files.
 - Configuration surface with strict `ACCELERATION=none|gpu|npu` validation.
 - Ruff, pytest, and GitHub Actions CI skeleton.
 
 Not implemented yet:
 
-- Live GitHub App webhook behavior.
 - PR diff parsing.
 - Context retrieval.
 - Static analysis evidence.
@@ -32,7 +33,7 @@ uv run ruff check .
 uv run pytest
 ```
 
-The dry-run command currently returns a scaffold report. It does not fetch GitHub data or call an LLM yet.
+The dry-run command currently returns a scaffold report. It does not fetch GitHub data, call an LLM, or post comments yet.
 
 ## Project Shape
 
@@ -56,7 +57,7 @@ PRCritiq will prefer silence over weak comments. Every reportable finding must i
 
 ## Documentation
 
-- `docs/getting-started.md` - local setup and M0 commands.
+- `docs/getting-started.md` - local setup and current commands.
 - `docs/architecture.md` - planned architecture and current scaffold.
 - `docs/configuration.md` - environment variables.
 - `docs/security.md` - security posture and current limits.

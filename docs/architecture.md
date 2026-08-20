@@ -2,7 +2,7 @@
 
 ## Status
 
-M0 contains only the executable scaffold. The full review architecture is planned but not implemented yet.
+M1 contains intake boundaries and executable dry-run scaffold behavior. The full review architecture is planned but not implemented yet.
 
 ## Target Flow
 
@@ -15,11 +15,12 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 - `prcritiq.api` exposes health and demo review scaffold endpoints.
 - `prcritiq.cli` exposes health and dry-run review scaffold commands.
 - `prcritiq.config` validates the configuration surface, including strict acceleration modes.
-- `prcritiq.reporting` returns an explicit M0 report that states no GitHub, model, or posting work occurred.
+- `prcritiq.webhooks` verifies GitHub webhook signatures and builds review-run idempotency keys.
+- `prcritiq.github` wraps PR metadata and changed-file reads through the GitHub REST API.
+- `prcritiq.reporting` returns an explicit M1 dry-run report that states no review, model, or posting work occurred.
 
 ## Planned Components
 
-- GitHub App intake and webhook verification.
 - PR diff parser and changed-line model.
 - Guardrail gate for noisy or unsafe files.
 - Repository context retrieval.
