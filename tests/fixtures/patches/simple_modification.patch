@@ -1,0 +1,14 @@
+@@ -1,5 +1,6 @@
+ import os
+ 
+-def load(path):
+-    return open(path).read()
++def load(path: str) -> str:
++    with open(path, encoding="utf-8") as handle:
++        return handle.read()
+ 
+@@ -20,3 +21,4 @@ def save(path, data):
+     with open(path, "w") as handle:
+         handle.write(data)
++    return True
+ 

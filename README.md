@@ -4,19 +4,20 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M1 intake and dry-run scaffold is implemented locally:
+M2 diff parsing and guardrails are implemented locally, on top of the M1 intake surfaces:
 
-- Python package layout.
+- Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
+- Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
+- Guardrail gate with structured decisions for generated, lockfile, vendored, binary, oversized-file, oversized-diff, unsupported-language, and unsafe-path files, plus a per-pull-request reviewable-file budget. Every skip carries an explicit reason.
 - FastAPI app with `GET /health`, scaffolded `POST /demo/review`, and signed `POST /webhooks/github`.
-- CLI scaffold for `health` and dry-run `review`.
-- GitHub webhook signature verification and pull-request idempotency key calculation.
-- Thin GitHub REST client boundary for PR metadata and changed files.
+- CLI for `health` and a scaffold dry-run `review`.
+- GitHub webhook signature verification, pull-request idempotency keys, and a thin GitHub REST client boundary for PR metadata and changed files.
 - Configuration surface with strict `ACCELERATION=none|gpu|npu` validation.
-- Ruff, pytest, and GitHub Actions CI skeleton.
+- Ruff, pytest, and GitHub Actions CI.
 
 Not implemented yet:
 
-- PR diff parsing.
+- Wiring the diff and guardrail layers into the dry-run command, which still returns a scaffold report.
 - Context retrieval.
 - Static analysis evidence.
 - LangGraph review loop.

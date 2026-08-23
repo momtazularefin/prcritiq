@@ -32,6 +32,7 @@ class ChangedFile:
     deletions: int
     changes: int
     patch: str | None
+    previous_filename: str | None = None
 
 
 class GitHubClient:
@@ -100,6 +101,7 @@ class GitHubClient:
                     deletions=int(item["deletions"]),
                     changes=int(item["changes"]),
                     patch=item.get("patch"),
+                    previous_filename=item.get("previous_filename"),
                 )
                 for item in payload
             )

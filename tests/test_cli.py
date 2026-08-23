@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from prcritiq.cli import main
+from prcritiq.schemas import IMPLEMENTATION_STATUS
 
 
 def test_cli_health_outputs_json(capsys) -> None:
@@ -11,7 +12,7 @@ def test_cli_health_outputs_json(capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["service"] == "prcritiq"
-    assert payload["implementation_status"] == "m1_intake_dry_run"
+    assert payload["implementation_status"] == IMPLEMENTATION_STATUS
 
 
 def test_cli_review_outputs_dry_run_scaffold_report(capsys) -> None:

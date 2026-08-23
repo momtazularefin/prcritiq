@@ -1,0 +1,12 @@
+diff --git a/src/old_name.py b/src/new_name.py
+similarity index 88%
+rename from src/old_name.py
+rename to src/new_name.py
+index 1234567..89abcde 100644
+--- a/src/old_name.py
++++ b/src/new_name.py
+@@ -3,3 +3,4 @@ def helper():
+     value = compute()
+     log(value)
++    audit(value)
+     return value

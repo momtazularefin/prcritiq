@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from . import __version__
 from .config import load_settings
 from .reporting import build_scaffold_report
+from .schemas import IMPLEMENTATION_STATUS
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,7 +39,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             "version": __version__,
             "environment": settings.env,
             "acceleration": settings.acceleration.value,
-            "implementation_status": "m1_intake_dry_run",
+            "implementation_status": IMPLEMENTATION_STATUS,
         }
     elif args.command == "review":
         payload = build_scaffold_report(repo=args.repo, pr_number=args.pr).model_dump()

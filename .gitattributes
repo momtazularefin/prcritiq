@@ -1,0 +1,19 @@
+# Normalize every text file to LF in the repository and on checkout.
+#
+# Without this, a Windows clone with core.autocrlf=true checks out CRLF while
+# [tool.ruff.format] line-ending = "lf" demands LF, so `ruff format --check`
+# fails locally and passes in Linux CI. NFR5 requires local Windows work to
+# behave the same as the CI platform.
+* text=auto eol=lf
+
+# Diff fixtures are byte-exact inputs to the parser; never rewrite them.
+tests/fixtures/patches/*.patch -text
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary

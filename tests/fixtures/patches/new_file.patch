@@ -1,0 +1,5 @@
+@@ -0,0 +1,4 @@
++"""Config helpers."""
++
++DEFAULT_TIMEOUT = 15
++MAX_RETRIES = 3

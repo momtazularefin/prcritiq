@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from prcritiq.api import create_app
 from prcritiq.config import Settings
+from prcritiq.schemas import IMPLEMENTATION_STATUS
 from prcritiq.webhooks import compute_webhook_signature
 
 
@@ -16,7 +17,7 @@ def test_health_returns_m1_status() -> None:
 
     assert response.status_code == 200
     assert response.json()["service"] == "prcritiq"
-    assert response.json()["implementation_status"] == "m1_intake_dry_run"
+    assert response.json()["implementation_status"] == IMPLEMENTATION_STATUS
 
 
 def test_demo_review_returns_non_posting_scaffold_report() -> None:
@@ -29,7 +30,7 @@ def test_demo_review_returns_non_posting_scaffold_report() -> None:
 
     body = response.json()
     assert response.status_code == 200
-    assert body["implementation_status"] == "m1_intake_dry_run"
+    assert body["implementation_status"] == IMPLEMENTATION_STATUS
     assert body["idempotency_key"].startswith("dry_run:")
     assert body["posted_comments"] == 0
     assert body["findings"] == []

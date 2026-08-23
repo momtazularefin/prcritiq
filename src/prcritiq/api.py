@@ -9,7 +9,13 @@ from fastapi import FastAPI, Header, HTTPException, Request, status
 from . import __version__
 from .config import Settings, load_settings
 from .reporting import build_scaffold_report
-from .schemas import HealthResponse, ReviewReport, ReviewRequest, WebhookAck
+from .schemas import (
+    IMPLEMENTATION_STATUS,
+    HealthResponse,
+    ReviewReport,
+    ReviewRequest,
+    WebhookAck,
+)
 from .webhooks import (
     SUPPORTED_PULL_REQUEST_ACTIONS,
     WebhookPayloadError,
@@ -36,7 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             version=__version__,
             environment=resolved.env,
             acceleration=resolved.acceleration.value,
-            implementation_status="m1_intake_dry_run",
+            implementation_status=IMPLEMENTATION_STATUS,
         )
 
     @app.post("/demo/review", response_model=ReviewReport)

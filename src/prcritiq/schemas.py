@@ -6,6 +6,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
+#: How far the implementation has actually progressed. Declared once so the
+#: label cannot go stale in one surface while another still reports it.
+IMPLEMENTATION_STATUS = "m2_diff_guardrails"
+ImplementationStatus = Literal["m2_diff_guardrails"]
+
 
 class HealthResponse(BaseModel):
     service: Literal["prcritiq"]
@@ -13,7 +18,7 @@ class HealthResponse(BaseModel):
     version: str
     environment: str
     acceleration: Literal["none", "gpu", "npu"]
-    implementation_status: Literal["m1_intake_dry_run"]
+    implementation_status: ImplementationStatus
 
 
 class ReviewRequest(BaseModel):
@@ -24,7 +29,7 @@ class ReviewRequest(BaseModel):
 
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
-    implementation_status: Literal["m1_intake_dry_run"] = "m1_intake_dry_run"
+    implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
     mode: Literal["dry-run"] = "dry-run"
     repo: str
     pr_number: int
@@ -36,7 +41,7 @@ class ReviewReport(BaseModel):
 
 class WebhookAck(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
-    implementation_status: Literal["m1_intake_dry_run"] = "m1_intake_dry_run"
+    implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
     accepted: bool
     event: str
     delivery_id: str
