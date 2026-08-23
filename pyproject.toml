@@ -52,6 +52,10 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
+[tool.ruff.lint.isort]
+# conftest holds the shared GitHub stub, imported directly by test modules.
+known-local-folder = ["conftest"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

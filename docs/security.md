@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is configured. It still does not run external tools, call model providers, or post PR comments.
+M1 and M2 verify live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is configured, and the dry run reads pull requests from the GitHub REST API. PRCritiq still does not run external tools, call model providers, check out repository working trees, or post PR comments.
 
 ## Standing Rules
 
@@ -14,9 +14,11 @@ M1 verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is confi
 - Verify GitHub webhook signatures before accepting live webhook events.
 - Post comments only after line and evidence validation.
 
-## Current M1 Behavior
+## Current Behavior
 
-- The scaffold requires `GITHUB_WEBHOOK_SECRET` for `/webhooks/github`.
-- The dry-run command does not fetch remote code.
+- `/webhooks/github` requires `GITHUB_WEBHOOK_SECRET` and rejects unsigned or mis-signed requests.
+- The dry run makes outbound authenticated or anonymous GET requests to the GitHub REST API for pull-request metadata and patches. It reads that data only; it does not clone, check out, or execute anything from the pull request.
+- Patch text is parsed as data. Nothing in a diff is interpreted as an instruction.
+- The guardrail gate rejects repository paths that are absolute, carry a drive letter, contain a backslash or control characters, or traverse `..` or `.git`, before any later stage can act on them.
 - The demo endpoint does not post comments.
 - Invalid `ACCELERATION` configuration fails explicitly.

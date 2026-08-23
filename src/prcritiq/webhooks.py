@@ -58,10 +58,14 @@ def build_review_run_key(
     return f"review_run:{digest}"
 
 
-def build_dry_run_key(*, repo: str, pr_number: int) -> str:
-    """Build a deterministic idempotency key for local dry-run reports."""
+def build_dry_run_key(*, repo: str, pr_number: int, head_sha: str) -> str:
+    """Build a deterministic idempotency key for local dry-run reports.
 
-    raw = f"dry-run|{repo}|{pr_number}"
+    The head SHA is part of the key so that re-running a pull request after new
+    commits is a distinct run, matching how the webhook key already behaves.
+    """
+
+    raw = f"dry-run|{repo}|{pr_number}|{head_sha}"
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
     return f"dry_run:{digest}"
 

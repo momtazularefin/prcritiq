@@ -27,6 +27,18 @@ class ReviewRequest(BaseModel):
     mode: Literal["dry-run"] = "dry-run"
 
 
+class FileReport(BaseModel):
+    """One changed file and what the guardrail gate decided about it."""
+
+    path: str
+    previous_path: str | None = None
+    status: str
+    language: str
+    decision: str
+    reason: str
+    changed_lines: int
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -34,6 +46,18 @@ class ReviewReport(BaseModel):
     repo: str
     pr_number: int
     idempotency_key: str
+    title: str
+    state: str
+    author_login: str
+    base_sha: str
+    head_sha: str
+    html_url: str
+    files: list[FileReport] = Field(default_factory=list)
+    total_files: int = 0
+    reviewable_files: int = 0
+    skipped_files: int = 0
+    skipped_by_decision: dict[str, int] = Field(default_factory=dict)
+    commentable_lines: int = 0
     findings: list[dict[str, object]] = Field(default_factory=list)
     posted_comments: int = 0
     message: str

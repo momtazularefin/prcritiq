@@ -9,15 +9,15 @@ M2 diff parsing and guardrails are implemented locally, on top of the M1 intake 
 - Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
 - Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
 - Guardrail gate with structured decisions for generated, lockfile, vendored, binary, oversized-file, oversized-diff, unsupported-language, and unsafe-path files, plus a per-pull-request reviewable-file budget. Every skip carries an explicit reason.
-- FastAPI app with `GET /health`, scaffolded `POST /demo/review`, and signed `POST /webhooks/github`.
-- CLI for `health` and a scaffold dry-run `review`.
+- Working dry-run review: `prcritiq review` fetches a real pull request, parses every patch, applies the guardrail gate, and prints a JSON report of what it would and would not review. No model is called and nothing is posted.
+- FastAPI app with `GET /health`, `POST /demo/review` running that same dry run, and signed `POST /webhooks/github`.
+- Repository references accept the HTTPS and SSH clone forms, a pasted pull-request URL, and the `owner/name` shorthand.
 - GitHub webhook signature verification, pull-request idempotency keys, and a thin GitHub REST client boundary for PR metadata and changed files.
 - Configuration surface with strict `ACCELERATION=none|gpu|npu` validation.
 - Ruff, pytest, and GitHub Actions CI.
 
 Not implemented yet:
 
-- Wiring the diff and guardrail layers into the dry-run command, which still returns a scaffold report.
 - Context retrieval.
 - Static analysis evidence.
 - LangGraph review loop.
@@ -29,12 +29,14 @@ Not implemented yet:
 ```powershell
 uv sync --dev
 uv run prcritiq health
-uv run prcritiq review --repo https://github.com/example/repo --pr 1 --mode dry-run
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
 uv run ruff check .
 uv run pytest
 ```
 
-The dry-run command currently returns a scaffold report. It does not fetch GitHub data, call an LLM, or post comments yet.
+The dry-run command reads the pull request from the GitHub REST API and reports parsed diffs and guardrail decisions. It does not call a model or post comments yet, so `findings` is always empty and the report says so explicitly rather than letting an empty list read as a clean bill of health.
+
+Public repositories work without a token. Set `GITHUB_TOKEN` to raise the API rate limit or to reach a private repository.
 
 ## Project Shape
 
@@ -59,7 +61,7 @@ PRCritiq will prefer silence over weak comments. Every reportable finding must i
 ## Documentation
 
 - `docs/getting-started.md` - local setup and current commands.
-- `docs/architecture.md` - planned architecture and current scaffold.
+- `docs/architecture.md` - planned architecture and what is built today.
 - `docs/configuration.md` - environment variables.
 - `docs/security.md` - security posture and current limits.
 - `docs/evaluation.md` - benchmark plan and current evidence status.

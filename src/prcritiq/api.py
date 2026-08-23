@@ -8,7 +8,8 @@ from fastapi import FastAPI, Header, HTTPException, Request, status
 
 from . import __version__
 from .config import Settings, load_settings
-from .reporting import build_scaffold_report
+from .github import GitHubClientError, RepoReferenceError
+from .review import run_dry_run
 from .schemas import (
     IMPLEMENTATION_STATUS,
     HealthResponse,
@@ -47,7 +48,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/demo/review", response_model=ReviewReport)
     def demo_review(request: ReviewRequest) -> ReviewReport:
-        return build_scaffold_report(repo=str(request.repo), pr_number=request.pr_number)
+        try:
+            return run_dry_run(
+                repo=str(request.repo),
+                pr_number=request.pr_number,
+                settings=resolved,
+            )
+        except RepoReferenceError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        except GitHubClientError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     @app.post("/webhooks/github", response_model=WebhookAck)
     async def github_webhook(

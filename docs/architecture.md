@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 contains intake boundaries and executable dry-run scaffold behavior. The full review architecture is planned but not implemented yet.
+M1 and M2 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, and a dry-run review that reports them. The reasoning half of the architecture is planned but not implemented yet.
 
 ## Target Flow
 
@@ -12,8 +12,11 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 
 ## Current Components
 
-- `prcritiq.api` exposes health and demo review scaffold endpoints.
-- `prcritiq.cli` exposes health and dry-run review scaffold commands.
+- `prcritiq.api` exposes health, demo review, and webhook endpoints.
+- `prcritiq.cli` exposes health and dry-run review commands.
+- `prcritiq.diff` parses patches into hunks and changed lines, and validates inline-comment targets.
+- `prcritiq.guardrails` decides which changed files are in scope, with an explicit reason for every skip.
+- `prcritiq.review` orchestrates fetch, parse, gate, and report. It is the only module in the dry-run path that performs I/O.
 - `prcritiq.config` validates the configuration surface, including strict acceleration modes.
 - `prcritiq.webhooks` verifies GitHub webhook signatures and builds review-run idempotency keys.
 - `prcritiq.github` wraps PR metadata and changed-file reads through the GitHub REST API.

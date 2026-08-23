@@ -59,7 +59,7 @@ def test_review_run_key_from_payload() -> None:
 
 
 def test_dry_run_key_is_stable() -> None:
-    first = build_dry_run_key(repo="https://github.com/example/repo", pr_number=1)
-    second = build_dry_run_key(repo="https://github.com/example/repo", pr_number=1)
+    first = build_dry_run_key(repo="example/repo", pr_number=1, head_sha="abc")
+    second = build_dry_run_key(repo="example/repo", pr_number=1, head_sha="abc")
 
     assert first == second

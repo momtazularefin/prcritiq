@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from prcritiq.api import create_app
 from prcritiq.config import Settings
+from prcritiq.github import GitHubClientError
 from prcritiq.schemas import IMPLEMENTATION_STATUS
 from prcritiq.webhooks import compute_webhook_signature
 
@@ -20,21 +21,41 @@ def test_health_returns_m1_status() -> None:
     assert response.json()["implementation_status"] == IMPLEMENTATION_STATUS
 
 
-def test_demo_review_returns_non_posting_scaffold_report() -> None:
+def test_demo_review_returns_a_non_posting_report(patched_github) -> None:
     client = TestClient(create_app())
 
     response = client.post(
         "/demo/review",
-        json={"repo": "https://github.com/example/repo", "pr": 1, "mode": "dry-run"},
+        json={"repo": "https://github.com/example/repo", "pr": 7, "mode": "dry-run"},
     )
 
     body = response.json()
     assert response.status_code == 200
     assert body["implementation_status"] == IMPLEMENTATION_STATUS
     assert body["idempotency_key"].startswith("dry_run:")
+    assert body["reviewable_files"] == 1
+    assert body["skipped_by_decision"] == {
+        "skipped_lockfile": 1,
+        "skipped_unsupported_language": 1,
+    }
     assert body["posted_comments"] == 0
     assert body["findings"] == []
-    assert "no PR comment was posted" in body["message"]
+
+
+def test_demo_review_maps_a_github_failure_to_bad_gateway(monkeypatch) -> None:
+    def explode(**_kwargs):
+        raise GitHubClientError("GitHub request failed: 404 Not Found")
+
+    monkeypatch.setattr("prcritiq.api.run_dry_run", explode)
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/demo/review",
+        json={"repo": "https://github.com/example/repo", "pr": 7, "mode": "dry-run"},
+    )
+
+    assert response.status_code == 502
+    assert "404" in response.json()["detail"]
 
 
 def test_github_webhook_accepts_signed_pull_request_event() -> None:

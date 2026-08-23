@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,59 @@ import httpx
 
 class GitHubClientError(RuntimeError):
     """Raised when GitHub returns an unexpected response."""
+
+
+class RepoReferenceError(ValueError):
+    """Raised when a repository reference cannot be resolved to owner/name."""
+
+
+_REPO_SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def parse_repo_reference(reference: str) -> str:
+    """Resolve a repository URL or shorthand to its `owner/name` form.
+
+    Accepts the HTTPS and SSH clone forms, a pasted pull-request URL, and the
+    bare `owner/name` shorthand. Trailing path segments are ignored, so a pasted
+    PR link works without the caller having to strip it; the pull request under
+    review always comes from the explicit PR number.
+    """
+
+    candidate = reference.strip()
+    if not candidate:
+        raise RepoReferenceError("Repository reference is empty")
+
+    without_scheme = re.sub(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", "", candidate)
+    had_scheme = without_scheme != candidate
+    candidate = without_scheme
+
+    without_user = re.sub(r"^[^/@]+@", "", candidate)  # git@ or user:token@
+    had_user = without_user != candidate
+    candidate = without_user
+
+    # The SSH form separates host from owner with a colon rather than a slash.
+    host, separator, remainder = candidate.partition(":")
+    had_ssh_colon = bool(separator) and "/" not in host
+    if had_ssh_colon:
+        candidate = f"{host}/{remainder}"
+
+    parts = [part for part in candidate.split("/") if part]
+    # Anything that carried a scheme, a user, or an SSH colon began with a host
+    # segment. Inferring that from a dot alone would misread github.com/example
+    # as a complete owner and name.
+    leads_with_host = had_scheme or had_user or had_ssh_colon
+    if parts and (leads_with_host or (len(parts) > 2 and "." in parts[0])):
+        parts = parts[1:]
+
+    unresolved = RepoReferenceError(
+        f"Cannot resolve a repository owner and name from {reference!r}"
+    )
+    if len(parts) < 2:
+        raise unresolved
+    owner, name = parts[0], parts[1].removesuffix(".git")
+    if not _REPO_SEGMENT.match(owner) or not _REPO_SEGMENT.match(name):
+        raise unresolved
+    return f"{owner}/{name}"
 
 
 @dataclass(frozen=True)
