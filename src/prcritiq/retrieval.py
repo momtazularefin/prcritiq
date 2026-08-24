@@ -53,10 +53,11 @@ class SimilarityProvider(Protocol):
 class LexicalSimilarity:
     """BM25 over identifier tokens.
 
-    Identifier-aware lexical matching is a deliberate default for code rather
-    than a placeholder for embeddings: it is deterministic, needs no model
-    download, and matches on the names that actually connect one region of a
-    codebase to another.
+    ADR-016 accepts this as the retrieval ranking for v1 rather than as a
+    placeholder for embeddings. It is deterministic, needs no model download,
+    and matches on the identifiers that actually connect one region of a
+    codebase to another, which a general-purpose text embedding captures only
+    incidentally.
     """
 
     _document_frequency: Counter[str] = field(default_factory=Counter)
@@ -105,15 +106,17 @@ class LexicalSimilarity:
 def build_similarity_provider(settings: Settings) -> SimilarityProvider:
     """Select the similarity provider, refusing anything not actually available.
 
-    ADR-013 forbids silent fallback. Requesting embeddings, or requesting GPU or
-    NPU execution for retrieval that has no accelerated path, fails here instead
-    of quietly running something else and reporting it as what was asked for.
+    ADR-016 settles lexical ranking as the v1 choice, and ADR-013 forbids silent
+    fallback. Requesting embeddings, or requesting GPU or NPU execution for
+    retrieval that has no accelerated path, fails here instead of quietly running
+    something else and reporting it as what was asked for.
     """
 
     if settings.similarity is SimilarityMode.EMBEDDING:
         raise ConfigError(
-            "PRCRITIQ_SIMILARITY=embedding is not implemented yet. Retrieval ranking "
-            "is lexical in this milestone; set PRCRITIQ_SIMILARITY=lexical to proceed."
+            "PRCRITIQ_SIMILARITY=embedding is not implemented. ADR-016 accepts "
+            "identifier-aware lexical ranking for v1; set PRCRITIQ_SIMILARITY=lexical "
+            "to proceed."
         )
     if settings.acceleration is not AccelerationMode.NONE:
         raise ConfigError(

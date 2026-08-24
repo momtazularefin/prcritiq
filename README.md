@@ -25,7 +25,7 @@ Not implemented yet:
 - GitHub comment posting.
 - Benchmark metrics.
 
-Retrieval ranking is lexical, not vector embeddings. Identifier-aware BM25 is a deliberate default for code: it is deterministic, needs no model download, and matches on the names that actually connect one region of a codebase to another. `PRCRITIQ_SIMILARITY=embedding` is accepted by the configuration surface and fails with a clear error rather than quietly running the lexical path instead.
+Retrieval ranking is identifier-aware BM25, not vector embeddings. This is a settled design choice rather than a gap: what connects two regions of a codebase is usually a shared identifier, which lexical matching captures directly, and keeping it lexical means retrieval is deterministic, reproducible offline, and free of a model download. A vector provider can be added behind the existing `SimilarityProvider` protocol without touching any caller. `PRCRITIQ_SIMILARITY=embedding` is a valid configuration value that fails with a clear error rather than quietly running the lexical path instead.
 
 ## Quick Start
 

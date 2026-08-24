@@ -15,7 +15,7 @@ The configuration surface is validated at load. Guardrail budgets, retrieval bud
 | `PRCRITIQ_MAX_FILES` | `30` | Maximum reviewable changed files per pull request. Files beyond it are reported as skipped, not dropped. |
 | `PRCRITIQ_MAX_DIFF_LINES` | `2000` | Maximum changed lines before a file is skipped as an oversized diff. |
 | `PRCRITIQ_MAX_FILE_BYTES` | `250000` | Maximum patch size to review, and maximum file size to extract into the workspace. |
-| `PRCRITIQ_SIMILARITY` | `lexical` | Retrieval ranking: `lexical` or `embedding`. `embedding` is not implemented and fails rather than falling back. |
+| `PRCRITIQ_SIMILARITY` | `lexical` | Retrieval ranking: `lexical` or `embedding`. Lexical is the accepted v1 ranking; `embedding` is not implemented and fails rather than falling back. |
 | `PRCRITIQ_MAX_CONTEXT_CHUNKS` | `24` | Maximum chunks of review context, focus and related combined. |
 | `PRCRITIQ_MAX_CONTEXT_BYTES` | `200000` | Maximum bytes of review context. 70 percent is reserved for the changed code so a large diff cannot starve out related context. |
 | `PRCRITIQ_MAX_ARCHIVE_FILES` | `20000` | Maximum indexable files extracted from a repository archive. |
