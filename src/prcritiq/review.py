@@ -17,30 +17,41 @@ from .guardrails import apply_guardrails, reviewable_files
 from .reporting import build_review_report
 from .retrieval import RetrievalResult, SourceIndex, retrieve_context
 from .schemas import ReviewReport
+from .tools import ToolRun, run_static_analysis
 from .workspace import extract_source_archive, temporary_workspace
 
 
-def gather_context(
+def gather_evidence(
     *,
     client: GitHubClient,
     repo: str,
     ref: str,
     file_diffs: Sequence[FileDiff],
     settings: Settings,
-) -> tuple[SourceIndex, RetrievalResult]:
-    """Snapshot the repository at `ref` and retrieve context for changed files.
+    want_context: bool,
+    want_tools: bool,
+) -> tuple[SourceIndex | None, RetrievalResult | None, tuple[ToolRun, ...]]:
+    """Snapshot the repository once, then take every kind of evidence from it.
 
-    The snapshot lives in a temporary workspace that is removed before this
-    returns; only the parsed index and the retrieval result outlive it.
+    Context retrieval and static analysis both need the source on disk, so they
+    share a single download and a single temporary workspace. Tools must run
+    inside that workspace, before it is removed.
     """
 
+    tool_runs: tuple[ToolRun, ...] = ()
     with temporary_workspace() as root:
         archive = root / "source.tar.gz"
         client.download_source_archive(repo, ref, archive)
-        sources = extract_source_archive(archive, root / "src", settings)
+        extracted = root / "snapshot"
+        sources = extract_source_archive(archive, extracted, settings)
+        if want_tools:
+            tool_runs = run_static_analysis(extracted, file_diffs, settings)
+
+    if not want_context:
+        return None, None, tool_runs
 
     index = SourceIndex(sources)
-    return index, retrieve_context(index, file_diffs, settings)
+    return index, retrieve_context(index, file_diffs, settings), tool_runs
 
 
 def run_dry_run(
@@ -50,6 +61,7 @@ def run_dry_run(
     settings: Settings,
     client: GitHubClient | None = None,
     include_context: bool = False,
+    include_tools: bool = False,
 ) -> ReviewReport:
     """Review one pull request without calling a model or posting anything.
 
@@ -74,14 +86,17 @@ def run_dry_run(
 
         index: SourceIndex | None = None
         retrieval: RetrievalResult | None = None
-        if include_context:
+        tool_runs: tuple[ToolRun, ...] = ()
+        if include_context or include_tools:
             in_scope = reviewable_files(file_diffs, outcomes)
-            index, retrieval = gather_context(
+            index, retrieval, tool_runs = gather_evidence(
                 client=resolved,
                 repo=repo_full_name,
                 ref=metadata.head_sha,
                 file_diffs=in_scope,
                 settings=settings,
+                want_context=include_context,
+                want_tools=include_tools,
             )
 
     return build_review_report(
@@ -90,4 +105,5 @@ def run_dry_run(
         outcomes=outcomes,
         index=index,
         retrieval=retrieval,
+        tool_runs=tool_runs if include_tools else None,
     )

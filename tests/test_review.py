@@ -240,9 +240,11 @@ class TestContextRetrieval:
             assert item.reason
             assert item.chunk_id.startswith(item.path)
 
-    def test_message_stops_claiming_no_context_was_retrieved(
+    def test_message_names_only_the_stages_that_actually_ran(
         self, stub_client: StubGitHubClient
     ) -> None:
+        """The message lists what ran, so it cannot go stale by omission."""
+
         without = run_dry_run(
             repo="example/repo", pr_number=7, settings=Settings(), client=stub_client
         )
@@ -254,9 +256,10 @@ class TestContextRetrieval:
             include_context=True,
         )
 
-        assert "no context was retrieved" in without.message
-        assert "no context was retrieved" not in with_context.message
-        assert "context retrieved" in with_context.message
+        assert "review context retrieved" not in without.message
+        assert "static analysis run" not in without.message
+        assert "review context retrieved" in with_context.message
+        assert "static analysis run" not in with_context.message
 
     def test_embedding_request_fails_the_run(self, stub_client: StubGitHubClient) -> None:
         with pytest.raises(ConfigError, match="not implemented"):

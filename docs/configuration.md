@@ -20,6 +20,8 @@ The configuration surface is validated at load. Guardrail budgets, retrieval bud
 | `PRCRITIQ_MAX_CONTEXT_BYTES` | `200000` | Maximum bytes of review context. 70 percent is reserved for the changed code so a large diff cannot starve out related context. |
 | `PRCRITIQ_MAX_ARCHIVE_FILES` | `20000` | Maximum indexable files extracted from a repository archive. |
 | `PRCRITIQ_MAX_ARCHIVE_BYTES` | `80000000` | Maximum total bytes extracted from a repository archive. |
+| `PRCRITIQ_TOOL_TIMEOUT_SECONDS` | `60` | Timeout for a single static-analysis command. |
+| `PRCRITIQ_MAX_TOOL_OUTPUT_BYTES` | `200000` | Cap on captured stdout and stderr per tool run. |
 | `PRCRITIQ_MIN_PUBLISH_CONFIDENCE` | `78` | Minimum confidence percentage for posting. Not used yet. |
 | `PRCRITIQ_TRACE_PROVIDER` | `none` | Tracing provider selection. Not used yet. |
 | `ACCELERATION` | `none` | Strict acceleration mode: `none`, `gpu`, or `npu`. |

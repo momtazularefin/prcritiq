@@ -77,6 +77,8 @@ class Settings:
     max_context_bytes: int = 200_000
     max_archive_bytes: int = 80_000_000
     max_archive_files: int = 20_000
+    tool_timeout_seconds: int = 60
+    max_tool_output_bytes: int = 200_000
     github_webhook_secret: str | None = None
     github_token: str | None = None
     github_api_base_url: str = "https://api.github.com"
@@ -102,6 +104,8 @@ def load_settings() -> Settings:
         max_context_bytes=_int_from_env("PRCRITIQ_MAX_CONTEXT_BYTES", 200_000),
         max_archive_bytes=_int_from_env("PRCRITIQ_MAX_ARCHIVE_BYTES", 80_000_000),
         max_archive_files=_int_from_env("PRCRITIQ_MAX_ARCHIVE_FILES", 20_000),
+        tool_timeout_seconds=_int_from_env("PRCRITIQ_TOOL_TIMEOUT_SECONDS", 60),
+        max_tool_output_bytes=_int_from_env("PRCRITIQ_MAX_TOOL_OUTPUT_BYTES", 200_000),
         github_webhook_secret=getenv("GITHUB_WEBHOOK_SECRET") or None,
         github_token=getenv("GITHUB_TOKEN") or None,
         github_api_base_url=getenv("GITHUB_API_BASE_URL", "https://api.github.com"),

@@ -30,6 +30,14 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--pr", required=True, type=int, help="Pull request number")
     review.add_argument("--mode", default="dry-run", choices=["dry-run"], help="Review mode")
     review.add_argument(
+        "--tools",
+        action="store_true",
+        help=(
+            "Run allowlisted static analysis over the changed files. "
+            "Off by default because it fetches a source archive."
+        ),
+    )
+    review.add_argument(
         "--context",
         action="store_true",
         help=(
@@ -62,6 +70,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 pr_number=args.pr,
                 settings=load_settings(),
                 include_context=args.context,
+                include_tools=args.tools,
             )
         except (RepoReferenceError, GitHubClientError, ConfigError, WorkspaceError) as exc:
             print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))

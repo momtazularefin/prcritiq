@@ -8,20 +8,39 @@ from .diff import FileDiff
 from .github import PullRequestMetadata
 from .guardrails import GuardrailDecision, GuardrailOutcome
 from .retrieval import RetrievalResult, RetrievedChunk, SourceIndex
-from .schemas import ContextChunkReport, ContextReport, FileReport, ReviewReport
+from .schemas import (
+    ContextChunkReport,
+    ContextReport,
+    DiagnosticReport,
+    FileReport,
+    ReviewReport,
+    ToolRunReport,
+)
+from .tools import ToolRun
 from .webhooks import build_dry_run_key
 
-_NO_MODEL_NOTE = (
-    "Dry run: the diff was parsed and the guardrail gate applied. No model was "
-    "called, no context was retrieved, and no comment was posted, so the empty "
-    "findings list means not-yet-implemented rather than nothing-to-report."
+_FINDINGS_CAVEAT = (
+    "No model was called and no comment was posted, so the empty findings list "
+    "means not-yet-implemented rather than nothing-to-report."
 )
 
-_NO_MODEL_WITH_CONTEXT_NOTE = (
-    "Dry run: the diff was parsed, the guardrail gate applied, and review context "
-    "retrieved. No model was called and no comment was posted, so the empty "
-    "findings list means not-yet-implemented rather than nothing-to-report."
-)
+
+def _describe_evidence(
+    retrieval: RetrievalResult | None,
+    tool_runs: Sequence[ToolRun] | None,
+) -> str:
+    """State exactly which evidence stages ran, so the report never overclaims."""
+
+    gathered = ["the diff was parsed", "the guardrail gate applied"]
+    if retrieval is not None:
+        gathered.append("review context retrieved")
+    if tool_runs is not None:
+        gathered.append("static analysis run")
+    if len(gathered) == 2:
+        stages = " and ".join(gathered)
+    else:
+        stages = f"{', '.join(gathered[:-1])}, and {gathered[-1]}"
+    return f"Dry run: {stages}. {_FINDINGS_CAVEAT}"
 
 
 def _describe(item: RetrievedChunk) -> ContextChunkReport:
@@ -49,6 +68,34 @@ def build_context_report(index: SourceIndex, retrieval: RetrievalResult) -> Cont
     )
 
 
+def build_tool_reports(tool_runs: Sequence[ToolRun]) -> list[ToolRunReport]:
+    """Describe every tool considered, including the ones that did not run."""
+
+    return [
+        ToolRunReport(
+            tool=run.tool,
+            status=run.status.value,
+            reason=run.reason,
+            exit_code=run.exit_code,
+            duration_seconds=round(run.duration_seconds, 3),
+            diagnostics=[
+                DiagnosticReport(
+                    tool=item.tool,
+                    path=item.path,
+                    line=item.line,
+                    column=item.column,
+                    code=item.code,
+                    message=item.message,
+                    on_changed_line=item.on_changed_line,
+                )
+                for item in run.diagnostics
+            ],
+            diagnostics_on_changed_lines=sum(1 for item in run.diagnostics if item.on_changed_line),
+        )
+        for run in tool_runs
+    ]
+
+
 def build_review_report(
     *,
     metadata: PullRequestMetadata,
@@ -56,6 +103,7 @@ def build_review_report(
     outcomes: Sequence[GuardrailOutcome],
     index: SourceIndex | None = None,
     retrieval: RetrievalResult | None = None,
+    tool_runs: Sequence[ToolRun] | None = None,
 ) -> ReviewReport:
     """Assemble the dry-run report from parsed diffs and guardrail verdicts."""
 
@@ -106,10 +154,11 @@ def build_review_report(
         skipped_files=len(files) - len(reviewable),
         skipped_by_decision=dict(sorted(skipped.items())),
         commentable_lines=sum(len(file_diff.changed_new_lines) for file_diff in reviewable),
+        tools=build_tool_reports(tool_runs) if tool_runs is not None else None,
         context=(
             build_context_report(index, retrieval)
             if index is not None and retrieval is not None
             else None
         ),
-        message=(_NO_MODEL_WITH_CONTEXT_NOTE if retrieval is not None else _NO_MODEL_NOTE),
+        message=_describe_evidence(retrieval, tool_runs),
     )

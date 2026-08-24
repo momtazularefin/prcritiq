@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m2_diff_guardrails"
-ImplementationStatus = Literal["m2_diff_guardrails"]
+IMPLEMENTATION_STATUS = "m4_tool_evidence"
+ImplementationStatus = Literal["m4_tool_evidence"]
 
 
 class HealthResponse(BaseModel):
@@ -62,6 +62,30 @@ class ContextReport(BaseModel):
     truncated: bool = False
 
 
+class DiagnosticReport(BaseModel):
+    """One structured diagnostic from a static-analysis tool."""
+
+    tool: str
+    path: str
+    line: int
+    column: int
+    code: str
+    message: str
+    on_changed_line: bool
+
+
+class ToolRunReport(BaseModel):
+    """One tool's outcome, including why it did not run."""
+
+    tool: str
+    status: str
+    reason: str
+    exit_code: int | None = None
+    duration_seconds: float = 0.0
+    diagnostics: list[DiagnosticReport] = Field(default_factory=list)
+    diagnostics_on_changed_lines: int = 0
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -82,6 +106,7 @@ class ReviewReport(BaseModel):
     skipped_by_decision: dict[str, int] = Field(default_factory=dict)
     commentable_lines: int = 0
     context: ContextReport | None = None
+    tools: list[ToolRunReport] | None = None
     findings: list[dict[str, object]] = Field(default_factory=list)
     posted_comments: int = 0
     message: str
