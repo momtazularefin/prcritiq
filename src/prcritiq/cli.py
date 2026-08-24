@@ -12,6 +12,7 @@ from .github import GitHubClientError, RepoReferenceError
 from .providers import ProviderError
 from .review import run_dry_run
 from .schemas import IMPLEMENTATION_STATUS
+from .store import StoreError
 from .workspace import WorkspaceError
 
 
@@ -30,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     review.add_argument("--pr", required=True, type=int, help="Pull request number")
     review.add_argument("--mode", default="dry-run", choices=["dry-run"], help="Review mode")
+    review.add_argument(
+        "--persist",
+        action="store_true",
+        help="Record the run in Postgres. Requires DATABASE_URL.",
+    )
     review.add_argument(
         "--review",
         action="store_true",
@@ -81,6 +87,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 include_context=args.context,
                 include_tools=args.tools,
                 include_review=args.review,
+                persist=args.persist,
             )
         except (
             RepoReferenceError,
@@ -88,6 +95,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             ConfigError,
             WorkspaceError,
             ProviderError,
+            StoreError,
         ) as exc:
             print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))
             return 1

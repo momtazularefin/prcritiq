@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m5_review_graph"
-ImplementationStatus = Literal["m5_review_graph"]
+IMPLEMENTATION_STATUS = "m6_run_store"
+ImplementationStatus = Literal["m6_run_store"]
 
 
 class HealthResponse(BaseModel):
@@ -118,6 +118,17 @@ class ReviewOutcome(BaseModel):
     node_sequence: list[str] = Field(default_factory=list)
 
 
+class RunRecord(BaseModel):
+    """Where this run was persisted, and how it is traced."""
+
+    run_id: int
+    status: str
+    created: bool
+    trace_provider: str | None = None
+    trace_id: str | None = None
+    note: str | None = None
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -139,6 +150,7 @@ class ReviewReport(BaseModel):
     commentable_lines: int = 0
     context: ContextReport | None = None
     tools: list[ToolRunReport] | None = None
+    run: RunRecord | None = None
     review: ReviewOutcome | None = None
     findings: list[FindingReport] = Field(default_factory=list)
     suppressed_findings: list[FindingReport] = Field(default_factory=list)

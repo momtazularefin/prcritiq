@@ -82,6 +82,9 @@ class Settings:
     anthropic_model: str = "claude-opus-5"
     openai_model: str = "gpt-5"
     anthropic_api_key: str | None = None
+    database_url: str | None = None
+    langsmith_api_key: str | None = None
+    langsmith_project: str = "prcritiq"
     openai_api_key: str | None = None
     github_webhook_secret: str | None = None
     github_token: str | None = None
@@ -113,6 +116,9 @@ def load_settings() -> Settings:
         anthropic_model=getenv("PRCRITIQ_ANTHROPIC_MODEL", "claude-opus-5"),
         openai_model=getenv("PRCRITIQ_OPENAI_MODEL", "gpt-5"),
         anthropic_api_key=getenv("ANTHROPIC_API_KEY") or None,
+        database_url=getenv("DATABASE_URL") or None,
+        langsmith_api_key=getenv("LANGSMITH_API_KEY") or None,
+        langsmith_project=getenv("LANGSMITH_PROJECT", "prcritiq"),
         openai_api_key=getenv("OPENAI_API_KEY") or None,
         github_webhook_secret=getenv("GITHUB_WEBHOOK_SECRET") or None,
         github_token=getenv("GITHUB_TOKEN") or None,

@@ -19,6 +19,7 @@ from .schemas import (
     FindingReport,
     ReviewOutcome,
     ReviewReport,
+    RunRecord,
     ToolRunReport,
 )
 from .tools import ToolRun
@@ -171,6 +172,7 @@ def build_review_report(
     reviewed: Sequence[ReviewedFinding] | None = None,
     summary: str | None = None,
     model_choice: ModelChoice | None = None,
+    run_record: RunRecord | None = None,
 ) -> ReviewReport:
     """Assemble the dry-run report from parsed diffs and guardrail verdicts."""
 
@@ -222,6 +224,7 @@ def build_review_report(
         skipped_by_decision=dict(sorted(skipped.items())),
         commentable_lines=sum(len(file_diff.changed_new_lines) for file_diff in reviewable),
         tools=build_tool_reports(tool_runs) if tool_runs is not None else None,
+        run=run_record,
         review=(
             build_review_outcome(reviewed, summary or "", model_choice)
             if reviewed is not None

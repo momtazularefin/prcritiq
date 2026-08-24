@@ -25,7 +25,8 @@ The configuration surface is validated at load. Guardrail budgets, retrieval bud
 | `PRCRITIQ_TOOL_TIMEOUT_SECONDS` | `60` | Timeout for a single static-analysis command. |
 | `PRCRITIQ_MAX_TOOL_OUTPUT_BYTES` | `200000` | Cap on captured stdout and stderr per tool run. |
 | `PRCRITIQ_MIN_PUBLISH_CONFIDENCE` | `78` | Findings below this confidence are suppressed by self-critique. |
-| `PRCRITIQ_TRACE_PROVIDER` | `none` | Tracing provider selection. Not used yet. |
+| `PRCRITIQ_TRACE_PROVIDER` | `none` | Tracing provider: `none` or `langsmith`. LangSmith also needs `LANGSMITH_API_KEY`. |
+| `LANGSMITH_PROJECT` | `prcritiq` | LangSmith project a traced run is filed under. |
 | `ACCELERATION` | `none` | Strict acceleration mode: `none`, `gpu`, or `npu`. |
 | `GITHUB_API_BASE_URL` | `https://api.github.com` | GitHub REST API base URL, overridden only for tests or enterprise installations. |
 | `GITHUB_REQUEST_TIMEOUT_SECONDS` | `15` | Timeout for GitHub API requests. |

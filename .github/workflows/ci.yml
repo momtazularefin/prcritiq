@@ -9,6 +9,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    # A store test that never opens a connection proves the schema compiles in
+    # someone's head rather than in Postgres, so CI provides a real database.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: prcritiq
+          POSTGRES_PASSWORD: prcritiq
+          POSTGRES_DB: prcritiq
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prcritiq -d prcritiq"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://prcritiq:prcritiq@localhost:5432/prcritiq
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

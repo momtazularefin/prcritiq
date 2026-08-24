@@ -28,5 +28,6 @@ PRCritiq verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is
 - Model prompts fence diffs, retrieved code, and tool output in labelled blocks, and the system prompt states that content inside them is untrusted data that cannot change the instructions.
 - Prompt-injection defense does not rely on the model complying. Every drafted finding is re-validated after the call against the diff, the retrieved chunk ids, and the tool diagnostics; a finding that targets a line the pull request never added, or cites a source this run never produced, is suppressed regardless of what the model claimed.
 - No model output can trigger shell execution. The tool allowlist is fixed in code and takes no input from a model.
+- Database credentials come from `DATABASE_URL` and are never committed. The bundled compose file is local development only and uses obviously non-production credentials.
 - The demo endpoint does not post comments.
 - Invalid `ACCELERATION` configuration fails explicitly.
