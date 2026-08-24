@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m4_tool_evidence"
-ImplementationStatus = Literal["m4_tool_evidence"]
+IMPLEMENTATION_STATUS = "m5_review_graph"
+ImplementationStatus = Literal["m5_review_graph"]
 
 
 class HealthResponse(BaseModel):
@@ -86,6 +86,38 @@ class ToolRunReport(BaseModel):
     diagnostics_on_changed_lines: int = 0
 
 
+class FindingReport(BaseModel):
+    """One finding as reported, published or suppressed."""
+
+    file_path: str
+    line: int
+    severity: str
+    confidence: int
+    category: str
+    finding: str
+    evidence: str
+    suggested_fix: str
+    source_refs: list[str] = Field(default_factory=list)
+    publish_decision: str
+    suppression_reason: str | None = None
+    comment: str | None = None
+
+
+class ReviewOutcome(BaseModel):
+    """What the review graph did, and which model it used."""
+
+    provider: str | None = None
+    model: str | None = None
+    routing_reason: str | None = None
+    summary: str
+    candidates: int = 0
+    published: int = 0
+    suppressed: int = 0
+    suppressed_by_reason: dict[str, int] = Field(default_factory=dict)
+    invalid_line_rate: float = 0.0
+    node_sequence: list[str] = Field(default_factory=list)
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -107,7 +139,9 @@ class ReviewReport(BaseModel):
     commentable_lines: int = 0
     context: ContextReport | None = None
     tools: list[ToolRunReport] | None = None
-    findings: list[dict[str, object]] = Field(default_factory=list)
+    review: ReviewOutcome | None = None
+    findings: list[FindingReport] = Field(default_factory=list)
+    suppressed_findings: list[FindingReport] = Field(default_factory=list)
     posted_comments: int = 0
     message: str
 

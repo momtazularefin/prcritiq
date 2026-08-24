@@ -12,8 +12,11 @@ from contextlib import nullcontext
 
 from .config import Settings
 from .diff import FileDiff, file_diff_from_changed_file
+from .findings import ReviewedFinding
 from .github import GitHubClient, parse_repo_reference
+from .graph import run_review_graph
 from .guardrails import apply_guardrails, reviewable_files
+from .providers import ModelChoice, ModelProvider
 from .reporting import build_review_report
 from .retrieval import RetrievalResult, SourceIndex, retrieve_context
 from .schemas import ReviewReport
@@ -62,6 +65,8 @@ def run_dry_run(
     client: GitHubClient | None = None,
     include_context: bool = False,
     include_tools: bool = False,
+    include_review: bool = False,
+    provider: ModelProvider | None = None,
 ) -> ReviewReport:
     """Review one pull request without calling a model or posting anything.
 
@@ -99,6 +104,22 @@ def run_dry_run(
                 want_tools=include_tools,
             )
 
+    reviewed: tuple[ReviewedFinding, ...] | None = None
+    summary: str | None = None
+    model_choice: ModelChoice | None = None
+    if include_review:
+        state = run_review_graph(
+            settings=settings,
+            metadata=metadata,
+            changed_files=changed_files,
+            retrieval=retrieval,
+            tool_runs=tool_runs if include_tools else None,
+            provider=provider,
+        )
+        reviewed = state.get("reviewed") or ()
+        summary = state.get("summary") or ""
+        model_choice = state.get("model_choice")
+
     return build_review_report(
         metadata=metadata,
         file_diffs=file_diffs,
@@ -106,4 +127,7 @@ def run_dry_run(
         index=index,
         retrieval=retrieval,
         tool_runs=tool_runs if include_tools else None,
+        reviewed=reviewed,
+        summary=summary,
+        model_choice=model_choice,
     )

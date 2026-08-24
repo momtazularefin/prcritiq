@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from . import __version__
 from .config import ConfigError, load_settings
 from .github import GitHubClientError, RepoReferenceError
+from .providers import ProviderError
 from .review import run_dry_run
 from .schemas import IMPLEMENTATION_STATUS
 from .workspace import WorkspaceError
@@ -29,6 +30,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     review.add_argument("--pr", required=True, type=int, help="Pull request number")
     review.add_argument("--mode", default="dry-run", choices=["dry-run"], help="Review mode")
+    review.add_argument(
+        "--review",
+        action="store_true",
+        help=(
+            "Draft and critique findings with the routed model. Requires a provider "
+            "API key and spends credits."
+        ),
+    )
     review.add_argument(
         "--tools",
         action="store_true",
@@ -71,8 +80,15 @@ def run(argv: Sequence[str] | None = None) -> int:
                 settings=load_settings(),
                 include_context=args.context,
                 include_tools=args.tools,
+                include_review=args.review,
             )
-        except (RepoReferenceError, GitHubClientError, ConfigError, WorkspaceError) as exc:
+        except (
+            RepoReferenceError,
+            GitHubClientError,
+            ConfigError,
+            WorkspaceError,
+            ProviderError,
+        ) as exc:
             print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))
             return 1
         payload = report.model_dump()

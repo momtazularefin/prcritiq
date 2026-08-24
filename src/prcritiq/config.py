@@ -79,6 +79,10 @@ class Settings:
     max_archive_files: int = 20_000
     tool_timeout_seconds: int = 60
     max_tool_output_bytes: int = 200_000
+    anthropic_model: str = "claude-opus-5"
+    openai_model: str = "gpt-5"
+    anthropic_api_key: str | None = None
+    openai_api_key: str | None = None
     github_webhook_secret: str | None = None
     github_token: str | None = None
     github_api_base_url: str = "https://api.github.com"
@@ -106,6 +110,10 @@ def load_settings() -> Settings:
         max_archive_files=_int_from_env("PRCRITIQ_MAX_ARCHIVE_FILES", 20_000),
         tool_timeout_seconds=_int_from_env("PRCRITIQ_TOOL_TIMEOUT_SECONDS", 60),
         max_tool_output_bytes=_int_from_env("PRCRITIQ_MAX_TOOL_OUTPUT_BYTES", 200_000),
+        anthropic_model=getenv("PRCRITIQ_ANTHROPIC_MODEL", "claude-opus-5"),
+        openai_model=getenv("PRCRITIQ_OPENAI_MODEL", "gpt-5"),
+        anthropic_api_key=getenv("ANTHROPIC_API_KEY") or None,
+        openai_api_key=getenv("OPENAI_API_KEY") or None,
         github_webhook_secret=getenv("GITHUB_WEBHOOK_SECRET") or None,
         github_token=getenv("GITHUB_TOKEN") or None,
         github_api_base_url=getenv("GITHUB_API_BASE_URL", "https://api.github.com"),

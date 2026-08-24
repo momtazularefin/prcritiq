@@ -12,6 +12,9 @@ M1 and M2 are covered by unit and fixture tests, including a stubbed end-to-end 
 - Unit tests cover webhook idempotency key construction.
 - Unit tests cover the mocked GitHub client for PR metadata and changed files.
 - CLI tests cover health, dry-run report output, and the non-zero exit path for an unusable repository reference.
+- Review-graph tests run the whole loop against a mock provider, so CI never needs a live model or an API key.
+- Self-critique tests cover every suppression reason, the precedence between them, and that suppressed candidates are retained for rate reporting.
+- Routing tests cover the policy matrix and prove that a missing provider key raises instead of falling back.
 - Tool-runner tests cover the security boundary directly: secrets are absent from a real child process, a binary planted inside the workspace is refused, shell metacharacters stay inert, timeouts and output caps hold, and malformed tool output raises instead of reading as a clean result.
 - Diff tests parse fixture patches for renames, new and deleted files, blank context lines, missing trailing newlines, and malformed hunk headers.
 - Guardrail tests cover every skip decision, the documented precedence between them, and the per-pull-request file budget.

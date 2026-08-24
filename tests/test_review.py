@@ -270,3 +270,85 @@ class TestContextRetrieval:
                 client=stub_client,
                 include_context=True,
             )
+
+
+class TestReviewGraphIntegration:
+    def _finding(self, **overrides):
+        from prcritiq.findings import CandidateFinding
+
+        defaults = {
+            "file_path": "src/app.py",
+            "line": 3,
+            "severity": "high",
+            "confidence": 91,
+            "category": "bug",
+            "finding": "VALUE is assigned but the surrounding module never reads it back.",
+            "evidence": "Line 3 introduces VALUE with no reader anywhere in the diff.",
+            "suggested_fix": "Remove VALUE or wire it into the caller that needs it.",
+        }
+        defaults.update(overrides)
+        return CandidateFinding(**defaults)
+
+    def test_review_is_absent_unless_requested(self, stub_client: StubGitHubClient) -> None:
+        report = run_dry_run(
+            repo="example/repo", pr_number=7, settings=Settings(), client=stub_client
+        )
+
+        assert report.review is None
+        assert report.findings == []
+
+    def test_published_findings_reach_the_report(self, stub_client: StubGitHubClient) -> None:
+        from prcritiq.findings import DraftedFindings
+        from prcritiq.providers import MockProvider
+
+        report = run_dry_run(
+            repo="example/repo",
+            pr_number=7,
+            settings=Settings(),
+            client=stub_client,
+            include_review=True,
+            provider=MockProvider(DraftedFindings(findings=[self._finding()])),
+        )
+
+        assert report.review is not None
+        assert report.review.published == 1
+        assert report.findings[0].comment.startswith("Severity: high")
+        assert "Confidence: 91%" in report.findings[0].comment
+
+    def test_suppressed_findings_are_reported_with_their_reason(
+        self, stub_client: StubGitHubClient
+    ) -> None:
+        from prcritiq.findings import DraftedFindings
+        from prcritiq.providers import MockProvider
+
+        report = run_dry_run(
+            repo="example/repo",
+            pr_number=7,
+            settings=Settings(),
+            client=stub_client,
+            include_review=True,
+            provider=MockProvider(DraftedFindings(findings=[self._finding(line=9999)])),
+        )
+
+        assert report.findings == []
+        assert report.suppressed_findings[0].suppression_reason == "invalid_line"
+        assert report.review.invalid_line_rate == 1.0
+
+    def test_routing_is_recorded_on_the_report(self, stub_client: StubGitHubClient) -> None:
+        """A benchmark figure must be attributable to the model that produced it."""
+
+        from prcritiq.providers import MockProvider
+
+        report = run_dry_run(
+            repo="example/repo",
+            pr_number=7,
+            settings=Settings(),
+            client=stub_client,
+            include_review=True,
+            provider=MockProvider(),
+        )
+
+        assert report.review.provider == "anthropic"
+        assert report.review.model == "claude-opus-5"
+        assert report.review.routing_reason
+        assert report.review.node_sequence[0] == "fetch_diff"

@@ -4,7 +4,7 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M4 static-analysis evidence is implemented, on top of the M1 intake surfaces, M2 diff parsing, and M3 retrieval:
+M5 completes the review loop. The agent now drafts findings and critiques its own output, on top of the M1 intake surfaces, M2 diff parsing, M3 retrieval, and M4 tool evidence:
 
 - Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
 - Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
@@ -13,6 +13,11 @@ M4 static-analysis evidence is implemented, on top of the M1 intake surfaces, M2
 - Bounded and safe: extraction rejects traversal and link members, is capped by file count and total bytes, and writes only inside a temporary workspace that is deleted afterwards. Context has an explicit budget, with a reserved share for the changed code so a large diff cannot starve out related context.
 - Static analysis: `prcritiq review --tools` runs allowlisted checks over the changed files and reports structured diagnostics, flagging which land on lines the pull request actually changed. Commands come from a fixed allowlist, never from the repository; no shell is used; the executable must resolve outside the workspace so a repository cannot supply its own binary; the child process gets a scrubbed environment so no token reaches it; and runs are bounded by a timeout and an output cap.
 - Every tool is reported even when it does not run, with the reason. `eslint` is refused on repositories that configure it, because eslint loads the repository's own config as JavaScript and would execute the pull request's code. `tsc` is refused because the snapshot excludes `node_modules`, so it would report a missing module for every dependency rather than real findings.
+- LangGraph review loop: `prcritiq review --review` runs the seven-node graph from the design, `fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_and_draft -> self_critique -> post_or_summarize`. Each node is an inspectable step, not a line in a prompt.
+- Evidence-backed findings: every finding carries severity, confidence as a percentage, category, the evidence behind it, a suggested fix, and the chunk ids or tool codes it drew on.
+- Self-critique that assumes the model misbehaves: candidates are re-checked against the diff, the retrieved context, and the tool output rather than trusted. A finding is suppressed when it targets a line the pull request never added, carries no evidence, cites a source this run never produced, reads as generic filler, duplicates another, or falls under the confidence threshold. Suppressed candidates are kept and reported with their reason, so a run publishes its own invalid-line rate instead of hiding it.
+- Deterministic model routing with no silent fallback: Claude for compact judgment-heavy synthesis, OpenAI for extensive context or batch evaluation. The choice and its reason are recorded on every report. A missing key or an unknown policy fails loudly rather than reviewing with something else and reporting the model it was asked for.
+- Prompt-injection defense: diffs, retrieved code, and tool output are fenced as labelled untrusted data, the system prompt states they cannot change the instructions, and every finding is validated against the diff afterwards regardless of what the model was told.
 - Working dry-run review: `prcritiq review` fetches a real pull request, parses every patch, applies the guardrail gate, and prints a JSON report of what it would and would not review. No model is called and nothing is posted.
 - FastAPI app with `GET /health`, `POST /demo/review` running that same dry run, and signed `POST /webhooks/github`.
 - Repository references accept the HTTPS and SSH clone forms, a pasted pull-request URL, and the `owner/name` shorthand.
@@ -22,7 +27,6 @@ M4 static-analysis evidence is implemented, on top of the M1 intake surfaces, M2
 
 Not implemented yet:
 
-- LangGraph review loop.
 - GitHub comment posting.
 - Benchmark metrics.
 
@@ -35,11 +39,12 @@ uv sync --dev
 uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review
 uv run ruff check .
 uv run pytest
 ```
 
-The dry-run command reads the pull request from the GitHub REST API and reports parsed diffs and guardrail decisions. It does not call a model or post comments yet, so `findings` is always empty and the report says so explicitly rather than letting an empty list read as a clean bill of health.
+Without `--review` the command reads the pull request and reports parsed diffs and guardrail decisions without calling a model. With `--review` it drafts and critiques findings using the routed provider, which requires an API key and spends credits. Nothing is ever posted to GitHub yet; posting arrives in a later milestone, and the report says which stages actually ran rather than letting an empty findings list read as a clean bill of health.
 
 Public repositories work without a token. Set `GITHUB_TOKEN` to raise the API rate limit or to reach a private repository.
 
