@@ -39,6 +39,29 @@ class FileReport(BaseModel):
     changed_lines: int
 
 
+class ContextChunkReport(BaseModel):
+    """One retrieved chunk, identified so a later finding can cite it."""
+
+    chunk_id: str
+    path: str
+    symbol: str
+    symbol_type: str
+    start_line: int
+    end_line: int
+    reason: str
+
+
+class ContextReport(BaseModel):
+    """What retrieval put in front of the reviewer, and what it left out."""
+
+    indexed_files: int
+    indexed_chunks: int
+    focus: list[ContextChunkReport] = Field(default_factory=list)
+    related: list[ContextChunkReport] = Field(default_factory=list)
+    total_bytes: int = 0
+    truncated: bool = False
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -58,6 +81,7 @@ class ReviewReport(BaseModel):
     skipped_files: int = 0
     skipped_by_decision: dict[str, int] = Field(default_factory=dict)
     commentable_lines: int = 0
+    context: ContextReport | None = None
     findings: list[dict[str, object]] = Field(default_factory=list)
     posted_comments: int = 0
     message: str

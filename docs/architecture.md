@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 and M2 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, and a dry-run review that reports them. The reasoning half of the architecture is planned but not implemented yet.
+M1 through M3 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, repository snapshotting, source chunking, context retrieval, and a dry-run review that reports them. The reasoning half of the architecture is planned but not implemented yet.
 
 ## Target Flow
 
@@ -16,7 +16,10 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 - `prcritiq.cli` exposes health and dry-run review commands.
 - `prcritiq.diff` parses patches into hunks and changed lines, and validates inline-comment targets.
 - `prcritiq.guardrails` decides which changed files are in scope, with an explicit reason for every skip.
-- `prcritiq.review` orchestrates fetch, parse, gate, and report. It is the only module in the dry-run path that performs I/O.
+- `prcritiq.workspace` downloads a repository archive at an exact SHA and extracts it into a temporary workspace under strict safety and size limits.
+- `prcritiq.chunking` splits sources into retrievable chunks, using the standard library `ast` for Python and shallow heuristics for JS/TS.
+- `prcritiq.retrieval` indexes chunks and retrieves related context by imports, nearby tests, directory siblings, and BM25 ranking, under an explicit budget.
+- `prcritiq.review` orchestrates fetch, parse, gate, retrieve, and report. It is the only module in the dry-run path that performs I/O.
 - `prcritiq.config` validates the configuration surface, including strict acceleration modes.
 - `prcritiq.webhooks` verifies GitHub webhook signatures and builds review-run idempotency keys.
 - `prcritiq.github` wraps PR metadata and changed-file reads through the GitHub REST API.

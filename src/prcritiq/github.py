@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -162,6 +163,31 @@ class GitHubClient:
             if len(payload) < 100:
                 return files
             page += 1
+
+    def download_source_archive(self, repo: str, ref: str, destination: Path) -> Path:
+        """Stream the repository tarball at `ref` to `destination`.
+
+        Streamed to disk rather than held in memory, since a repository archive
+        is unbounded input from the caller's point of view.
+        """
+
+        try:
+            with self._client.stream(
+                "GET",
+                f"/repos/{repo}/tarball/{ref}",
+                follow_redirects=True,
+            ) as response:
+                response.raise_for_status()
+                with destination.open("wb") as handle:
+                    for block in response.iter_bytes():
+                        handle.write(block)
+        except httpx.HTTPStatusError as exc:
+            raise GitHubClientError(
+                f"GitHub archive request failed: {exc.response.status_code}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise GitHubClientError(f"GitHub archive request failed: {exc}") from exc
+        return destination
 
     def _get_json(self, path: str, params: dict[str, object] | None = None) -> Any:
         response = self._client.get(path, params=params)

@@ -18,7 +18,7 @@ from pathlib import PurePosixPath
 from typing import Final
 
 from .config import Settings
-from .diff import SUPPORTED_LANGUAGES, FileDiff
+from .diff import SUPPORTED_LANGUAGES, FileDiff, detect_language
 
 
 class GuardrailDecision(StrEnum):
@@ -184,22 +184,13 @@ def _unsafe_path_reason(path: str) -> str | None:
     return None
 
 
-def _is_generated(file_diff: FileDiff) -> str | None:
-    lowered = file_diff.path.lower()
-    if lowered.endswith(_GENERATED_SUFFIXES):
-        return "the filename matches a generated-artifact convention"
-    marked = _GENERATED_SEGMENTS.intersection(_segments(file_diff.path)[:-1])
-    if marked:
-        return f"the file sits in a generated output directory: {sorted(marked)[0]}"
-    if file_diff.patch and _GENERATED_MARKER.search(file_diff.patch):
-        return "the patch carries a generator banner"
-    return None
+def classify_path(path: str) -> GuardrailOutcome | None:
+    """Apply the guardrail checks that need only a path.
 
-
-def evaluate_file(file_diff: FileDiff, settings: Settings) -> GuardrailOutcome:
-    """Return the guardrail verdict for one changed file."""
-
-    path = file_diff.path
+    Shared with repository indexing, which has no diff to inspect but must skip
+    the same vendored, generated, and unsafe files the review gate skips.
+    Returns None when nothing objects on the path alone.
+    """
 
     unsafe = _unsafe_path_reason(path)
     if unsafe is not None:
@@ -228,9 +219,45 @@ def evaluate_file(file_diff: FileDiff, settings: Settings) -> GuardrailOutcome:
             f"the file is vendored third-party code under {sorted(vendored)[0]}/",
         )
 
-    generated = _is_generated(file_diff)
-    if generated is not None:
-        return GuardrailOutcome(path, GuardrailDecision.SKIPPED_GENERATED, generated)
+    if path.lower().endswith(_GENERATED_SUFFIXES):
+        return GuardrailOutcome(
+            path,
+            GuardrailDecision.SKIPPED_GENERATED,
+            "the filename matches a generated-artifact convention",
+        )
+
+    marked = _GENERATED_SEGMENTS.intersection(_segments(path)[:-1])
+    if marked:
+        return GuardrailOutcome(
+            path,
+            GuardrailDecision.SKIPPED_GENERATED,
+            f"the file sits in a generated output directory: {sorted(marked)[0]}",
+        )
+
+    return None
+
+
+def is_indexable_path(path: str) -> bool:
+    """True when a repository path is safe and worth putting in the index."""
+
+    return classify_path(path) is None and detect_language(path) in SUPPORTED_LANGUAGES
+
+
+def evaluate_file(file_diff: FileDiff, settings: Settings) -> GuardrailOutcome:
+    """Return the guardrail verdict for one changed file."""
+
+    path = file_diff.path
+
+    on_path = classify_path(path)
+    if on_path is not None:
+        return on_path
+
+    if file_diff.patch and _GENERATED_MARKER.search(file_diff.patch):
+        return GuardrailOutcome(
+            path,
+            GuardrailDecision.SKIPPED_GENERATED,
+            "the patch carries a generator banner",
+        )
 
     if file_diff.language not in SUPPORTED_LANGUAGES:
         return GuardrailOutcome(

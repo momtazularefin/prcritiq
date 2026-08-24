@@ -4,11 +4,13 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M2 diff parsing and guardrails are implemented locally, on top of the M1 intake surfaces:
+M3 context retrieval is implemented, on top of the M1 intake surfaces and M2 diff parsing:
 
 - Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
 - Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
 - Guardrail gate with structured decisions for generated, lockfile, vendored, binary, oversized-file, oversized-diff, unsupported-language, and unsafe-path files, plus a per-pull-request reviewable-file budget. Every skip carries an explicit reason.
+- Context retrieval: `prcritiq review --context` downloads the repository at the head commit, chunks it by real symbol boundaries, and retrieves related code by imports, nearby tests, directory siblings, and identifier-aware BM25 ranking. Every retrieved chunk carries a chunk id and the reason it was chosen, so a later finding can cite it.
+- Bounded and safe: extraction rejects traversal and link members, is capped by file count and total bytes, and writes only inside a temporary workspace that is deleted afterwards. Context has an explicit budget, with a reserved share for the changed code so a large diff cannot starve out related context.
 - Working dry-run review: `prcritiq review` fetches a real pull request, parses every patch, applies the guardrail gate, and prints a JSON report of what it would and would not review. No model is called and nothing is posted.
 - FastAPI app with `GET /health`, `POST /demo/review` running that same dry run, and signed `POST /webhooks/github`.
 - Repository references accept the HTTPS and SSH clone forms, a pasted pull-request URL, and the `owner/name` shorthand.
@@ -18,11 +20,12 @@ M2 diff parsing and guardrails are implemented locally, on top of the M1 intake 
 
 Not implemented yet:
 
-- Context retrieval.
 - Static analysis evidence.
 - LangGraph review loop.
 - GitHub comment posting.
 - Benchmark metrics.
+
+Retrieval ranking is lexical, not vector embeddings. Identifier-aware BM25 is a deliberate default for code: it is deterministic, needs no model download, and matches on the names that actually connect one region of a codebase to another. `PRCRITIQ_SIMILARITY=embedding` is accepted by the configuration surface and fails with a clear error rather than quietly running the lexical path instead.
 
 ## Quick Start
 
@@ -30,6 +33,7 @@ Not implemented yet:
 uv sync --dev
 uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context
 uv run ruff check .
 uv run pytest
 ```

@@ -7,10 +7,11 @@ import json
 from collections.abc import Sequence
 
 from . import __version__
-from .config import load_settings
+from .config import ConfigError, load_settings
 from .github import GitHubClientError, RepoReferenceError
 from .review import run_dry_run
 from .schemas import IMPLEMENTATION_STATUS
+from .workspace import WorkspaceError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,6 +29,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     review.add_argument("--pr", required=True, type=int, help="Pull request number")
     review.add_argument("--mode", default="dry-run", choices=["dry-run"], help="Review mode")
+    review.add_argument(
+        "--context",
+        action="store_true",
+        help=(
+            "Download the repository at the head commit and retrieve review context. "
+            "Off by default because it fetches a source archive."
+        ),
+    )
 
     return parser
 
@@ -52,8 +61,9 @@ def run(argv: Sequence[str] | None = None) -> int:
                 repo=args.repo,
                 pr_number=args.pr,
                 settings=load_settings(),
+                include_context=args.context,
             )
-        except (RepoReferenceError, GitHubClientError) as exc:
+        except (RepoReferenceError, GitHubClientError, ConfigError, WorkspaceError) as exc:
             print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))
             return 1
         payload = report.model_dump()

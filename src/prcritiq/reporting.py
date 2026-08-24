@@ -7,7 +7,8 @@ from collections.abc import Sequence
 from .diff import FileDiff
 from .github import PullRequestMetadata
 from .guardrails import GuardrailDecision, GuardrailOutcome
-from .schemas import FileReport, ReviewReport
+from .retrieval import RetrievalResult, RetrievedChunk, SourceIndex
+from .schemas import ContextChunkReport, ContextReport, FileReport, ReviewReport
 from .webhooks import build_dry_run_key
 
 _NO_MODEL_NOTE = (
@@ -16,12 +17,45 @@ _NO_MODEL_NOTE = (
     "findings list means not-yet-implemented rather than nothing-to-report."
 )
 
+_NO_MODEL_WITH_CONTEXT_NOTE = (
+    "Dry run: the diff was parsed, the guardrail gate applied, and review context "
+    "retrieved. No model was called and no comment was posted, so the empty "
+    "findings list means not-yet-implemented rather than nothing-to-report."
+)
+
+
+def _describe(item: RetrievedChunk) -> ContextChunkReport:
+    return ContextChunkReport(
+        chunk_id=item.chunk.chunk_id,
+        path=item.chunk.path,
+        symbol=item.chunk.symbol,
+        symbol_type=item.chunk.symbol_type,
+        start_line=item.chunk.start_line,
+        end_line=item.chunk.end_line,
+        reason=item.reason,
+    )
+
+
+def build_context_report(index: SourceIndex, retrieval: RetrievalResult) -> ContextReport:
+    """Describe retrieved context by chunk id so a finding can cite it."""
+
+    return ContextReport(
+        indexed_files=len(index.paths),
+        indexed_chunks=len(index.chunks),
+        focus=[_describe(item) for item in retrieval.focus],
+        related=[_describe(item) for item in retrieval.related],
+        total_bytes=retrieval.total_bytes,
+        truncated=retrieval.truncated,
+    )
+
 
 def build_review_report(
     *,
     metadata: PullRequestMetadata,
     file_diffs: Sequence[FileDiff],
     outcomes: Sequence[GuardrailOutcome],
+    index: SourceIndex | None = None,
+    retrieval: RetrievalResult | None = None,
 ) -> ReviewReport:
     """Assemble the dry-run report from parsed diffs and guardrail verdicts."""
 
@@ -72,5 +106,10 @@ def build_review_report(
         skipped_files=len(files) - len(reviewable),
         skipped_by_decision=dict(sorted(skipped.items())),
         commentable_lines=sum(len(file_diff.changed_new_lines) for file_diff in reviewable),
-        message=_NO_MODEL_NOTE,
+        context=(
+            build_context_report(index, retrieval)
+            if index is not None and retrieval is not None
+            else None
+        ),
+        message=(_NO_MODEL_WITH_CONTEXT_NOTE if retrieval is not None else _NO_MODEL_NOTE),
     )
