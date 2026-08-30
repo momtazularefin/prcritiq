@@ -4,7 +4,7 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M6 adds durable run history. The agent reviews pull requests and records what it did, on top of the M1 intake surfaces, M2 diff parsing, M3 retrieval, M4 tool evidence, and the M5 review loop:
+M7 closes the loop: PRCritiq can now post what it finds. On top of the M1 intake surfaces, M2 diff parsing, M3 retrieval, M4 tool evidence, the M5 review loop, and the M6 run store:
 
 - Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
 - Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
@@ -22,6 +22,9 @@ M6 adds durable run history. The agent reviews pull requests and records what it
 - Idempotency enforced by the database, not by an application check: the run key is `UNIQUE`, so a redelivered webhook or a repeated command resolves to the existing run instead of writing a second one. Two workers racing cannot both win.
 - A run state machine with no way back: `pending -> running -> summarized -> posted`, with `failed` and `skipped` as terminal outcomes. A finished run cannot be reopened and rewritten.
 - Optional LangSmith trace linkage. Tracing is off unless it is both selected and credentialed, and a run never records a fabricated trace id, because an identifier nobody can resolve is worse than none.
+- GitHub posting behind three gates: `prcritiq review --post` publishes only findings that survived self-critique, re-validates every target line immediately before the write because GitHub accepts comments on a wider set of lines than a pull request actually added, and refuses to post a body whose hash is already recorded for that run. Posting requires `--review`, `GITHUB_TOKEN`, and a database, and fails loudly without them.
+- A quiet run stays quiet. When nothing clears the bar, nothing is posted and the outcome is recorded in run history instead, because a comment announcing that there is nothing to say is still a comment.
+- Markdown reports: `--markdown PATH` renders the run for a human reader, listing findings in full, suppression counts with the invalid-line rate, files not reviewed with reasons, and tool outcomes. Untrusted pull request text is escaped so it cannot break out of a table cell.
 - Working dry-run review: `prcritiq review` fetches a real pull request, parses every patch, applies the guardrail gate, and prints a JSON report of what it would and would not review. No model is called and nothing is posted.
 - FastAPI app with `GET /health`, `POST /demo/review` running that same dry run, and signed `POST /webhooks/github`.
 - Repository references accept the HTTPS and SSH clone forms, a pasted pull-request URL, and the `owner/name` shorthand.
@@ -31,7 +34,6 @@ M6 adds durable run history. The agent reviews pull requests and records what it
 
 Not implemented yet:
 
-- GitHub comment posting.
 - Benchmark metrics.
 
 Retrieval ranking is identifier-aware BM25, not vector embeddings. This is a settled design choice rather than a gap: what connects two regions of a codebase is usually a shared identifier, which lexical matching captures directly, and keeping it lexical means retrieval is deterministic, reproducible offline, and free of a model download. A vector provider can be added behind the existing `SimilarityProvider` protocol without touching any caller. `PRCRITIQ_SIMILARITY=embedding` is a valid configuration value that fails with a clear error rather than quietly running the lexical path instead.
@@ -43,13 +45,13 @@ uv sync --dev
 uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools
-uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review --markdown report.md
 docker compose up -d   # local Postgres for --persist
 uv run ruff check .
 uv run pytest
 ```
 
-Without `--review` the command reads the pull request and reports parsed diffs and guardrail decisions without calling a model. With `--review` it drafts and critiques findings using the routed provider, which requires an API key and spends credits. Nothing is ever posted to GitHub yet; posting arrives in a later milestone, and the report says which stages actually ran rather than letting an empty findings list read as a clean bill of health.
+Without `--review` the command reads the pull request and reports parsed diffs and guardrail decisions without calling a model. With `--review` it drafts and critiques findings using the routed provider, which requires an API key and spends credits. Nothing reaches GitHub unless you add `--post`, which is the only flag that writes. The report always names which stages actually ran, so an empty findings list is never mistaken for a clean bill of health.
 
 Public repositories work without a token. Set `GITHUB_TOKEN` to raise the API rate limit or to reach a private repository.
 

@@ -17,6 +17,7 @@ from .schemas import (
     DiagnosticReport,
     FileReport,
     FindingReport,
+    PostingReport,
     ReviewOutcome,
     ReviewReport,
     RunRecord,
@@ -30,9 +31,8 @@ _FINDINGS_CAVEAT = (
     "means not-yet-implemented rather than nothing-to-report."
 )
 
-_POSTING_CAVEAT = (
-    "Findings were drafted and critiqued but nothing was posted; posting arrives "
-    "in a later milestone."
+_NOT_POSTED_CAVEAT = (
+    "Findings were drafted and critiqued. Nothing was posted, because posting was not requested."
 )
 
 
@@ -40,6 +40,7 @@ def _describe_evidence(
     retrieval: RetrievalResult | None,
     tool_runs: Sequence[ToolRun] | None,
     reviewed: Sequence[ReviewedFinding] | None = None,
+    posting: PostingReport | None = None,
 ) -> str:
     """State exactly which evidence stages ran, so the report never overclaims."""
 
@@ -50,11 +51,18 @@ def _describe_evidence(
         gathered.append("static analysis run")
     if reviewed is not None:
         gathered.append("the review graph run")
+    if posting is not None:
+        gathered.append("findings posted")
     if len(gathered) == 2:
         stages = " and ".join(gathered)
     else:
         stages = f"{', '.join(gathered[:-1])}, and {gathered[-1]}"
-    caveat = _POSTING_CAVEAT if reviewed is not None else _FINDINGS_CAVEAT
+    if posting is not None:
+        caveat = posting.summary
+    elif reviewed is not None:
+        caveat = _NOT_POSTED_CAVEAT
+    else:
+        caveat = _FINDINGS_CAVEAT
     return f"Dry run: {stages}. {caveat}"
 
 
@@ -173,6 +181,7 @@ def build_review_report(
     summary: str | None = None,
     model_choice: ModelChoice | None = None,
     run_record: RunRecord | None = None,
+    posting: PostingReport | None = None,
 ) -> ReviewReport:
     """Assemble the dry-run report from parsed diffs and guardrail verdicts."""
 
@@ -225,6 +234,7 @@ def build_review_report(
         commentable_lines=sum(len(file_diff.changed_new_lines) for file_diff in reviewable),
         tools=build_tool_reports(tool_runs) if tool_runs is not None else None,
         run=run_record,
+        posting=posting,
         review=(
             build_review_outcome(reviewed, summary or "", model_choice)
             if reviewed is not None
@@ -237,5 +247,5 @@ def build_review_report(
             if index is not None and retrieval is not None
             else None
         ),
-        message=_describe_evidence(retrieval, tool_runs, reviewed),
+        message=_describe_evidence(retrieval, tool_runs, reviewed, posting),
     )

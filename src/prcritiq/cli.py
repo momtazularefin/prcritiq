@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from . import __version__
 from .config import ConfigError, load_settings
 from .github import GitHubClientError, RepoReferenceError
+from .markdown import render_report
 from .providers import ProviderError
 from .review import run_dry_run
 from .schemas import IMPLEMENTATION_STATUS
@@ -31,6 +33,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     review.add_argument("--pr", required=True, type=int, help="Pull request number")
     review.add_argument("--mode", default="dry-run", choices=["dry-run"], help="Review mode")
+    review.add_argument(
+        "--post",
+        action="store_true",
+        help=(
+            "Post validated findings to the pull request. Requires --review, "
+            "GITHUB_TOKEN, and DATABASE_URL. This writes to GitHub."
+        ),
+    )
+    review.add_argument(
+        "--markdown",
+        metavar="PATH",
+        help="Also write a Markdown report to PATH.",
+    )
     review.add_argument(
         "--persist",
         action="store_true",
@@ -88,6 +103,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 include_tools=args.tools,
                 include_review=args.review,
                 persist=args.persist,
+                post=args.post,
             )
         except (
             RepoReferenceError,
@@ -99,6 +115,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         ) as exc:
             print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))
             return 1
+        if args.markdown:
+            Path(args.markdown).write_text(render_report(report), encoding="utf-8")
         payload = report.model_dump()
     else:  # pragma: no cover - argparse prevents this branch.
         parser.error(f"unknown command: {args.command}")

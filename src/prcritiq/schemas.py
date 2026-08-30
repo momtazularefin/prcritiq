@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m6_run_store"
-ImplementationStatus = Literal["m6_run_store"]
+IMPLEMENTATION_STATUS = "m7_posting"
+ImplementationStatus = Literal["m7_posting"]
 
 
 class HealthResponse(BaseModel):
@@ -129,6 +129,16 @@ class RunRecord(BaseModel):
     note: str | None = None
 
 
+class PostingReport(BaseModel):
+    """What posting did, or declined to do."""
+
+    attempted: int = 0
+    posted: int = 0
+    skipped: list[dict[str, object]] = Field(default_factory=list)
+    comment_ids: list[int] = Field(default_factory=list)
+    summary: str
+
+
 class ReviewReport(BaseModel):
     service: Literal["prcritiq"] = "prcritiq"
     implementation_status: ImplementationStatus = IMPLEMENTATION_STATUS
@@ -152,6 +162,7 @@ class ReviewReport(BaseModel):
     tools: list[ToolRunReport] | None = None
     run: RunRecord | None = None
     review: ReviewOutcome | None = None
+    posting: PostingReport | None = None
     findings: list[FindingReport] = Field(default_factory=list)
     suppressed_findings: list[FindingReport] = Field(default_factory=list)
     posted_comments: int = 0

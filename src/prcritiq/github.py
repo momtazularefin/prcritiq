@@ -80,6 +80,16 @@ class PullRequestMetadata:
 
 
 @dataclass(frozen=True)
+class PostedComment:
+    """A review comment that now exists on GitHub."""
+
+    comment_id: int
+    path: str
+    line: int
+    html_url: str
+
+
+@dataclass(frozen=True)
 class ChangedFile:
     filename: str
     status: str
@@ -164,6 +174,41 @@ class GitHubClient:
                 return files
             page += 1
 
+    def create_review_comment(
+        self,
+        repo: str,
+        number: int,
+        *,
+        commit_id: str,
+        path: str,
+        line: int,
+        body: str,
+    ) -> PostedComment:
+        """Post one inline review comment on a pull request.
+
+        The only write this client performs. Callers must have validated the
+        target line first; GitHub will accept a comment on any line it considers
+        part of the diff, which is broader than the lines this pull request
+        actually added.
+        """
+
+        payload = self._post_json(
+            f"/repos/{repo}/pulls/{number}/comments",
+            {
+                "body": body,
+                "commit_id": commit_id,
+                "path": path,
+                "line": line,
+                "side": "RIGHT",
+            },
+        )
+        return PostedComment(
+            comment_id=int(payload["id"]),
+            path=str(payload.get("path", path)),
+            line=int(payload.get("line") or line),
+            html_url=str(payload.get("html_url", "")),
+        )
+
     def download_source_archive(self, repo: str, ref: str, destination: Path) -> Path:
         """Stream the repository tarball at `ref` to `destination`.
 
@@ -188,6 +233,16 @@ class GitHubClient:
         except httpx.HTTPError as exc:
             raise GitHubClientError(f"GitHub archive request failed: {exc}") from exc
         return destination
+
+    def _post_json(self, path: str, payload: dict[str, object]) -> Any:
+        response = self._client.post(path, json=payload)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise GitHubClientError(
+                f"GitHub rejected the comment: {response.status_code} {response.text}"
+            ) from exc
+        return response.json()
 
     def _get_json(self, path: str, params: dict[str, object] | None = None) -> Any:
         response = self._client.get(path, params=params)

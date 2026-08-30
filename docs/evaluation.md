@@ -15,6 +15,7 @@ M1 and M2 are covered by unit and fixture tests, including a stubbed end-to-end 
 - Review-graph tests run the whole loop against a mock provider, so CI never needs a live model or an API key.
 - Store tests run against a real Postgres, provided as a service container in CI and by `docker compose up -d` locally. They are skipped rather than faked when no `DATABASE_URL` is set, so a green run without a database never reads as evidence that the schema works.
 - Idempotency is tested by creating the same run twice and asserting one row, and the run state machine is tested for both legal and refused transitions.
+- Posting tests use a recording client, so no test writes to a real pull request. They cover the suppressed-finding gate, the last-gate line check, duplicate refusal on a second run, stored comment ids, and the quiet path when nothing clears the bar.
 - Self-critique tests cover every suppression reason, the precedence between them, and that suppressed candidates are retained for rate reporting.
 - Routing tests cover the policy matrix and prove that a missing provider key raises instead of falling back.
 - Tool-runner tests cover the security boundary directly: secrets are absent from a real child process, a binary planted inside the workspace is refused, shell metacharacters stay inert, timeouts and output caps hold, and malformed tool output raises instead of reading as a clean result.

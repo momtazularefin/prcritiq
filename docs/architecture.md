@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 through M6 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, repository snapshotting, source chunking, context retrieval, allowlisted static analysis, the LangGraph review loop with self-critique, the Postgres run store, and a dry-run review that reports all of it. GitHub posting and the benchmark are planned but not implemented yet.
+M1 through M7 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, repository snapshotting, source chunking, context retrieval, allowlisted static analysis, the LangGraph review loop with self-critique, the Postgres run store, and gated GitHub posting with Markdown reports. The benchmark is planned but not implemented yet.
 
 ## Target Flow
 
@@ -27,7 +27,9 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 - `prcritiq.graph` wires the seven design nodes into a LangGraph state graph.
 - `prcritiq.store` owns the Postgres schema, the run state machine, and idempotent run creation.
 - `prcritiq.tracing` opens a LangSmith root run when tracing is configured, and records nothing when it is not.
-- `prcritiq.review` orchestrates fetch, parse, gate, retrieve, analyze, review, persist, and report. Context retrieval and static analysis share one repository download and one workspace. It is the only module in the dry-run path that performs I/O.
+- `prcritiq.posting` publishes validated findings, re-checking the target line and refusing a duplicate body.
+- `prcritiq.markdown` renders a report for a human reader.
+- `prcritiq.review` orchestrates fetch, parse, gate, retrieve, analyze, review, persist, post, and report. Context retrieval and static analysis share one repository download and one workspace. It is the only module in the dry-run path that performs I/O.
 - `prcritiq.config` validates the configuration surface, including strict acceleration modes.
 - `prcritiq.webhooks` verifies GitHub webhook signatures and builds review-run idempotency keys.
 - `prcritiq.github` wraps PR metadata and changed-file reads through the GitHub REST API.

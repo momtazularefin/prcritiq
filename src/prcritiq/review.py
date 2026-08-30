@@ -13,15 +13,16 @@ from typing import Any
 
 from . import store as run_store
 from .config import Settings
-from .diff import FileDiff, file_diff_from_changed_file
+from .diff import FileDiff, build_diff_index, file_diff_from_changed_file
 from .findings import ReviewedFinding
 from .github import GitHubClient, parse_repo_reference
 from .graph import run_review_graph
 from .guardrails import apply_guardrails, reviewable_files
+from .posting import post_findings
 from .providers import ModelChoice, ModelProvider
 from .reporting import build_review_report
 from .retrieval import RetrievalResult, SourceIndex, retrieve_context
-from .schemas import ReviewReport, RunRecord
+from .schemas import PostingReport, ReviewReport, RunRecord
 from .tools import ToolRun, run_static_analysis
 from .tracing import TraceHandle, trace_run
 from .webhooks import build_dry_run_key
@@ -71,6 +72,7 @@ def run_dry_run(
     include_tools: bool = False,
     include_review: bool = False,
     persist: bool = False,
+    post: bool = False,
     provider: ModelProvider | None = None,
 ) -> ReviewReport:
     """Review one pull request without calling a model or posting anything.
@@ -128,8 +130,13 @@ def run_dry_run(
         summary = state.get("summary") or ""
         model_choice = state.get("model_choice")
 
+    if post and not include_review:
+        raise run_store.StoreError(
+            "Posting requires --review: there are no findings to post without a review."
+        )
+
     run_record: RunRecord | None = None
-    if persist:
+    if persist or post:
         run_record = _persist_run(
             settings=settings,
             report_key=build_dry_run_key(
@@ -147,6 +154,19 @@ def run_dry_run(
             trace=trace,
         )
 
+    posting_report: PostingReport | None = None
+    if post and run_record is not None:
+        posting_report = _post_findings(
+            settings=settings,
+            run_record=run_record,
+            repo_full_name=repo_full_name,
+            pr_number=pr_number,
+            head_sha=metadata.head_sha,
+            reviewed=reviewed or (),
+            diff_index=build_diff_index(file_diffs),
+            client=resolved if client is not None else None,
+        )
+
     return build_review_report(
         metadata=metadata,
         file_diffs=file_diffs,
@@ -158,6 +178,7 @@ def run_dry_run(
         summary=summary,
         model_choice=model_choice,
         run_record=run_record,
+        posting=posting_report,
     )
 
 
@@ -237,4 +258,60 @@ def _persist_run(
         created=True,
         trace_provider=trace.stored_provider if trace else None,
         trace_id=trace.trace_id if trace else None,
+    )
+
+
+def _post_findings(
+    *,
+    settings: Settings,
+    run_record: RunRecord,
+    repo_full_name: str,
+    pr_number: int,
+    head_sha: str,
+    reviewed: Sequence[ReviewedFinding],
+    diff_index: Any,
+    client: GitHubClient | None,
+) -> PostingReport:
+    """Post validated findings, opening a client only if one was not supplied."""
+
+    if not settings.github_token and client is None:
+        raise run_store.StoreError(
+            "Posting requires GITHUB_TOKEN. PRCritiq will not attempt an unauthenticated write."
+        )
+
+    owned = client is None
+    resolved = client or GitHubClient(
+        token=settings.github_token,
+        api_base_url=settings.github_api_base_url,
+        timeout_seconds=settings.github_request_timeout_seconds,
+    )
+    try:
+        with run_store.connect(str(settings.database_url)) as connection:
+            outcome = post_findings(
+                client=resolved,
+                connection=connection,
+                run_id=run_record.run_id,
+                repo=repo_full_name,
+                pr_number=pr_number,
+                head_sha=head_sha,
+                reviewed=reviewed,
+                diff_index=diff_index,
+            )
+            if outcome.posted:
+                run_store.update_run_status(
+                    connection, run_record.run_id, run_store.RunStatus.POSTED
+                )
+    finally:
+        if owned:
+            resolved.close()
+
+    return PostingReport(
+        attempted=outcome.attempted,
+        posted=outcome.posted_count,
+        skipped=[
+            {"file_path": item.file_path, "line": item.line, "reason": item.reason}
+            for item in outcome.skipped
+        ],
+        comment_ids=[item.comment_id for item in outcome.posted],
+        summary=outcome.summary,
     )
