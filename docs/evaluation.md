@@ -2,7 +2,11 @@
 
 ## Status
 
-M1 and M2 are covered by unit and fixture tests, including a stubbed end-to-end dry run. The PR-review benchmark is planned for a later milestone.
+The benchmark harness and corpus are built. The corpus is 20 real merged pull requests drawn from 8 code-heavy Python repositories, carrying 46 labels taken from inline review comments humans left on those pull requests, frozen as fixtures under `eval/`.
+
+No live benchmark result is published. Every case has so far been scored against a mocked model, which proves the measurement rather than the reviewer. The live run is blocked on `ANTHROPIC_WORKSPACE_ID`, because the configured key is identity-linked and the API rejects requests that do not name a workspace.
+
+Two honest limitations apply to any number this harness eventually produces. Labels are filtered by documented heuristics rather than hand-adjudicated, and finding-to-label matching is mechanical: same file, a line within five, and at least 18 percent shared distinctive vocabulary. The evaluation plan asks for manual adjudication of ambiguous matches, which this harness does not perform. Both are stated in every report it writes.
 
 ## Current Evidence
 

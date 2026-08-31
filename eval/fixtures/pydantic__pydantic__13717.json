@@ -1,0 +1,52 @@
+{
+  "files": [
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "pydantic/json_schema.py",
+      "patch": "@@ -1606,7 +1606,7 @@ def _get_alias_name(self, field: CoreSchemaField, name: str) -> str:\n         if field['type'] == 'computed-field':\n             alias: Any = field.get('alias', name)\n         elif self.mode == 'validation':\n-            alias = field.get('validation_alias', name)\n+            alias = name if not self._config.validate_by_alias else field.get('validation_alias', name)\n         else:\n             alias = field.get('serialization_alias', name)\n         if isinstance(alias, str):",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 33,
+      "changes": 33,
+      "deletions": 0,
+      "filename": "tests/test_json_schema.py",
+      "patch": "@@ -140,6 +140,39 @@ class ApplePie(BaseModel):\n     assert list(ApplePie.model_json_schema(by_alias=False)['properties'].keys()) == ['a', 'b']\n \n \n+def test_validate_by_alias_false_uses_the_field_name():\n+    class Model(BaseModel):\n+        model_config = ConfigDict(validate_by_alias=False, validate_by_name=True)\n+        my_field: str = Field(alias='myAlias')\n+\n+    assert list(Model.model_json_schema()['properties']) == ['my_field']\n+    # Serialization is governed by `serialize_by_alias`, which this leaves alone:\n+    assert list(Model.model_json_schema(mode='serialization')['properties']) == ['myAlias']\n+\n+    @pydantic.dataclasses.dataclass(config=ConfigDict(validate_by_alias=False, validate_by_name=True))\n+    class Dataclass:\n+        my_field: str = Field(alias='myAlias')\n+\n+    adapter = TypeAdapter(Dataclass)\n+    assert list(adapter.json_schema()['properties']) == ['my_field']\n+\n+\n+def test_validate_by_alias_false_is_scoped_to_its_own_model():\n+    class Inner(BaseModel):\n+        model_config = ConfigDict(validate_by_alias=False, validate_by_name=True)\n+        inner_field: str = Field(alias='innerAlias')\n+\n+    class Outer(BaseModel):\n+        outer_field: str = Field(alias='outerAlias')\n+        inner: Inner\n+\n+    json_schema = Outer.model_json_schema()\n+    assert list(json_schema['properties']) == ['outerAlias', 'inner']\n+    assert list(json_schema['$defs']['Inner']['properties']) == ['inner_field']\n+\n+    assert Outer.model_validate({'outerAlias': 'x', 'inner': {'inner_field': 'y'}}).outer_field == 'x'\n+\n+\n def test_ref_template():\n     class KeyLimePie(BaseModel):\n         x: str = None",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "MLuc24",
+    "base_sha": "d4e72faf5749257cd7feeb27bc7ca56c423942b6",
+    "head_sha": "f31e5769c01ba57dae116974c71a6b9124c6105a",
+    "html_url": "https://github.com/pydantic/pydantic/pull/13717",
+    "number": 13717,
+    "repo": "pydantic/pydantic",
+    "state": "closed",
+    "title": "Use the field name in validation JSON schemas when `validate_by_alias` is `False`"
+  },
+  "review_comments": [
+    {
+      "body": "```suggestion\n            alias = name if not self._config.validate_by_alias else field.get('validation_alias', name)\n```",
+      "line": 1611,
+      "path": "pydantic/json_schema.py",
+      "user": "Viicos"
+    },
+    {
+      "body": "```suggestion\n```",
+      "line": 158,
+      "path": "tests/test_json_schema.py",
+      "user": "Viicos"
+    },
+    {
+      "body": "```suggestion\n```",
+      "line": 166,
+      "path": "tests/test_json_schema.py",
+      "user": "Viicos"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "files": [
+    {
+      "additions": 6,
+      "changes": 6,
+      "deletions": 0,
+      "filename": "CHANGES/7157.bugfix.rst",
+      "patch": "@@ -0,0 +1,6 @@\n+Fixed ``ZLibDecompressor`` silently dropping data past the first\n+member when decompressing concatenated gzip/deflate streams. Each subsequent\n+member is now handed to a fresh decompressor, matching the behaviour already\n+implemented for ZSTD multi-frame streams.\n+\n+-- by :user:`Ashutosh-177`",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 1,
+      "changes": 1,
+      "deletions": 0,
+      "filename": "CONTRIBUTORS.txt",
+      "patch": "@@ -57,6 +57,7 @@ Arie Bovenberg\n Arseny Timoniq\n Artem Yushkovskiy\n Arthur Darcet\n+Ashutosh Kumar Singh\n Austin Scola\n Bai Haoran\n Ben Bader",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 35,
+      "changes": 36,
+      "deletions": 1,
+      "filename": "aiohttp/compression_utils.py",
+      "patch": "@@ -55,6 +55,9 @@ def eof(self) -> bool: ...\n     @property\n     def unconsumed_tail(self) -> bytes: ...\n \n+    @property\n+    def unused_data(self) -> bytes: ...\n+\n \n class ZLibBackendProtocol(Protocol):\n     MAX_WBITS: int\n@@ -275,15 +278,42 @@ def __init__(\n         self._zlib_backend: Final = ZLibBackendWrapper(ZLibBackend._zlib_backend)\n         self._decompressor = self._zlib_backend.decompressobj(wbits=self._mode)\n         self._last_empty = False\n+        self._pending_unused_data: bytes | None = None\n \n     def decompress_sync(\n         self, data: Buffer, max_length: int = ZLIB_MAX_LENGTH_UNLIMITED\n     ) -> bytes:\n+        if self._pending_unused_data is not None:\n+            data = self._pending_unused_data + bytes(data)\n+            self._pending_unused_data = None\n         result = self._decompressor.decompress(\n             self._decompressor.unconsumed_tail + data, max_length\n         )\n         # Only way to know that isal has no further data is checking we get no output\n         self._last_empty = result == b\"\"\n+\n+        # Handle concatenated gzip/deflate streams (multi-member).\n+        # After a member ends, unused_data holds the start of the next member.\n+        # Create a fresh decompressor for each subsequent member.\n+        while self._decompressor.eof and self._decompressor.unused_data:\n+            unused = self._decompressor.unused_data\n+            self._decompressor = self._zlib_backend.decompressobj(wbits=self._mode)\n+            if max_length != ZLIB_MAX_LENGTH_UNLIMITED:\n+                max_length -= len(result)\n+                if max_length <= 0:\n+                    self._pending_unused_data = unused\n+                    break\n+            chunk = self._decompressor.decompress(unused, max_length)\n+            self._last_empty = chunk == b\"\"\n+            result += chunk\n+\n+        # Member ended exactly at chunk boundary \u2014 no unused_data, but the\n+        # next feed_data() call would fail on the spent decompressor.\n+        # Only reset for gzip; deflate's feed_eof() relies on eof=True to\n+        # confirm the stream is complete.\n+        if self._decompressor.eof and self._mode > self._zlib_backend.MAX_WBITS:\n+            self._decompressor = self._zlib_backend.decompressobj(wbits=self._mode)\n+\n         return result\n \n     def flush(self, length: int = 0) -> bytes:\n@@ -295,7 +325,11 @@ def flush(self, length: int = 0) -> bytes:\n \n     @property\n     def data_available(self) -> bool:\n-        return bool(self._decompressor.unconsumed_tail) or not self._last_empty\n+        return (\n+            bool(self._decompressor.unconsumed_tail)\n+            or not self._last_empty\n+            or self._pending_unused_data is not None\n+        )\n \n     @property\n     def eof(self) -> bool:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 2,
+      "deletions": 0,
+      "filename": "docs/spelling_wordlist.txt",
+      "patch": "@@ -99,6 +99,7 @@ Cython\n Cythonize\n cythonized\n de\n+decompressor\n deduplicate\n defs\n Dependabot\n@@ -145,6 +146,7 @@ github\n google\n gunicorn\n gunicorn\u2019s\n+gzip\n gzipped\n hackish\n highlevel",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 36,
+      "changes": 36,
+      "deletions": 0,
+      "filename": "tests/test_compression_utils.py",
+      "patch": "@@ -1,5 +1,6 @@\n \"\"\"Tests for compression utils.\"\"\"\n \n+import gzip\n import sys\n \n import pytest\n@@ -87,3 +88,38 @@ def test_zstd_multi_frame_max_length_exhausted_preserves_unused_data() -> None:\n     assert result1 == b\"AAAA\"\n     result2 = d.decompress_sync(frame3)\n     assert result2 == b\"BBBBCCCC\"\n+\n+\n+def test_zlib_gzip_multi_member_unlimited() -> None:\n+    d = ZLibDecompressor(encoding=\"gzip\")\n+    member1 = gzip.compress(b\"AAAA\")\n+    member2 = gzip.compress(b\"BBBB\")\n+    result = d.decompress_sync(member1 + member2)\n+    assert result == b\"AAAABBBB\"\n+\n+\n+def test_zlib_gzip_multi_member_max_length_partial() -> None:\n+    d = ZLibDecompressor(encoding=\"gzip\")\n+    member1 = gzip.compress(b\"AAAA\")\n+    member2 = gzip.compress(b\"BBBB\")\n+    result = d.decompress_sync(member1 + member2, max_length=6)\n+    assert result == b\"AAAABB\"\n+\n+\n+def test_zlib_gzip_multi_member_max_length_exhausted() -> None:\n+    d = ZLibDecompressor(encoding=\"gzip\")\n+    member1 = gzip.compress(b\"AAAA\")\n+    member2 = gzip.compress(b\"BBBB\")\n+    result = d.decompress_sync(member1 + member2, max_length=4)\n+    assert result == b\"AAAA\"\n+\n+\n+def test_zlib_gzip_multi_member_max_length_exhausted_preserves_unused_data() -> None:\n+    d = ZLibDecompressor(encoding=\"gzip\")\n+    member1 = gzip.compress(b\"AAAA\")\n+    member2 = gzip.compress(b\"BBBB\")\n+    member3 = gzip.compress(b\"CCCC\")\n+    result1 = d.decompress_sync(member1 + member2, max_length=4)\n+    assert result1 == b\"AAAA\"\n+    result2 = d.decompress_sync(member3)\n+    assert result2 == b\"BBBBCCCC\"",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 76,
+      "changes": 76,
+      "deletions": 0,
+      "filename": "tests/test_http_parser.py",
+      "patch": "@@ -1,6 +1,7 @@\n # Tests for aiohttp/protocol.py\n \n import asyncio\n+import gzip\n import platform\n import re\n import sys\n@@ -2638,6 +2639,81 @@ async def test_http_payload_zstandard_many_small_frames(\n         assert b\"\".join(parts) == b\"\".join(out._buffer)\n         assert out.is_eof()\n \n+    async def test_http_payload_gzip_multi_member(self, protocol: BaseProtocol) -> None:\n+        member1 = gzip.compress(b\"first\")\n+        member2 = gzip.compress(b\"second\")\n+        payload = member1 + member2\n+        out = aiohttp.StreamReader(\n+            protocol, DEFAULT_CHUNK_SIZE, loop=asyncio.get_running_loop()\n+        )\n+        p = HttpPayloadParser(\n+            out,\n+            length=len(payload),\n+            compression=\"gzip\",\n+            headers_parser=HeadersParser(),\n+        )\n+        p.feed_data(payload)\n+        assert b\"firstsecond\" == b\"\".join(out._buffer)\n+        assert out.is_eof()\n+\n+    async def test_http_payload_gzip_multi_member_chunked(\n+        self, protocol: BaseProtocol\n+    ) -> None:\n+        member1 = gzip.compress(b\"chunk1\")\n+        member2 = gzip.compress(b\"chunk2\")\n+        out = aiohttp.StreamReader(\n+            protocol, DEFAULT_CHUNK_SIZE, loop=asyncio.get_running_loop()\n+        )\n+        p = HttpPayloadParser(\n+            out,\n+            length=len(member1) + len(member2),\n+            compression=\"gzip\",\n+            headers_parser=HeadersParser(),\n+        )\n+        p.feed_data(member1)\n+        p.feed_data(member2)\n+        assert b\"chunk1chunk2\" == b\"\".join(out._buffer)\n+        assert out.is_eof()\n+\n+    async def test_http_payload_gzip_member_split_mid_chunk(\n+        self, protocol: BaseProtocol\n+    ) -> None:\n+        member1 = gzip.compress(b\"AAAA\")\n+        member2 = gzip.compress(b\"BBBB\")\n+        combined = member1 + member2\n+        split_point = len(member1) + 3  # 3 bytes into member2\n+        out = aiohttp.StreamReader(\n+            protocol, DEFAULT_CHUNK_SIZE, loop=asyncio.get_running_loop()\n+        )\n+        p = HttpPayloadParser(\n+            out,\n+            length=len(combined),\n+            compression=\"gzip\",\n+            headers_parser=HeadersParser(),\n+        )\n+        p.feed_data(combined[:split_point])\n+        p.feed_data(combined[split_point:])\n+        assert b\"AAAABBBB\" == b\"\".join(out._buffer)\n+        assert out.is_eof()\n+\n+    async def test_http_payload_gzip_many_small_members(\n+        self, protocol: BaseProtocol\n+    ) -> None:\n+        parts = [f\"part{i}\".encode() for i in range(10)]\n+        payload = b\"\".join(gzip.compress(p) for p in parts)\n+        out = aiohttp.StreamReader(\n+            protocol, DEFAULT_CHUNK_SIZE, loop=asyncio.get_running_loop()\n+        )\n+        p = HttpPayloadParser(\n+            out,\n+            length=len(payload),\n+            compression=\"gzip\",\n+            headers_parser=HeadersParser(),\n+        )\n+        p.feed_data(payload)\n+        assert b\"\".join(parts) == b\"\".join(out._buffer)\n+        assert out.is_eof()\n+\n \n class TestDeflateBuffer:\n     async def test_feed_data(self, protocol: BaseProtocol) -> None:",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Ashutosh-177",
+    "base_sha": "05129a00e6037794d196ae11bd5f607770fe49bc",
+    "head_sha": "6a5a3545f21157200e24d106770846d4d5150c1d",
+    "html_url": "https://github.com/aio-libs/aiohttp/pull/12674",
+    "number": 12674,
+    "repo": "aio-libs/aiohttp",
+    "state": "closed",
+    "title": "Fix ZLibDecompressor dropping data past the first gzip member"
+  },
+  "review_comments": [
+    {
+      "body": "In the multi-member loop, if `max_length` is already exhausted (`remaining <= 0`), the code creates a fresh decompressor (line 296) and then `break`s without preserving `unused` anywhere. This drops the start of the next gzip/deflate member and makes subsequent `decompress_sync()` calls unable to continue (unlike `ZSTDDecompressor`, which stores pending unused data). Consider only swapping `_decompressor` after confirming there is remaining budget, and/or storing `unused` in a `_pending_unused_data` buffer that gets prepended on the next call when output is permitted.",
+      "line": 303,
+      "path": "aiohttp/compression_utils.py",
+      "user": "Copilot"
+    },
+    {
+      "body": "The new max-length tests cover output truncation for concatenated gzip members, but they don't verify that when `max_length` is exhausted exactly at a member boundary the remaining member(s) can still be decompressed in a subsequent call (similar to `test_zstd_multi_frame_max_length_exhausted_preserves_unused_data`). Adding that assertion would catch cases where leftover compressed bytes are dropped when the limit is hit.\n",
+      "line": 114,
+      "path": "tests/test_compression_utils.py",
+      "user": "Copilot"
+    },
+    {
+      "body": "Please add a variation of the 4 tests from tests_http_parser.py in https://github.com/aio-libs/aiohttp/pull/12290/changes as you've done here.",
+      "line": 1,
+      "path": "tests/test_compression_utils.py",
+      "user": "Dreamsorcerer"
+    },
+    {
+      "body": "I think the zstd version is a little cleaner here, would be good to align as close as possible:\nhttps://github.com/aio-libs/aiohttp/pull/12290/changes#diff-c88fdeb279a2914aa157a5ebbf863d092eeb3014be8e8e4a1eaef48daa186651R359-R363\n\nI think there may be an edge case that's not correct here too (the extra tests will tell us).",
+      "line": 308,
+      "path": "aiohttp/compression_utils.py",
+      "user": "Dreamsorcerer"
+    }
+  ]
+}

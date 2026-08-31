@@ -13,6 +13,7 @@ The configuration surface is validated at load. Guardrail budgets, retrieval bud
 | `PRCRITIQ_DEFAULT_MODE` | `dry-run` | Default review mode. |
 | `PRCRITIQ_MODEL_POLICY` | `auto` | Routing policy: `auto`, `anthropic`, `openai`, or `mock`. Anything else fails. |
 | `PRCRITIQ_ANTHROPIC_MODEL` | `claude-opus-5` | Model used when routing selects Claude. |
+| `ANTHROPIC_WORKSPACE_ID` | unset | Required when `ANTHROPIC_API_KEY` is identity-linked; the API rejects the request without it. |
 | `PRCRITIQ_OPENAI_MODEL` | `gpt-5` | Model used when routing selects OpenAI. |
 | `PRCRITIQ_MAX_FILES` | `30` | Maximum reviewable changed files per pull request. Files beyond it are reported as skipped, not dropped. |
 | `PRCRITIQ_MAX_DIFF_LINES` | `2000` | Maximum changed lines before a file is skipped as an oversized diff. |
@@ -32,6 +33,8 @@ The configuration surface is validated at load. Guardrail budgets, retrieval bud
 | `GITHUB_REQUEST_TIMEOUT_SECONDS` | `15` | Timeout for GitHub API requests. |
 
 ## Secret Settings
+
+`.env` is loaded automatically when present, and a real environment variable always wins over it, so an export or a CI secret is never overridden by a stale local file.
 
 These variables are listed in `.env.example` but must remain blank in committed files:
 

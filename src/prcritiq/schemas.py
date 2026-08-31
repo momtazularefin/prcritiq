@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m7_posting"
-ImplementationStatus = Literal["m7_posting"]
+IMPLEMENTATION_STATUS = "m8_benchmark"
+ImplementationStatus = Literal["m8_benchmark"]
 
 
 class HealthResponse(BaseModel):

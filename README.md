@@ -4,7 +4,7 @@ PRCritiq is an evidence-backed pull request review agent. It is being built to r
 
 ## Current Status
 
-M7 closes the loop: PRCritiq can now post what it finds. On top of the M1 intake surfaces, M2 diff parsing, M3 retrieval, M4 tool evidence, the M5 review loop, and the M6 run store:
+M8 adds the benchmark that measures whether any of this actually works. On top of the M1 intake surfaces, M2 diff parsing, M3 retrieval, M4 tool evidence, the M5 review loop, the M6 run store, and M7 posting:
 
 - Unified-diff parser mapping every patch to hunks, changed new-line numbers, and removed old-line numbers. It is strict on purpose: a patch whose hunk header disagrees with its body is rejected rather than parsed into line numbers that would be silently wrong.
 - Changed-line validation, so an inline comment can only ever target a line this pull request actually added. Rejected targets are returned with a reason rather than dropped, so a run can report its invalid-line rate.
@@ -25,6 +25,9 @@ M7 closes the loop: PRCritiq can now post what it finds. On top of the M1 intake
 - GitHub posting behind three gates: `prcritiq review --post` publishes only findings that survived self-critique, re-validates every target line immediately before the write because GitHub accepts comments on a wider set of lines than a pull request actually added, and refuses to post a body whose hash is already recorded for that run. Posting requires `--review`, `GITHUB_TOKEN`, and a database, and fails loudly without them.
 - A quiet run stays quiet. When nothing clears the bar, nothing is posted and the outcome is recorded in run history instead, because a comment announcing that there is nothing to say is still a comment.
 - Markdown reports: `--markdown PATH` renders the run for a human reader, listing findings in full, suppression counts with the invalid-line rate, files not reviewed with reasons, and tool outcomes. Untrusted pull request text is escaped so it cannot break out of a table cell.
+- Benchmark corpus: 20 real merged pull requests from 8 code-heavy Python repositories, with 46 labels taken from inline review comments humans actually left. Frozen as fixtures under `eval/`, so a published number is reproducible from this repository without re-fetching from GitHub.
+- Metrics from the evaluation plan: issue recall, comment precision, invalid-line rate, no-evidence rate, spam rate, quiet runs, median and P95 latency, and cost per pull request with token counts. `prcritiq eval` writes a JSON report and a Markdown report, and judges both against the plan's pass gates.
+- The invalid-line rate is verified against each pull request's real changed lines rather than assumed from the fact that self-critique ran.
 - Working dry-run review: `prcritiq review` fetches a real pull request, parses every patch, applies the guardrail gate, and prints a JSON report of what it would and would not review. No model is called and nothing is posted.
 - FastAPI app with `GET /health`, `POST /demo/review` running that same dry run, and signed `POST /webhooks/github`.
 - Repository references accept the HTTPS and SSH clone forms, a pasted pull-request URL, and the `owner/name` shorthand.
@@ -34,7 +37,10 @@ M7 closes the loop: PRCritiq can now post what it finds. On top of the M1 intake
 
 Not implemented yet:
 
-- Benchmark metrics.
+- A published live benchmark result. See below.
+
+
+**No benchmark results are published yet.** The harness runs end to end over all 20 cases and the corpus is committed, but every case has only been scored against a mocked model, which measures the measurement rather than the reviewer. The live run is blocked on an `ANTHROPIC_WORKSPACE_ID`: the configured key is identity-linked and the API rejects requests that do not name a workspace. No recall or precision figure will appear here until a live run produces one.
 
 Retrieval ranking is identifier-aware BM25, not vector embeddings. This is a settled design choice rather than a gap: what connects two regions of a codebase is usually a shared identifier, which lexical matching captures directly, and keeping it lexical means retrieval is deterministic, reproducible offline, and free of a model download. A vector provider can be added behind the existing `SimilarityProvider` protocol without touching any caller. `PRCRITIQ_SIMILARITY=embedding` is a valid configuration value that fails with a clear error rather than quietly running the lexical path instead.
 
@@ -46,6 +52,7 @@ uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review --markdown report.md
+uv run prcritiq eval --fixture-mode          # measurement harness, mocked model
 docker compose up -d   # local Postgres for --persist
 uv run ruff check .
 uv run pytest

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Final, Literal, Protocol
 
 from .config import Settings
 from .findings import DraftedFindings
@@ -39,10 +39,43 @@ class ModelChoice:
     reason: str
 
 
+#: Published per-million-token prices, used only to estimate benchmark cost.
+#: Prices drift; a report states the model id so a reader can re-price it.
+_PRICES_PER_MTOK: Final[dict[str, tuple[float, float]]] = {
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5": (3.00, 15.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+}
+
+
+@dataclass(frozen=True)
+class Usage:
+    """Token usage for one model call."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+    def cost_usd(self, model: str) -> float:
+        """Estimated cost, or zero for a model with no published price here."""
+
+        prices = _PRICES_PER_MTOK.get(model)
+        if prices is None:
+            return 0.0
+        return (self.input_tokens * prices[0] + self.output_tokens * prices[1]) / 1_000_000
+
+
+@dataclass(frozen=True)
+class DraftResult:
+    """What a provider returned, and what it cost to get."""
+
+    findings: DraftedFindings
+    usage: Usage = Usage()
+
+
 class ModelProvider(Protocol):
     """Drafts findings from a system prompt and a user prompt."""
 
-    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftedFindings: ...
+    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftResult: ...
 
 
 def route(
@@ -91,19 +124,20 @@ def route(
 class MockProvider:
     """Returns canned findings so CI never needs a live model (NFR4)."""
 
-    def __init__(self, response: DraftedFindings | None = None) -> None:
+    def __init__(self, response: DraftedFindings | None = None, usage: Usage | None = None) -> None:
         self.response = response or DraftedFindings()
+        self.usage = usage or Usage()
         self.calls: list[tuple[str, str, ModelChoice]] = []
 
-    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftedFindings:
+    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftResult:
         self.calls.append((system, user, choice))
-        return self.response
+        return DraftResult(findings=self.response, usage=self.usage)
 
 
 class AnthropicProvider:
     """Claude, through the official SDK with a structured output contract."""
 
-    def __init__(self, api_key: str | None) -> None:
+    def __init__(self, api_key: str | None, workspace_id: str | None = None) -> None:
         if not api_key:
             raise ProviderError(
                 "The router selected Anthropic but ANTHROPIC_API_KEY is not set. "
@@ -113,10 +147,13 @@ class AnthropicProvider:
             import anthropic
         except ImportError as exc:  # pragma: no cover - dependency is declared
             raise ProviderError("The anthropic package is not installed") from exc
-        self._client = anthropic.Anthropic(api_key=api_key)
+        # An identity-linked key must name the workspace it acts in; the API
+        # rejects the request outright without it.
+        headers = {"anthropic-workspace-id": workspace_id} if workspace_id else None
+        self._client = anthropic.Anthropic(api_key=api_key, default_headers=headers)
         self._errors = anthropic
 
-    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftedFindings:
+    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftResult:
         try:
             response = self._client.messages.parse(
                 model=choice.model,
@@ -127,8 +164,14 @@ class AnthropicProvider:
                 thinking={"type": "adaptive"},
             )
         except self._errors.APIStatusError as exc:
+            hint = ""
+            if "anthropic-workspace-id" in str(exc):
+                hint = (
+                    " This key is identity-linked: set ANTHROPIC_WORKSPACE_ID to the "
+                    "workspace the request should act in."
+                )
             raise ProviderError(
-                f"Anthropic rejected the review request ({exc.status_code}): {exc.message}"
+                f"Anthropic rejected the review request ({exc.status_code}): {exc.message}{hint}"
             ) from exc
         except self._errors.APIConnectionError as exc:
             raise ProviderError(f"Could not reach Anthropic: {exc}") from exc
@@ -138,7 +181,13 @@ class AnthropicProvider:
         parsed = response.parsed_output
         if parsed is None:
             raise ProviderError("Anthropic returned no parsable findings payload")
-        return parsed
+        return DraftResult(
+            findings=parsed,
+            usage=Usage(
+                input_tokens=int(getattr(response.usage, "input_tokens", 0) or 0),
+                output_tokens=int(getattr(response.usage, "output_tokens", 0) or 0),
+            ),
+        )
 
 
 class OpenAIProvider:
@@ -157,7 +206,7 @@ class OpenAIProvider:
         self._client = openai.OpenAI(api_key=api_key)
         self._errors = openai
 
-    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftedFindings:
+    def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftResult:
         try:
             response = self._client.chat.completions.create(
                 model=choice.model,
@@ -173,8 +222,14 @@ class OpenAIProvider:
             raise ProviderError(f"Could not reach OpenAI: {exc}") from exc
 
         payload = response.choices[0].message.content or ""
+        usage = Usage(
+            input_tokens=int(getattr(response.usage, "prompt_tokens", 0) or 0),
+            output_tokens=int(getattr(response.usage, "completion_tokens", 0) or 0),
+        )
         try:
-            return DraftedFindings.model_validate(json.loads(payload))
+            return DraftResult(
+                findings=DraftedFindings.model_validate(json.loads(payload)), usage=usage
+            )
         except (json.JSONDecodeError, ValueError) as exc:
             raise ProviderError(
                 f"OpenAI returned findings that do not match the schema: {exc}"
@@ -187,7 +242,7 @@ def build_provider(choice: ModelChoice, settings: Settings) -> ModelProvider:
     if choice.provider == "mock":
         return MockProvider()
     if choice.provider == "anthropic":
-        return AnthropicProvider(settings.anthropic_api_key)
+        return AnthropicProvider(settings.anthropic_api_key, settings.anthropic_workspace_id)
     if choice.provider == "openai":
         return OpenAIProvider(settings.openai_api_key)
     raise ProviderError(f"Unknown provider: {choice.provider}")

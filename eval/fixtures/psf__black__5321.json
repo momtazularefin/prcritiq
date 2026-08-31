@@ -1,0 +1,67 @@
+{
+  "files": [
+    {
+      "additions": 5,
+      "changes": 5,
+      "deletions": 0,
+      "filename": "CHANGES.md",
+      "patch": "@@ -20,6 +20,11 @@\n <!-- Changes that affect Black's stable style -->\n \n - Preserve blank lines that come immediately before a `# fmt: on` comment (#5300)\n+- Keep the parentheses around the target of an annotated assignment (for example\n+  `(x): int = 5`). They make the target non-simple, so CPython leaves the name out of\n+  `__annotations__`; removing them changed that and tripped Black's AST safety check.\n+  Nesting beyond the first pair is redundant and is still removed, so `((x)): int = 5`\n+  becomes `(x): int = 5` (#5321)\n - Stop treating a t-string in docstring position as a docstring (for example\n   `t\"  spam  \"` as the first statement of a module, class or function). t-strings\n   evaluate to `Template`, never `str`, so stripping and reindenting one changed the",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 40,
+      "changes": 41,
+      "deletions": 1,
+      "filename": "src/black/linegen.py",
+      "patch": "@@ -1716,7 +1716,18 @@ def normalize_invisible_parens(\n             and not _atom_has_magic_trailing_comma(child, mode)\n             and not _is_atom_multiline(child)\n         ):\n-            if maybe_make_parens_invisible_in_atom(\n+            if _is_parenthesized_annotation_target(node, child):\n+                # One pair is what makes the target non-simple, so any nesting\n+                # inside it is redundant and goes.\n+                inner = child.children[1]\n+                if isinstance(inner, Node) and inner.type == syms.atom:\n+                    maybe_make_parens_invisible_in_atom(\n+                        inner,\n+                        parent=child,\n+                        mode=mode,\n+                        features=features,\n+                    )\n+            elif maybe_make_parens_invisible_in_atom(\n                 child,\n                 parent=node,\n                 mode=mode,\n@@ -1979,6 +1990,34 @@ def _atom_has_magic_trailing_comma(node: LN, mode: Mode) -> bool:\n     return is_one_tuple(node)\n \n \n+def _is_parenthesized_annotation_target(node: Node, child: Node) -> bool:\n+    \"\"\"Is `child` a parenthesized plain name that `node` annotates?\n+\n+    `(x): int = 5` and `x: int = 5` do not do the same thing: only the second one\n+    records `x` in `__annotations__`, because the parentheses make the target\n+    non-simple (`AnnAssign.simple` is 0). Dropping them changes what the module\n+    does at runtime, so they have to stay. Attribute and subscript targets are\n+    non-simple either way, so those are left alone here.\n+    \"\"\"\n+    if len(node.children) < 2:\n+        return False\n+\n+    annassign = node.children[1]\n+    if not isinstance(annassign, Node) or annassign.type != syms.annassign:\n+        return False\n+\n+    # `((x)): int = 5` is non-simple too, so look through any nesting.\n+    target: LN = child\n+    while (\n+        isinstance(target, Node)\n+        and target.type == syms.atom\n+        and len(target.children) == 3\n+    ):\n+        target = target.children[1]\n+\n+    return isinstance(target, Leaf) and target.type == token.NAME\n+\n+\n def _is_atom_multiline(node: LN) -> bool:\n     \"\"\"Check if an atom node is multiline (indicating intentional formatting).\"\"\"\n     if not isinstance(node, Node) or len(node.children) < 3:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 57,
+      "changes": 57,
+      "deletions": 0,
+      "filename": "tests/data/cases/annotated_assignment_target_parens.py",
+      "patch": "@@ -0,0 +1,57 @@\n+# Parentheses around the target of an annotated assignment are load bearing:\n+# `(x): int = 5` leaves `x` out of `__annotations__`, while `x: int = 5` puts it\n+# there. Removing them changes what the module does at runtime.\n+(x): int = 5\n+(y): int\n+\n+# One pair is what makes the target non-simple, so the nesting above it is\n+# redundant and gets removed.\n+((z)): int = 5\n+(((q))): int = 5\n+\n+\n+class C:\n+    (attr): int = 5\n+\n+\n+def f():\n+    (local): int = 5\n+\n+\n+# Attribute and subscript targets are non-simple with or without the parentheses,\n+# so those are still stripped.\n+(obj.attr): int = 5\n+(obj[0]): int = 5\n+\n+# And a plain assignment carries no annotation, so its parentheses go too.\n+(w) = 5\n+\n+# output\n+\n+# Parentheses around the target of an annotated assignment are load bearing:\n+# `(x): int = 5` leaves `x` out of `__annotations__`, while `x: int = 5` puts it\n+# there. Removing them changes what the module does at runtime.\n+(x): int = 5\n+(y): int\n+\n+# One pair is what makes the target non-simple, so the nesting above it is\n+# redundant and gets removed.\n+(z): int = 5\n+(q): int = 5\n+\n+\n+class C:\n+    (attr): int = 5\n+\n+\n+def f():\n+    (local): int = 5\n+\n+\n+# Attribute and subscript targets are non-simple with or without the parentheses,\n+# so those are still stripped.\n+obj.attr: int = 5\n+obj[0]: int = 5\n+\n+# And a plain assignment carries no annotation, so its parentheses go too.\n+w = 5",
+      "previous_filename": null,
+      "status": "added"
+    }
+  ],
+  "metadata": {
+    "author_login": "luantaraschi",
+    "base_sha": "5ee554164c10218e4d176d045ef235e74173a12d",
+    "head_sha": "bf87af64b600f95622b9dee07405b0b669cd4c83",
+    "html_url": "https://github.com/psf/black/pull/5321",
+    "number": 5321,
+    "repo": "psf/black",
+    "state": "closed",
+    "title": "Keep parentheses around the target of an annotated assignment"
+  },
+  "review_comments": [
+    {
+      "body": "Is it necessary to keep both pairs of parenthesis here, or could one of them be removed while maintaining functionality?",
+      "line": 32,
+      "path": "tests/data/cases/annotated_assignment_target_parens.py",
+      "user": "cobaltt7"
+    },
+    {
+      "body": "One pair is enough. `(z)` and `((z))` both give `AnnAssign.simple == 0`, so both leave `z` out of `__annotations__`; only the outer pair is doing anything.\n\nThe case keeps what was written because the fix skips normalisation for that atom entirely. Collapsing the extra pairs is possible: an `elif` calling `maybe_make_parens_invisible_in_atom` on the inner atom turns `((z))` into `(z)` and `(((q)))` into `(q)`, and the suite stayed green when I tried it here. I left it out to keep this PR to the behavioural fix, since which of the two Black should print is a formatting decision, but I am glad to add it and update the expected output if you would rather it normalised.",
+      "line": 32,
+      "path": "tests/data/cases/annotated_assignment_target_parens.py",
+      "user": "luantaraschi"
+    },
+    {
+      "body": "Would you update the formatting that way? I think it's generally the expected output in this case, and the change wouldn't violate the stability policy since it previously crashed. Thanks!",
+      "line": 32,
+      "path": "tests/data/cases/annotated_assignment_target_parens.py",
+      "user": "cobaltt7"
+    },
+    {
+      "body": "Updated in bf87af6. `((x)): int = 5` now comes out as `(x): int = 5`, and deeper nesting collapses the same way, while the remaining pair still keeps the target non-simple so `__annotations__` stays empty. The case file covers both, and `# fmt: off` and `# fmt: skip` leave the nesting alone, in stable and in preview.\n\nThe test suite passes here and `black --check src tests` is clean. I also extended the changelog entry to mention the normalisation.",
+      "line": 32,
+      "path": "tests/data/cases/annotated_assignment_target_parens.py",
+      "user": "luantaraschi"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "files": [
+    {
+      "additions": 2,
+      "changes": 2,
+      "deletions": 0,
+      "filename": "docs/endpoints.md",
+      "patch": "@@ -31,6 +31,8 @@ class Homepage(HTTPEndpoint):\n     async def get(self, request):\n         return PlainTextResponse(f\"Hello, world!\")\n \n+    async def query(self, request):\n+        return PlainTextResponse(f\"Hello, query!\")\n \n class User(HTTPEndpoint):\n     async def get(self, request):",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "starlette/endpoints.py",
+      "patch": "@@ -22,7 +22,7 @@ def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:\n         self.send = send\n         self._allowed_methods = [\n             method\n-            for method in (\"GET\", \"HEAD\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\", \"OPTIONS\")\n+            for method in (\"GET\", \"HEAD\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\", \"OPTIONS\", \"QUERY\")\n             if getattr(self, method.lower(), None) is not None\n         ]\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "starlette/middleware/cors.py",
+      "patch": "@@ -8,7 +8,7 @@\n from starlette.responses import PlainTextResponse, Response\n from starlette.types import ASGIApp, Message, Receive, Scope, Send\n \n-ALL_METHODS = (\"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\")\n+ALL_METHODS = (\"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\", \"QUERY\")\n SAFELISTED_HEADERS = {\"Accept\", \"Accept-Language\", \"Content-Language\", \"Content-Type\"}\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 6,
+      "changes": 8,
+      "deletions": 2,
+      "filename": "starlette/schemas.py",
+      "patch": "@@ -44,7 +44,7 @@ def get_endpoints(self, routes: list[BaseRoute]) -> list[EndpointInfo]:\n         - path\n             eg: /users/\n         - http_method\n-            one of 'get', 'post', 'put', 'patch', 'delete', 'options'\n+            one of 'get', 'post', 'put', 'patch', 'delete', 'options', 'query'\n         - func\n             method ready to extract the docstring\n         \"\"\"\n@@ -78,7 +78,7 @@ def get_endpoints(self, routes: list[BaseRoute]) -> list[EndpointInfo]:\n                     endpoints_info.append(EndpointInfo(path, method.lower(), route.endpoint))\n             else:\n                 path = self._remove_converter(route.path)\n-                for method in [\"get\", \"post\", \"put\", \"patch\", \"delete\", \"options\"]:\n+                for method in [\"get\", \"post\", \"put\", \"patch\", \"delete\", \"options\", \"query\"]:\n                     if not hasattr(route.endpoint, method):\n                         continue\n                     func = getattr(route.endpoint, method)\n@@ -132,9 +132,13 @@ def __init__(self, base_schema: dict[str, Any]) -> None:\n     def get_schema(self, routes: list[BaseRoute]) -> dict[str, Any]:\n         schema = dict(self.base_schema)\n         schema.setdefault(\"paths\", {})\n+        openapi_version_match = re.match(r\"^(\\d+)\\.(\\d+)\", str(schema.get(\"openapi\", \"\")))\n+        supports_query = openapi_version_match is not None and tuple(map(int, openapi_version_match.groups())) >= (3, 2)\n         endpoints_info = self.get_endpoints(routes)\n \n         for endpoint in endpoints_info:\n+            if endpoint.http_method == \"query\" and not supports_query:\n+                continue\n             parsed = self.parse_docstring(endpoint.func)\n \n             if not parsed:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 5,
+      "changes": 11,
+      "deletions": 6,
+      "filename": "tests/middleware/test_cors.py",
+      "patch": "@@ -257,12 +257,11 @@ def homepage(request: Request) -> None:\n \n     client = test_client_factory(app)\n \n-    headers = {\n-        \"Origin\": \"https://example.org\",\n-        \"Access-Control-Request-Method\": \"POST\",\n-    }\n-\n-    for method in (\"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\"):\n+    for method in (\"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\", \"QUERY\"):\n+        headers = {\n+            \"Origin\": \"https://example.org\",\n+            \"Access-Control-Request-Method\": method,\n+        }\n         response = client.options(\"/\", headers=headers)\n         assert response.status_code == 200\n         assert method in response.headers[\"access-control-allow-methods\"]",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 10,
+      "changes": 11,
+      "deletions": 1,
+      "filename": "tests/test_endpoints.py",
+      "patch": "@@ -18,6 +18,9 @@ async def get(self, request: Request) -> PlainTextResponse:\n             return PlainTextResponse(\"Hello, world!\")\n         return PlainTextResponse(f\"Hello, {username}!\")\n \n+    async def query(self, request: Request) -> PlainTextResponse:\n+        return PlainTextResponse(\"Hello, QUERY!\")\n+\n \n app = Router(routes=[Route(\"/\", endpoint=Homepage), Route(\"/{username}\", endpoint=Homepage)])\n \n@@ -44,7 +47,13 @@ def test_http_endpoint_route_method(client: TestClient) -> None:\n     response = client.post(\"/\")\n     assert response.status_code == 405\n     assert response.text == \"Method Not Allowed\"\n-    assert response.headers[\"allow\"] == \"GET\"\n+    assert response.headers[\"allow\"] == \"GET, QUERY\"\n+\n+\n+def test_http_endpoint_route_query_method(client: TestClient) -> None:\n+    response = client.request(\"QUERY\", \"/\")\n+    assert response.status_code == 200\n+    assert response.text == \"Hello, QUERY!\"\n \n \n def test_http_endpoint_does_not_dispatch_non_verb_method(test_client_factory: TestClientFactory) -> None:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 16,
+      "changes": 16,
+      "deletions": 0,
+      "filename": "tests/test_routing.py",
+      "patch": "@@ -80,6 +80,10 @@ def contact(request: Request) -> Response:\n     return Response(\"Hello, POST!\", media_type=\"text/plain\")\n \n \n+def search(request: Request) -> Response:\n+    return Response(\"Hello, QUERY!\", media_type=\"text/plain\")\n+\n+\n def int_convertor(request: Request) -> JSONResponse:\n     number = request.path_params[\"param\"]\n     return JSONResponse({\"int\": number})\n@@ -148,6 +152,7 @@ async def websocket_params(session: WebSocket) -> None:\n         Mount(\"/static\", app=Response(\"xxxxx\", media_type=\"image/png\")),\n         Route(\"/func\", endpoint=func_homepage, methods=[\"GET\"]),\n         Route(\"/func\", endpoint=contact, methods=[\"POST\"]),\n+        Route(\"/search\", endpoint=search, methods=[\"QUERY\"]),\n         Route(\"/int/{param:int}\", endpoint=int_convertor, name=\"int-convertor\"),\n         Route(\"/float/{param:float}\", endpoint=float_convertor, name=\"float-convertor\"),\n         Route(\"/path/{param:path}\", endpoint=path_convertor, name=\"path-convertor\"),\n@@ -304,6 +309,17 @@ def test_router_duplicate_path(client: TestClient) -> None:\n     assert response.text == \"Hello, POST!\"\n \n \n+def test_router_query_method(client: TestClient) -> None:\n+    response = client.request(\"QUERY\", \"/search\")\n+    assert response.status_code == 200\n+    assert response.text == \"Hello, QUERY!\"\n+\n+    response = client.get(\"/search\")\n+    assert response.status_code == 405\n+    assert response.text == \"Method Not Allowed\"\n+    assert response.headers[\"allow\"] == \"QUERY\"\n+\n+\n def test_router_add_websocket_route(client: TestClient) -> None:\n     with client.websocket_connect(\"/ws\") as session:\n         text = session.receive_text()",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 61,
+      "changes": 64,
+      "deletions": 3,
+      "filename": "tests/test_schemas.py",
+      "patch": "@@ -7,7 +7,7 @@\n from starlette.websockets import WebSocket\n from tests.types import TestClientFactory\n \n-schemas = SchemaGenerator({\"openapi\": \"3.0.0\", \"info\": {\"title\": \"Example API\", \"version\": \"1.0\"}})\n+schemas = SchemaGenerator({\"openapi\": \"3.2.0\", \"info\": {\"title\": \"Example API\", \"version\": \"1.0\"}})\n \n \n def ws(session: WebSocket) -> None:\n@@ -48,6 +48,17 @@ def create_user(request: Request) -> None:\n     pass  # pragma: no cover\n \n \n+def query_users(request: Request) -> None:\n+    \"\"\"\n+    responses:\n+      200:\n+        description: Users matching a query.\n+        examples:\n+          [{\"username\": \"tom\"}]\n+    \"\"\"\n+    pass  # pragma: no cover\n+\n+\n class OrganisationsEndpoint(HTTPEndpoint):\n     def get(self, request: Request) -> None:\n         \"\"\"\n@@ -69,6 +80,16 @@ def post(self, request: Request) -> None:\n         \"\"\"\n         pass  # pragma: no cover\n \n+    def query(self, request: Request) -> None:\n+        \"\"\"\n+        responses:\n+          200:\n+            description: Organisations matching a query.\n+            examples:\n+              [{\"name\": \"Foo Corp.\"}]\n+        \"\"\"\n+        pass  # pragma: no cover\n+\n \n def regular_docstring_and_schema(request: Request) -> None:\n     \"\"\"\n@@ -119,6 +140,7 @@ def schema(request: Request) -> Response:\n         Route(\"/users/{id:int}\", endpoint=get_user, methods=[\"GET\"]),\n         Route(\"/users\", endpoint=list_users, methods=[\"GET\", \"HEAD\"]),\n         Route(\"/users\", endpoint=create_user, methods=[\"POST\"]),\n+        Route(\"/users\", endpoint=query_users, methods=[\"QUERY\"]),\n         Route(\"/orgs\", endpoint=OrganisationsEndpoint),\n         Route(\"/regular-docstring-and-schema\", endpoint=regular_docstring_and_schema),\n         Route(\"/regular-docstring\", endpoint=regular_docstring),\n@@ -133,7 +155,7 @@ def schema(request: Request) -> Response:\n def test_schema_generation() -> None:\n     schema = schemas.get_schema(routes=app.routes)\n     assert schema == {\n-        \"openapi\": \"3.0.0\",\n+        \"openapi\": \"3.2.0\",\n         \"info\": {\"title\": \"Example API\", \"version\": \"1.0\"},\n         \"paths\": {\n             \"/orgs\": {\n@@ -153,6 +175,14 @@ def test_schema_generation() -> None:\n                         }\n                     }\n                 },\n+                \"query\": {\n+                    \"responses\": {\n+                        200: {\n+                            \"description\": \"Organisations matching a query.\",\n+                            \"examples\": [{\"name\": \"Foo Corp.\"}],\n+                        }\n+                    }\n+                },\n             },\n             \"/regular-docstring-and-schema\": {\n                 \"get\": {\"responses\": {200: {\"description\": \"This is included in the schema.\"}}}\n@@ -173,6 +203,14 @@ def test_schema_generation() -> None:\n                     }\n                 },\n                 \"post\": {\"responses\": {200: {\"description\": \"A user.\", \"examples\": {\"username\": \"tom\"}}}},\n+                \"query\": {\n+                    \"responses\": {\n+                        200: {\n+                            \"description\": \"Users matching a query.\",\n+                            \"examples\": [{\"username\": \"tom\"}],\n+                        }\n+                    }\n+                },\n             },\n             \"/users/{id}\": {\n                 \"get\": {\n@@ -188,11 +226,19 @@ def test_schema_generation() -> None:\n     }\n \n \n+def test_query_schema_requires_openapi_3_2() -> None:\n+    schemas = SchemaGenerator({\"openapi\": \"3.1.2\", \"info\": {\"title\": \"Example API\", \"version\": \"1.0\"}})\n+    schema = schemas.get_schema(routes=app.routes)\n+\n+    assert \"query\" not in schema[\"paths\"][\"/users\"]\n+    assert \"query\" not in schema[\"paths\"][\"/orgs\"]\n+\n+\n EXPECTED_SCHEMA = \"\"\"\n info:\n   title: Example API\n   version: '1.0'\n-openapi: 3.0.0\n+openapi: 3.2.0\n paths:\n   /orgs:\n     get:\n@@ -208,6 +254,12 @@ def test_schema_generation() -> None:\n           description: An organisation.\n           examples:\n             name: Foo Corp.\n+    query:\n+      responses:\n+        200:\n+          description: Organisations matching a query.\n+          examples:\n+          - name: Foo Corp.\n   /regular-docstring-and-schema:\n     get:\n       responses:\n@@ -237,6 +289,12 @@ def test_schema_generation() -> None:\n           description: A user.\n           examples:\n             username: tom\n+    query:\n+      responses:\n+        200:\n+          description: Users matching a query.\n+          examples:\n+          - username: tom\n   /users/{id}:\n     get:\n       responses:",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Kludex",
+    "base_sha": "723de8254c606ac7dbed7b7cf21badb86cc4876c",
+    "head_sha": "c3a6425a644649106d79f8819d879091b8a37bb3",
+    "html_url": "https://github.com/Kludex/starlette/pull/3489",
+    "number": 3489,
+    "repo": "encode/starlette",
+    "state": "closed",
+    "title": "Add support for the QUERY HTTP method"
+  },
+  "review_comments": [
+    {
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include QUERY in the CORS wildcard method set**\n\nWhen this endpoint is used cross-origin behind `CORSMiddleware(allow_methods=[\"*\"])`, a browser must preflight the non-safelisted `QUERY` method, but `starlette/middleware/cors.py` still expands `\"*\"` to an `ALL_METHODS` tuple that omits `QUERY`; `preflight_response()` consequently returns `400 Disallowed CORS method`. Add `QUERY` to that wildcard set so the newly supported method works with the documented all-methods configuration.\n\nUseful? React with \ud83d\udc4d\u00a0/ \ud83d\udc4e.",
+      "line": 25,
+      "path": "starlette/endpoints.py",
+      "user": "chatgpt-codex-connector[bot]"
+    },
+    {
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid emitting QUERY operations in pre-3.2 schemas**\n\nFor an existing `SchemaGenerator` configured with OpenAPI 3.0 or 3.1\u2014as the repository's `docs/schemas.md` example still is\u2014adding a `query()` handler now unconditionally emits a `query` Path Item field, although that operation is only defined by OpenAPI 3.2. The resulting document is invalid for its declared version, so discovery should either gate this method on the configured OpenAPI version or the supported configuration and documentation must be updated accordingly.\n\nUseful? React with \ud83d\udc4d\u00a0/ \ud83d\udc4e.",
+      "line": 81,
+      "path": "starlette/schemas.py",
+      "user": "chatgpt-codex-connector[bot]"
+    }
+  ]
+}

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from os import getenv
 
+from dotenv import load_dotenv
+
 
 class SimilarityMode(StrEnum):
     """How retrieval ranks related source chunks."""
@@ -82,6 +84,7 @@ class Settings:
     anthropic_model: str = "claude-opus-5"
     openai_model: str = "gpt-5"
     anthropic_api_key: str | None = None
+    anthropic_workspace_id: str | None = None
     database_url: str | None = None
     langsmith_api_key: str | None = None
     langsmith_project: str = "prcritiq"
@@ -93,8 +96,13 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    """Load settings from the process environment."""
+    """Load settings from the process environment, and from `.env` if present.
 
+    A real environment variable always wins over the file, so an explicit export
+    or a CI secret is never silently overridden by a stale local `.env`.
+    """
+
+    load_dotenv(override=False)
     return Settings(
         env=getenv("PRCRITIQ_ENV", "local"),
         public_base_url=getenv("PRCRITIQ_PUBLIC_BASE_URL", "http://localhost:8000"),
@@ -116,6 +124,7 @@ def load_settings() -> Settings:
         anthropic_model=getenv("PRCRITIQ_ANTHROPIC_MODEL", "claude-opus-5"),
         openai_model=getenv("PRCRITIQ_OPENAI_MODEL", "gpt-5"),
         anthropic_api_key=getenv("ANTHROPIC_API_KEY") or None,
+        anthropic_workspace_id=getenv("ANTHROPIC_WORKSPACE_ID") or None,
         database_url=getenv("DATABASE_URL") or None,
         langsmith_api_key=getenv("LANGSMITH_API_KEY") or None,
         langsmith_project=getenv("LANGSMITH_PROJECT", "prcritiq"),

@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "additions": 4,
+      "changes": 5,
+      "deletions": 1,
+      "filename": "scrapy/statscollectors.py",
+      "patch": "@@ -105,14 +105,17 @@ def close_spider(\n         \"\"\"Called when the spider is closed.\"\"\"\n         if self._dump:\n             logger.info(\n-                \"Dumping Scrapy stats:\\n\" + pprint.pformat(self._stats),\n+                f\"Dumping Scrapy stats:\\n{self}\",\n                 extra={\"spider\": self._crawler.spider},\n             )\n         self._persist_stats(self._stats)\n \n     def _persist_stats(self, stats: StatsT) -> None:\n         pass\n \n+    def __str__(self) -> str:\n+        return pprint.pformat(self._stats)\n+\n \n class MemoryStatsCollector(StatsCollector):\n     \"\"\"A simple stats collector that keeps the stats of the last scraping run",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "redapple",
+    "base_sha": "0d1a0ce6ecb31591c25086336d6d6bd717637fb7",
+    "head_sha": "961f3ebaedb36d8ccd2a8c0496ba6b4985aa7e37",
+    "html_url": "https://github.com/scrapy/scrapy/pull/2746",
+    "number": 2746,
+    "repo": "scrapy/scrapy",
+    "state": "closed",
+    "title": "Add __str__ method on stats collector class"
+  },
+  "review_comments": [
+    {
+      "body": "I'm not sure ignoring format type is a right thing to do - for example, in the current implementation invalid format specifier for this data type (e.g. `\"{:0.3f}\".format(statscol)`) doesn't cause an exception - specifier just has no effect, pformat is always used.",
+      "line": 53,
+      "path": "scrapy/statscollectors.py",
+      "user": "kmike"
+    },
+    {
+      "body": "hm right, but I wouldn't know what to do with a format specifier for a statscollector. Any suggestions?",
+      "line": 53,
+      "path": "scrapy/statscollectors.py",
+      "user": "redapple"
+    },
+    {
+      "body": "I think the way to go is to check the format, use pformat if a string is requested, use repr if repr is requested, raise for numeric formats. But it looks like a lot of code without a clear purpose; maybe using `__str__` hook instead of `__format__` is easier.",
+      "line": 53,
+      "path": "scrapy/statscollectors.py",
+      "user": "kmike"
+    },
+    {
+      "body": "@kmike , I've changed to a `__str__`",
+      "line": 53,
+      "path": "scrapy/statscollectors.py",
+      "user": "redapple"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "files": [
+    {
+      "additions": 1,
+      "changes": 1,
+      "deletions": 0,
+      "filename": "changelog/14189.bugfix.rst",
+      "patch": "@@ -0,0 +1 @@\n+Nested usage of :meth:`caplog.filtering <pytest.LogCaptureFixture.filtering>` no longer removes filters early if they were already present.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 8,
+      "changes": 12,
+      "deletions": 4,
+      "filename": "src/_pytest/logging.py",
+      "patch": "@@ -585,11 +585,15 @@ def filtering(self, filter_: logging.Filter) -> Generator[None]:\n \n         .. versionadded:: 7.5\n         \"\"\"\n-        self.handler.addFilter(filter_)\n-        try:\n+        already_present = filter_ in self.handler.filters\n+        if already_present:\n             yield\n-        finally:\n-            self.handler.removeFilter(filter_)\n+        else:\n+            try:\n+                self.handler.addFilter(filter_)\n+                yield\n+            finally:\n+                self.handler.removeFilter(filter_)\n \n \n @fixture",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 34,
+      "changes": 34,
+      "deletions": 0,
+      "filename": "testing/logging/test_fixture.py",
+      "patch": "@@ -206,6 +206,40 @@ def filter(self, record: logging.LogRecord) -> bool:\n     assert unfiltered_tuple == (\"test_fixture\", 20, \"handler call\")\n \n \n+class DropAllFilter(logging.Filter):\n+    def filter(self, record: logging.LogRecord) -> bool:\n+        return False\n+\n+\n+def test_with_statement_nested_filtering(caplog: pytest.LogCaptureFixture) -> None:\n+    drop_all = DropAllFilter()\n+\n+    with caplog.filtering(drop_all):\n+        logger.warning(\"Will not be captured\")\n+        with caplog.filtering(drop_all):\n+            logger.warning(\"Will also not be captured\")\n+        logger.warning(\"Should not be captured either\")\n+\n+    assert caplog.records == []\n+\n+\n+def test_with_statement_filtering_already_present(\n+    caplog: pytest.LogCaptureFixture,\n+) -> None:\n+    drop_all = DropAllFilter()\n+\n+    caplog.handler.addFilter(drop_all)\n+    try:\n+        with caplog.filtering(drop_all):\n+            logger.warning(\"Should not be captured\")\n+\n+        # After context manager, filter should STILL be present because it was already there\n+        logger.warning(\"Should still not be captured\")\n+        assert caplog.records == []\n+    finally:\n+        caplog.handler.removeFilter(drop_all)\n+\n+\n @pytest.mark.parametrize(\n     \"level_str,expected_disable_level\",\n     [",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "oaksprout",
+    "base_sha": "ced9022c0ca87ae2a0a604c68d2e1c462f8a5c6f",
+    "head_sha": "3174c1c2907a7033bc46e93b9d90831795551ecb",
+    "html_url": "https://github.com/pytest-dev/pytest/pull/14284",
+    "number": 14284,
+    "repo": "pytest-dev/pytest",
+    "state": "closed",
+    "title": "Fix nested caplog.filtering early removal"
+  },
+  "review_comments": [
+    {
+      "body": "what triggered those style changes?",
+      "line": 375,
+      "path": "testing/logging/test_fixture.py",
+      "user": "RonnyPfannschmidt"
+    },
+    {
+      "body": "It's possible to skip the try/finally entirely in the case where the filter is already present:\n\n```suggestion\n        if already_present:\n            yield\n        else:\n            try:\n                self.handler.addFilter(filter_)\n                yield\n            finally:\n                self.handler.removeFilter(filter_)\n```\n\nI personally have a slight preference for this style, but it doesn't really matter in practice.\n\nEither way, the filter addition should be inside the `try` block, though (there's no sense in trying to remove a filter that failed to be added)",
+      "line": 595,
+      "path": "src/_pytest/logging.py",
+      "user": "ncoghlan"
+    }
+  ]
+}

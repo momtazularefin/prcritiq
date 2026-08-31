@@ -1,0 +1,46 @@
+{
+  "files": [
+    {
+      "additions": 28,
+      "changes": 47,
+      "deletions": 19,
+      "filename": "pydantic/_internal/_validators.py",
+      "patch": "@@ -8,6 +8,7 @@\n import collections.abc\n import math\n import re\n+import sys\n import typing\n from collections.abc import Callable, Sequence\n from decimal import Decimal\n@@ -415,27 +416,35 @@ def defaultdict_validator(\n         return collections.defaultdict(default_default_factory, handler(input_value))\n \n \n+_defaultdict_allowed_default_types: dict[type[Any], type[Any]] = {\n+    float: float,\n+    int: int,\n+    str: str,\n+    bool: bool,\n+    tuple: tuple,\n+    collections.abc.Sequence: tuple,\n+    collections.abc.MutableSequence: list,\n+    list: list,\n+    set: set,\n+    collections.abc.MutableSet: set,\n+    frozenset: frozenset,\n+    collections.abc.Set: frozenset,\n+    dict: dict,\n+    collections.abc.Mapping: dict,\n+    collections.abc.MutableMapping: dict,\n+}\n+\n+if sys.version_info >= (3, 15):\n+    _defaultdict_allowed_default_types[collections.abc.Mapping] = frozendict  # noqa: F821\n+    _defaultdict_allowed_default_types[frozendict] = frozendict  # noqa: F821\n+\n+\n def get_defaultdict_default_default_factory(values_source_type: Any) -> Callable[[], Any]:\n     FieldInfo = import_cached_field_info()\n \n     values_type_origin = get_origin(values_source_type)\n \n     def infer_default() -> Callable[[], Any]:\n-        allowed_default_types: dict[Any, Any] = {\n-            tuple: tuple,\n-            collections.abc.Sequence: tuple,\n-            collections.abc.MutableSequence: list,\n-            list: list,\n-            set: set,\n-            collections.abc.MutableSet: set,\n-            collections.abc.Set: frozenset,\n-            collections.abc.Mapping: dict,\n-            collections.abc.MutableMapping: dict,\n-            float: float,\n-            int: int,\n-            str: str,\n-            bool: bool,\n-        }\n         values_type = values_type_origin or values_source_type\n         instructions = 'set using `DefaultDict[..., Annotated[..., Field(default_factory=...)]]`'\n         if typing_objects.is_typevar(values_type):\n@@ -447,15 +456,15 @@ def type_var_default_factory() -> None:\n                 )\n \n             return type_var_default_factory\n-        elif values_type not in allowed_default_types:\n+        elif values_type not in _defaultdict_allowed_default_types:\n             # a somewhat subjective set of types that have reasonable default values\n-            allowed_msg = ', '.join([t.__name__ for t in set(allowed_default_types.keys())])\n+            allowed_msg = ', '.join([t.__name__ for t in _defaultdict_allowed_default_types.keys()])\n             raise PydanticSchemaGenerationError(\n-                f'Unable to infer a default factory for keys of type {values_source_type}.'\n+                f'Unable to infer a default factory for values of type {values_source_type}.'\n                 f' Only {allowed_msg} are supported, other types require an explicit default factory'\n                 ' ' + instructions\n             )\n-        return allowed_default_types[values_type]\n+        return _defaultdict_allowed_default_types[values_type]\n \n     # Assume Annotated[..., Field(...)]\n     if typing_objects.is_annotated(values_type_origin):",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 26,
+      "changes": 42,
+      "deletions": 16,
+      "filename": "tests/types/test_defaultdict.py",
+      "patch": "@@ -1,3 +1,4 @@\n+import sys\n from collections import defaultdict\n from typing import Annotated, Any, TypeVar\n \n@@ -24,31 +25,40 @@ def test_typing_coercion_defaultdict():\n \n \n def test_defaultdict_unknown_default_factory() -> None:\n-    \"\"\"\n-    https://github.com/pydantic/pydantic/issues/4687\n-    \"\"\"\n+    \"\"\"https://github.com/pydantic/pydantic/issues/4687\"\"\"\n     with pytest.raises(\n         PydanticSchemaGenerationError,\n-        match=r'Unable to infer a default factory for keys of type collections.defaultdict\\[int, int\\]',\n+        match=r'Unable to infer a default factory for values of type collections.defaultdict\\[int, int\\]',\n     ):\n         TypeAdapter(defaultdict[int, defaultdict[int, int]])\n \n \n-def test_defaultdict_infer_default_factory() -> None:\n-    ta_list = TypeAdapter(defaultdict[int, list[int]])\n-    v = ta_list.validate_python({})\n-    assert v.default_factory is not None\n-    assert v.default_factory() == []\n+defaultdict_types_params = [\n+    (int, 0),\n+    (float, 0.0),\n+    (str, ''),\n+    (bool, False),\n+    (tuple, ()),\n+    (list[int], []),\n+    (list, []),\n+    (set, set()),\n+    (frozenset, frozenset()),\n+    (dict, {}),\n+]\n \n-    ta_int = TypeAdapter(defaultdict[int, int])\n-    v = ta_int.validate_python({})\n-    assert v.default_factory is not None\n-    assert v.default_factory() == 0\n+if sys.version_info >= (3, 15):\n+    defaultdict_types_params.append((frozendict, frozendict()))  # noqa: F821\n \n-    ta_set = TypeAdapter(defaultdict[int, set])\n-    v = ta_set.validate_python({})\n+\n+@pytest.mark.parametrize(\n+    ['default_factory_type', 'value'],\n+    defaultdict_types_params,\n+)\n+def test_defaultdict_infer_default_factory(default_factory_type: Any, value: Any) -> None:\n+    ta_list = TypeAdapter(defaultdict[int, default_factory_type])\n+    v = ta_list.validate_python({})\n     assert v.default_factory is not None\n-    assert v.default_factory() == set()\n+    assert v.default_factory() == value\n \n \n def test_defaultdict_explicit_default_factory() -> None:",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Viicos",
+    "base_sha": "af0e0a6a3288a22185528cb214ae43e7910999db",
+    "head_sha": "41ef4a558c97ec65fe689d3c65230b6fdbf6ae64",
+    "html_url": "https://github.com/pydantic/pydantic/pull/13623",
+    "number": 13623,
+    "repo": "pydantic/pydantic",
+    "state": "closed",
+    "title": "Allow `dict`, `frozendict` and `frozenset` as `defaultdict` default factories"
+  },
+  "review_comments": [
+    {
+      "body": "Shouldn't it be `frozendict` then?",
+      "line": 433,
+      "path": "pydantic/_internal/_validators.py",
+      "user": "mberdyshev"
+    },
+    {
+      "body": "That would be a change in behavior, but would make sense yes. I think we can include it in the next release",
+      "line": 433,
+      "path": "pydantic/_internal/_validators.py",
+      "user": "Viicos"
+    }
+  ]
+}

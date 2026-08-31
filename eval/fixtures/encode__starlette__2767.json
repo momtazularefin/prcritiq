@@ -1,0 +1,76 @@
+{
+  "files": [
+    {
+      "additions": 11,
+      "changes": 16,
+      "deletions": 5,
+      "filename": "starlette/websockets.py",
+      "patch": "@@ -23,6 +23,12 @@ def __init__(self, code: int = 1000, reason: str | None = None) -> None:\n         self.reason = reason or \"\"\n \n \n+class WebSocketDisconnected(RuntimeError):\n+    \"\"\"\n+    Raised when attempting to use a disconnected WebSocket.\n+    \"\"\"\n+\n+\n class WebSocket(HTTPConnection[StateT]):\n     def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:\n         super().__init__(scope)\n@@ -54,7 +60,7 @@ async def receive(self) -> Message:\n                 self.client_state = WebSocketState.DISCONNECTED\n             return message\n         else:\n-            raise RuntimeError('Cannot call \"receive\" once a disconnect message has been received.')\n+            raise WebSocketDisconnected('Cannot call \"receive\" once a disconnect message has been received.')\n \n     async def send(self, message: Message) -> None:\n         \"\"\"\n@@ -95,7 +101,7 @@ async def send(self, message: Message) -> None:\n                 self.application_state = WebSocketState.DISCONNECTED\n             await self._send(message)\n         else:\n-            raise RuntimeError('Cannot call \"send\" once a close message has been sent.')\n+            raise WebSocketDisconnected('Cannot call \"send\" once a close message has been sent.')\n \n     async def accept(\n         self,\n@@ -115,14 +121,14 @@ def _raise_on_disconnect(self, message: Message) -> None:\n \n     async def receive_text(self) -> str:\n         if self.application_state != WebSocketState.CONNECTED:\n-            raise RuntimeError('WebSocket is not connected. Need to call \"accept\" first.')\n+            raise WebSocketDisconnected('WebSocket is not connected. Need to call \"accept\" first.')\n         message = await self.receive()\n         self._raise_on_disconnect(message)\n         return cast(str, message[\"text\"])\n \n     async def receive_bytes(self) -> bytes:\n         if self.application_state != WebSocketState.CONNECTED:\n-            raise RuntimeError('WebSocket is not connected. Need to call \"accept\" first.')\n+            raise WebSocketDisconnected('WebSocket is not connected. Need to call \"accept\" first.')\n         message = await self.receive()\n         self._raise_on_disconnect(message)\n         return cast(bytes, message[\"bytes\"])\n@@ -131,7 +137,7 @@ async def receive_json(self, mode: str = \"text\") -> Any:\n         if mode not in {\"text\", \"binary\"}:\n             raise RuntimeError('The \"mode\" argument should be \"text\" or \"binary\".')\n         if self.application_state != WebSocketState.CONNECTED:\n-            raise RuntimeError('WebSocket is not connected. Need to call \"accept\" first.')\n+            raise WebSocketDisconnected('WebSocket is not connected. Need to call \"accept\" first.')\n         message = await self.receive()\n         self._raise_on_disconnect(message)\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 6,
+      "changes": 12,
+      "deletions": 6,
+      "filename": "tests/test_websockets.py",
+      "patch": "@@ -11,7 +11,7 @@\n from starlette.responses import FileResponse, Response, StreamingResponse\n from starlette.testclient import WebSocketDenialResponse\n from starlette.types import Message, Receive, Scope, Send\n-from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState\n+from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketDisconnected, WebSocketState\n from tests.types import TestClientFactory\n \n \n@@ -488,7 +488,7 @@ async def app(scope: Scope, receive: Receive, send: Send) -> None:\n         await websocket.close()\n \n     client = test_client_factory(app)\n-    with pytest.raises(RuntimeError):\n+    with pytest.raises(WebSocketDisconnected):\n         with client.websocket_connect(\"/\"):\n             pass  # pragma: no cover\n \n@@ -502,7 +502,7 @@ async def app(scope: Scope, receive: Receive, send: Send) -> None:\n         message = await websocket.receive()\n \n     client = test_client_factory(app)\n-    with pytest.raises(RuntimeError):\n+    with pytest.raises(WebSocketDisconnected):\n         with client.websocket_connect(\"/\") as websocket:\n             websocket.close()\n \n@@ -578,7 +578,7 @@ async def app(scope: Scope, receive: Receive, send: Send) -> None:\n         await websocket.receive_text()\n \n     client = test_client_factory(app)\n-    with pytest.raises(RuntimeError):\n+    with pytest.raises(WebSocketDisconnected):\n         with client.websocket_connect(\"/\"):\n             pass  # pragma: no cover\n \n@@ -589,7 +589,7 @@ async def app(scope: Scope, receive: Receive, send: Send) -> None:\n         await websocket.receive_bytes()\n \n     client = test_client_factory(app)\n-    with pytest.raises(RuntimeError):\n+    with pytest.raises(WebSocketDisconnected):\n         with client.websocket_connect(\"/\"):\n             pass  # pragma: no cover\n \n@@ -600,7 +600,7 @@ async def app(scope: Scope, receive: Receive, send: Send) -> None:\n         await websocket.receive_json()\n \n     client = test_client_factory(app)\n-    with pytest.raises(RuntimeError):\n+    with pytest.raises(WebSocketDisconnected):\n         with client.websocket_connect(\"/\"):\n             pass  # pragma: no cover\n ",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "ruitcatarino",
+    "base_sha": "d9ed5b0f98fdf081fb138473129b72eb035153a3",
+    "head_sha": "40cf9695caf476721b47f3ca969db0eb57daed42",
+    "html_url": "https://github.com/Kludex/starlette/pull/2767",
+    "number": 2767,
+    "repo": "encode/starlette",
+    "state": "closed",
+    "title": "Replace RuntimeError with WebSocketDisconnected"
+  },
+  "review_comments": [
+    {
+      "body": "That's not really what I meant... The exception already exists.",
+      "line": 30,
+      "path": "starlette/websockets.py",
+      "user": "Kludex"
+    },
+    {
+      "body": "Well, reading the code, `WebSocketDisconnect` seems to be called when you want to disconnect a socket, in these cases the socket is already disconnected. In my opinion, it would make more sense to create a new exception (`WebSocketDisconnected`). Tell me if you still want to use `WebSocketDisconnect` and if so I will make such changes.",
+      "line": 30,
+      "path": "starlette/websockets.py",
+      "user": "ruitcatarino"
+    },
+    {
+      "body": "This line is never reached.",
+      "line": 651,
+      "path": "tests/test_websockets.py",
+      "user": "Kludex"
+    },
+    {
+      "body": "Thank you, I was indeed doing the wrong thing. Fixed it.",
+      "line": 651,
+      "path": "tests/test_websockets.py",
+      "user": "ruitcatarino"
+    },
+    {
+      "body": "Sorry, you are right.",
+      "line": 30,
+      "path": "starlette/websockets.py",
+      "user": "Kludex"
+    },
+    {
+      "body": "No, actually, I understand what I had in mind: my idea was to raise `WebSocketDisconnect` to avoid the user from seeing the exception. The purpose of the `RuntimeError` here is that it's an issue with the code.",
+      "line": 30,
+      "path": "starlette/websockets.py",
+      "user": "Kludex"
+    },
+    {
+      "body": "I'm confused, raising `WebSocketDisconnect` instead of `RuntimeError `or `WebSocketDisconnected` when attempting to explicitly call `close()` on a closed socket would still raise the exception `WebSocketDisconnect` and it would not be handled automatically. The user would have to handle it.\r\nMy thought process is by explicitly calling `close()` on a closed socket it will eventually call `send()` that would currently raise a `RuntimeError`. With my changes it would raise a specific exception `WebSocketDisconnected`. If we changed it to `WebSocketDisconnect` that exception would be raised from `send()` and `close()` never handles it.\r\n\r\nAnd even if it was handled automatically and avoided the user from seeing the exception, the idea that I got from our discussion was that making `close()` idempotent was not the approach to follow (https://github.com/Kludex/starlette/discussions/2762#discussioncomment-11367437).\r\n\r\nMaybe I'm not understanding your request.",
+      "line": 30,
+      "path": "starlette/websockets.py",
+      "user": "ruitcatarino"
+    }
+  ]
+}

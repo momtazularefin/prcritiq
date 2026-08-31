@@ -26,7 +26,7 @@ from .findings import CandidateFinding, ReviewedFinding
 from .github import ChangedFile, PullRequestMetadata
 from .guardrails import GuardrailOutcome, apply_guardrails, reviewable_files
 from .prompts import SYSTEM_PROMPT, build_review_prompt
-from .providers import ModelChoice, ModelProvider, build_provider, route
+from .providers import ModelChoice, ModelProvider, Usage, build_provider, route
 from .retrieval import RetrievalResult
 from .tools import ToolRun
 
@@ -47,6 +47,7 @@ class ReviewState(TypedDict, total=False):
     tool_runs: tuple[ToolRun, ...] | None
 
     model_choice: ModelChoice | None
+    usage: Usage | None
     drafted: list[CandidateFinding]
     reviewed: tuple[ReviewedFinding, ...]
     summary: str
@@ -118,11 +119,13 @@ def reason_and_draft(state: ReviewState) -> dict[str, Any]:
     )
     choice = route(settings=settings, prompt_characters=len(prompt))
     provider = state.get("provider") or build_provider(choice, settings)
-    drafted = provider.draft(system=SYSTEM_PROMPT, user=prompt, choice=choice)
+    result = provider.draft(system=SYSTEM_PROMPT, user=prompt, choice=choice)
+    drafted = result.findings
 
     return {
         "model_choice": choice,
         "drafted": drafted.findings,
+        "usage": result.usage,
         "notes": [
             f"reason_and_draft: {choice.provider}/{choice.model} drafted "
             f"{len(drafted.findings)} candidates"

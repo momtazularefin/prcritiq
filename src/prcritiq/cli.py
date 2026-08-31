@@ -76,6 +76,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    evaluate = subparsers.add_parser("eval", help="Run the benchmark over a dataset")
+    evaluate.add_argument("--dataset", default="eval/dataset.jsonl", help="Dataset JSONL path")
+    evaluate.add_argument("--out", default="eval/reports", help="Directory for reports")
+    evaluate.add_argument(
+        "--limit", type=int, default=0, help="Review only the first N cases (0 means all)"
+    )
+    evaluate.add_argument(
+        "--fixture-mode",
+        action="store_true",
+        help="Use a deterministic mock model instead of a live provider.",
+    )
+
     return parser
 
 
@@ -118,6 +130,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         if args.markdown:
             Path(args.markdown).write_text(render_report(report), encoding="utf-8")
         payload = report.model_dump()
+    elif args.command == "eval":
+        return _run_eval(args)
     else:  # pragma: no cover - argparse prevents this branch.
         parser.error(f"unknown command: {args.command}")
 
@@ -127,3 +141,53 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     return run(argv)
+
+
+def _run_eval(args) -> int:
+    """Run the benchmark and write both reports."""
+
+    from .benchmark import (
+        aggregate,
+        build_report,
+        render_markdown_report,
+        run_case,
+        write_json_report,
+    )
+    from .dataset import read_dataset
+    from .providers import MockProvider, route
+
+    root = Path.cwd()
+    dataset_path = Path(args.dataset)
+    if not dataset_path.exists():
+        print(json.dumps({"service": "prcritiq", "error": f"No dataset at {dataset_path}"}))
+        return 1
+
+    cases = read_dataset(dataset_path)
+    if args.limit:
+        cases = cases[: args.limit]
+
+    settings = load_settings()
+    provider = MockProvider() if args.fixture_mode else None
+    choice = route(settings=settings, prompt_characters=1000)
+
+    outcomes = []
+    for index, case in enumerate(cases, start=1):
+        print(f"[{index}/{len(cases)}] {case.repo}#{case.pr_number}", flush=True)
+        outcomes.append(run_case(case, root=root, settings=settings, provider=provider))
+
+    metrics = aggregate(outcomes)
+    report = build_report(
+        outcomes,
+        metrics,
+        model_policy=settings.model_policy,
+        model="mock-reviewer" if args.fixture_mode else choice.model,
+        dataset_version=dataset_path.name,
+        mode="fixture" if args.fixture_mode else "live",
+    )
+
+    out = Path(args.out)
+    write_json_report(report, out / "benchmark.json")
+    (out / "benchmark.md").write_text(render_markdown_report(report), encoding="utf-8")
+
+    print(json.dumps({"metrics": report["metrics"], "passed": report["passed"]}, indent=2))
+    return 0
