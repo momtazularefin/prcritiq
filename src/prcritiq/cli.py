@@ -149,8 +149,10 @@ def _run_eval(args) -> int:
     from .benchmark import (
         aggregate,
         build_report,
+        execute_case,
         render_markdown_report,
-        run_case,
+        score_raw,
+        threshold_sweep,
         write_json_report,
     )
     from .dataset import read_dataset
@@ -170,11 +172,22 @@ def _run_eval(args) -> int:
     provider = MockProvider() if args.fixture_mode else None
     choice = route(settings=settings, prompt_characters=1000)
 
-    outcomes = []
+    from .providers import ProviderBillingError
+
+    raws = []
+    aborted: str | None = None
     for index, case in enumerate(cases, start=1):
         print(f"[{index}/{len(cases)}] {case.repo}#{case.pr_number}", flush=True)
-        outcomes.append(run_case(case, root=root, settings=settings, provider=provider))
+        try:
+            raws.append(execute_case(case, root=root, settings=settings, provider=provider))
+        except ProviderBillingError as exc:
+            aborted = str(exc)
+            print(f"aborting: {aborted}", flush=True)
+            break
 
+    outcomes = [
+        score_raw(raw, settings=settings, threshold=settings.min_publish_confidence) for raw in raws
+    ]
     metrics = aggregate(outcomes)
     report = build_report(
         outcomes,
@@ -183,6 +196,12 @@ def _run_eval(args) -> int:
         model="mock-reviewer" if args.fixture_mode else choice.model,
         dataset_version=dataset_path.name,
         mode="fixture" if args.fixture_mode else "live",
+    )
+
+    report["aborted"] = aborted
+    report["min_publish_confidence"] = settings.min_publish_confidence
+    report["threshold_sweep"] = threshold_sweep(
+        raws, settings=settings, thresholds=[50, 60, 70, settings.min_publish_confidence, 85]
     )
 
     out = Path(args.out)

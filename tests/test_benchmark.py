@@ -419,3 +419,90 @@ class TestFixtureModeRun:
         assert "# PRCritiq benchmark" in rendered
         assert "| Issue recall |" in rendered
         assert "## Limitations" in rendered
+
+
+class TestSuppressionReporting:
+    def test_a_run_that_suppresses_everything_says_why(self) -> None:
+        """A recall of zero must distinguish "found nothing" from "gate rejected it"."""
+
+        case = self_case()
+
+        outcome = score_case(case, [finding(publish=False)])
+
+        assert outcome.published == 0
+        assert outcome.suppressed_by_reason == {"generic": 1}
+
+    def test_reasons_merge_across_cases(self) -> None:
+        low = ReviewedFinding(
+            candidate=finding().candidate,
+            publish_decision="suppress",
+            suppression_reason="low_confidence",
+        )
+
+        metrics = aggregate(
+            [score_case(self_case(), [finding(publish=False)]), score_case(self_case(), [low])]
+        )
+
+        assert metrics.suppressed_by_reason == {"generic": 1, "low_confidence": 1}
+
+
+class TestThresholdSweep:
+    def _raw(self, confidence: int):
+        from prcritiq.benchmark import RawCaseRun
+        from prcritiq.diff import build_diff_index, build_file_diff
+
+        patch = "@@ -1,2 +1,4 @@\n import os\n \n+def retry(n):\n+    return 1 / n\n"
+        index = build_diff_index(
+            [
+                build_file_diff(
+                    path="src/app.py",
+                    status="modified",
+                    additions=2,
+                    deletions=0,
+                    changes=2,
+                    patch=patch,
+                )
+            ]
+        )
+        return RawCaseRun(
+            case=self_case(),
+            candidates=(finding(confidence=confidence).candidate,),
+            valid_targets={("src/app.py", 4)},
+            diff_index=index,
+        )
+
+    def test_a_candidate_below_the_threshold_is_suppressed(self) -> None:
+        from prcritiq.benchmark import score_raw
+
+        outcome = score_raw(self._raw(60), settings=Settings(), threshold=78)
+
+        assert outcome.published == 0
+        assert outcome.suppressed_by_reason == {"low_confidence": 1}
+
+    def test_the_same_candidate_publishes_at_a_lower_threshold(self) -> None:
+        """The sweep is the point: one run, several publish policies."""
+
+        from prcritiq.benchmark import score_raw
+
+        outcome = score_raw(self._raw(60), settings=Settings(), threshold=50)
+
+        assert outcome.published == 1
+
+    def test_the_sweep_reports_a_row_per_threshold(self) -> None:
+        from prcritiq.benchmark import threshold_sweep
+
+        sweep = threshold_sweep([self._raw(60)], settings=Settings(), thresholds=[50, 70, 85])
+
+        assert [row["min_publish_confidence"] for row in sweep] == [50, 70, 85]
+        assert sweep[0]["findings"] == 1
+        assert sweep[2]["findings"] == 0
+
+    def test_a_failed_case_still_scores_without_crashing_the_sweep(self) -> None:
+        from prcritiq.benchmark import RawCaseRun, score_raw
+
+        broken = RawCaseRun(case=self_case(), error="provider exploded")
+
+        outcome = score_raw(broken, settings=Settings(), threshold=78)
+
+        assert outcome.error == "provider exploded"
+        assert outcome.published == 0

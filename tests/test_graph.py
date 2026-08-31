@@ -366,3 +366,75 @@ class TestGraph:
         assert system == SYSTEM_PROMPT
         assert "<DIFF>" in user
         assert choice.provider == "anthropic"
+
+
+class TestAnthropicResponseHandling:
+    """Truncation must be named, not mistaken for an empty review."""
+
+    def _provider(self, response):
+        from prcritiq.providers import AnthropicProvider
+
+        provider = AnthropicProvider.__new__(AnthropicProvider)
+        provider._errors = __import__("anthropic")
+
+        class _Stream:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return None
+
+            def get_final_message(self):
+                return response
+
+        class _Messages:
+            def stream(self, **_kwargs):
+                return _Stream()
+
+        class _Client:
+            messages = _Messages()
+
+        provider._client = _Client()
+        return provider
+
+    def _response(self, stop_reason, parsed):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            stop_reason=stop_reason,
+            parsed_output=parsed,
+            usage=SimpleNamespace(input_tokens=10, output_tokens=20),
+        )
+
+    def test_a_truncated_response_names_the_cap(self) -> None:
+        from prcritiq.providers import MAX_OUTPUT_TOKENS, ModelChoice, ProviderError
+
+        provider = self._provider(self._response("max_tokens", None))
+
+        with pytest.raises(ProviderError, match=f"{MAX_OUTPUT_TOKENS}-token output cap"):
+            provider.draft(
+                system="s", user="u", choice=ModelChoice("anthropic", "claude-opus-5", "r")
+            )
+
+    def test_a_refusal_is_reported_as_a_refusal(self) -> None:
+        from prcritiq.providers import ModelChoice, ProviderError
+
+        provider = self._provider(self._response("refusal", None))
+
+        with pytest.raises(ProviderError, match="declined"):
+            provider.draft(
+                system="s", user="u", choice=ModelChoice("anthropic", "claude-opus-5", "r")
+            )
+
+    def test_usage_is_carried_back_for_costing(self) -> None:
+        from prcritiq.providers import ModelChoice
+
+        provider = self._provider(self._response("end_turn", DraftedFindings(findings=[])))
+
+        result = provider.draft(
+            system="s", user="u", choice=ModelChoice("anthropic", "claude-opus-5", "r")
+        )
+
+        assert result.usage.input_tokens == 10
+        assert result.usage.output_tokens == 20
+        assert result.usage.cost_usd("claude-opus-5") > 0

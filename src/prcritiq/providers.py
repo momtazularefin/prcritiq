@@ -25,9 +25,22 @@ ProviderName = Literal["anthropic", "openai", "mock"]
 #: before a tokenizer is available, and the ratio is stable enough for a policy.
 LARGE_PROMPT_CHARACTERS = 120_000
 
+#: Output allowance per review call. Adaptive thinking draws on the same
+#: budget as the answer, so this must clear both.
+MAX_OUTPUT_TOKENS = 64_000
+
 
 class ProviderError(RuntimeError):
     """Raised when a provider cannot be used exactly as configured."""
+
+
+class ProviderBillingError(ProviderError):
+    """Raised when the account cannot pay for the call.
+
+    Separate from other provider failures because it does not vary by case:
+    once credit is exhausted every remaining call fails the same way, so a
+    batch should stop rather than record the same error twenty times.
+    """
 
 
 @dataclass(frozen=True)
@@ -155,15 +168,24 @@ class AnthropicProvider:
 
     def draft(self, *, system: str, user: str, choice: ModelChoice) -> DraftResult:
         try:
-            response = self._client.messages.parse(
+            # Streamed with a large budget because adaptive thinking spends the
+            # same allowance as the answer. At 16000 non-streamed, large diffs
+            # truncated mid-structure and the parsed payload came back empty,
+            # which read as "the model found nothing" rather than as a failure.
+            with self._client.messages.stream(
                 model=choice.model,
-                max_tokens=16000,
+                max_tokens=MAX_OUTPUT_TOKENS,
                 system=system,
                 messages=[{"role": "user", "content": user}],
                 output_format=DraftedFindings,
                 thinking={"type": "adaptive"},
-            )
+            ) as stream:
+                response = stream.get_final_message()
         except self._errors.APIStatusError as exc:
+            if "credit balance is too low" in str(exc):
+                raise ProviderBillingError(
+                    "Anthropic reports the credit balance is too low to serve this request."
+                ) from exc
             hint = ""
             if "anthropic-workspace-id" in str(exc):
                 hint = (
@@ -178,6 +200,11 @@ class AnthropicProvider:
 
         if response.stop_reason == "refusal":
             raise ProviderError("Anthropic declined the review request")
+        if response.stop_reason == "max_tokens":
+            raise ProviderError(
+                f"Anthropic hit the {MAX_OUTPUT_TOKENS}-token output cap before finishing, "
+                "so the findings payload is incomplete. Raise the cap or reduce the diff."
+            )
         parsed = response.parsed_output
         if parsed is None:
             raise ProviderError("Anthropic returned no parsable findings payload")

@@ -2,6 +2,8 @@
 
 ## Status
 
+The benchmark is implemented and has been run live. **It does not pass.** The corpus is 20 merged pull requests from 8 code-heavy Python repositories with 46 labels drawn from real inline review comments. The most recent live run reviewed 13 of them before the API credit balance was exhausted, and measured an issue recall of 0.00 at the default publish threshold and 0.02 at a threshold of 50. Full reports are in `eval/reports/`; README states the result rather than the intention.
+
 The benchmark harness and corpus are built. The corpus is 20 real merged pull requests drawn from 8 code-heavy Python repositories, carrying 46 labels taken from inline review comments humans left on those pull requests, frozen as fixtures under `eval/`.
 
 No live benchmark result is published. Every case has so far been scored against a mocked model, which proves the measurement rather than the reviewer. The live run is blocked on `ANTHROPIC_WORKSPACE_ID`, because the configured key is identity-linked and the API rejects requests that do not name a workspace.

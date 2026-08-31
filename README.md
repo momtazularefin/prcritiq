@@ -37,10 +37,42 @@ M8 adds the benchmark that measures whether any of this actually works. On top o
 
 Not implemented yet:
 
-- A published live benchmark result. See below.
+- Deployment of the public demo and its managed database.
+- A benchmark result that passes its own gates. See below.
 
+### Benchmark result: does not pass
 
-**No benchmark results are published yet.** The harness runs end to end over all 20 cases and the corpus is committed, but every case has only been scored against a mocked model, which measures the measurement rather than the reviewer. The live run is blocked on an `ANTHROPIC_WORKSPACE_ID`: the configured key is identity-linked and the API rejects requests that do not name a workspace. No recall or precision figure will appear here until a live run produces one.
+The live benchmark has run, and PRCritiq does not pass it. This section states what was measured rather than what was hoped for.
+
+The most recent run reviewed **13 of 20 cases** before the API credit balance was exhausted, so the result is incomplete as well as failing.
+
+| Gate | Target | Actual | Result |
+| --- | --- | --- | --- |
+| Corpus size | >= 20 reviewed | 13 of 20 | FAIL |
+| Run completeness | 0 failed cases | 7 failed | FAIL |
+| Issue recall | > 0.50 | 0.00 | FAIL |
+| Comment precision | >= 0.70 | 0.00 | FAIL |
+| Invalid-line rate | = 0.00 | 0.00 | PASS |
+| No-evidence rate | = 0.00 | 0.00 | PASS |
+| Spam rate | <= 0.10 | 0.00 | PASS |
+
+The safety gates hold: nothing was reported on an invalid line, nothing without evidence, nothing generic or duplicated. The quality gates do not. At the default publish threshold of 78 the reviewer published nothing at all; every candidate it drafted was suppressed as low confidence, which is the reviewer declining to stand behind its own output rather than the gate misfiring.
+
+The publish-threshold sweep, scored from the same model calls:
+
+| Min confidence | Recall | Precision | Findings | Quiet runs |
+| --- | --- | --- | --- | --- |
+| 50 | 0.02 | 0.11 | 9 | 15 |
+| 60 | 0.00 | 0.00 | 4 | 17 |
+| 70 | 0.00 | 0.00 | 0 | 20 |
+| 78 (default) | 0.00 | 0.00 | 0 | 20 |
+| 85 | 0.00 | 0.00 | 0 | 20 |
+
+Lowering the bar surfaces findings but does not find the issues humans found: at confidence 50 it matched 1 of 46 labels. The bottleneck is what the reviewer drafts, not where the threshold sits.
+
+Cost was $5.02 for the run, $0.25 per pull request, median latency 62s. Full reports are in `eval/reports/`.
+
+Read these numbers with the labelling method in mind. Labels are inline review comments filtered by documented heuristics, not hand-adjudicated, and matching is mechanical: same file, a line within 5, and shared distinctive vocabulary. Human review comments are often design discussion rather than defects, so this measures agreement with reviewers rather than defect detection. That cuts both ways, and it makes this weaker evidence than a curated corpus would be.
 
 Retrieval ranking is identifier-aware BM25, not vector embeddings. This is a settled design choice rather than a gap: what connects two regions of a codebase is usually a shared identifier, which lexical matching captures directly, and keeping it lexical means retrieval is deterministic, reproducible offline, and free of a model download. A vector provider can be added behind the existing `SimilarityProvider` protocol without touching any caller. `PRCRITIQ_SIMILARITY=embedding` is a valid configuration value that fails with a clear error rather than quietly running the lexical path instead.
 

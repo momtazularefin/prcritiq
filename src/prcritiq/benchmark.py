@@ -130,6 +130,7 @@ class CaseOutcome:
     matched_findings: int = 0
     missed_labels: list[str] = field(default_factory=list)
     unmatched_findings: list[str] = field(default_factory=list)
+    suppressed_by_reason: dict[str, int] = field(default_factory=dict)
     invalid_line: int = 0
     no_evidence: int = 0
     spam: int = 0
@@ -145,6 +146,8 @@ class BenchmarkMetrics:
     """The numbers the eval plan's gates are judged on."""
 
     cases: int = 0
+    completed_cases: int = 0
+    failed_cases: int = 0
     labels: int = 0
     findings: int = 0
     matched: int = 0
@@ -154,6 +157,7 @@ class BenchmarkMetrics:
     no_evidence_rate: float = 0.0
     spam_rate: float = 0.0
     quiet_runs: int = 0
+    suppressed_by_reason: dict[str, int] = field(default_factory=dict)
     median_latency_seconds: float = 0.0
     p95_latency_seconds: float = 0.0
     total_cost_usd: float = 0.0
@@ -166,6 +170,15 @@ class BenchmarkMetrics:
 _SPAM_REASONS: Final[frozenset[SuppressionReason]] = frozenset(
     {SuppressionReason.GENERIC, SuppressionReason.DUPLICATE}
 )
+
+
+def _count_reasons(suppressed: Sequence[ReviewedFinding]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in suppressed:
+        if item.suppression_reason is not None:
+            key = item.suppression_reason.value
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def score_case(
@@ -217,6 +230,10 @@ def score_case(
             if index not in consumed
         ],
         unmatched_findings=unmatched,
+        # A run that suppressed everything must say why, or the report states a
+        # recall of zero without explaining whether the model found nothing or
+        # the gate rejected everything it found.
+        suppressed_by_reason=_count_reasons(suppressed),
         # Counts what reached a reader, checked against the pull request's real
         # changed lines rather than assumed from the fact that self-critique ran.
         # A suppressed invalid line is the gate working, not a defect, so it must
@@ -235,6 +252,14 @@ def score_case(
         cost_usd=cost_usd,
         error=error,
     )
+
+
+def _merge_reasons(outcomes: Sequence[CaseOutcome]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for outcome in outcomes:
+        for reason, count in outcome.suppressed_by_reason.items():
+            merged[reason] = merged.get(reason, 0) + count
+    return dict(sorted(merged.items()))
 
 
 def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
@@ -257,6 +282,8 @@ def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
 
     return BenchmarkMetrics(
         cases=len(outcomes),
+        completed_cases=sum(1 for item in outcomes if item.error is None),
+        failed_cases=sum(1 for item in outcomes if item.error is not None),
         labels=labels,
         findings=findings,
         matched=matched,
@@ -271,6 +298,7 @@ def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
         no_evidence_rate=round(no_evidence / findings, 4) if findings else 0.0,
         spam_rate=round(spam / (findings + spam), 4) if (findings + spam) else 0.0,
         quiet_runs=sum(1 for item in outcomes if item.published == 0),
+        suppressed_by_reason=_merge_reasons(outcomes),
         median_latency_seconds=round(statistics.median(latencies), 2) if latencies else 0.0,
         p95_latency_seconds=round(p95, 2),
         total_cost_usd=round(total_cost, 4),
@@ -294,7 +322,21 @@ def evaluate_gates(metrics: BenchmarkMetrics) -> tuple[Gate, ...]:
     """Judge the metrics against the eval plan's PASS requirements."""
 
     return (
-        Gate("corpus size", ">= 20 cases", metrics.cases >= 20, f"{metrics.cases}"),
+        # Counts cases that actually produced a review. A case that errored is
+        # not evidence, and letting it fill the corpus would let a run that never
+        # reviewed anything report a passing corpus size.
+        Gate(
+            "corpus size",
+            ">= 20 reviewed cases",
+            metrics.completed_cases >= 20,
+            f"{metrics.completed_cases} of {metrics.cases}",
+        ),
+        Gate(
+            "run completeness",
+            "0 failed cases",
+            metrics.failed_cases == 0,
+            f"{metrics.failed_cases} failed",
+        ),
         Gate(
             "issue recall",
             "> 0.50",
@@ -453,6 +495,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         f"- Dataset: `{report['dataset_version']}` ({metrics['cases']} pull requests, "
         f"{metrics['labels']} labels)",
+        f"- Reviewed: {metrics['completed_cases']} of {metrics['cases']} "
+        f"({metrics['failed_cases']} failed)",
         f"- Mode: {report['mode']}",
         f"- Model: `{report['model_policy']}` / `{report['model']}`",
         f"- Generated: {report['generated_at']}",
@@ -484,6 +528,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"| Findings published | {metrics['findings']} |",
             f"| Human labels matched | {metrics['matched']} of {metrics['labels']} |",
             f"| Quiet runs | {metrics['quiet_runs']} of {metrics['cases']} |",
+            f"| Suppressed by reason | {metrics['suppressed_by_reason'] or 'none'} |",
             f"| Median latency | {metrics['median_latency_seconds']:.2f}s |",
             f"| P95 latency | {metrics['p95_latency_seconds']:.2f}s |",
             f"| Cost per PR | ${metrics['cost_per_pr_usd']:.4f} |",
@@ -502,6 +547,136 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"{case['latency_seconds']:.1f}s | ${case['cost_usd']:.4f} |"
         for case in report["cases"]
     )
+    if report.get("threshold_sweep"):
+        lines.extend(
+            [
+                "",
+                "## Publish-threshold sweep",
+                "",
+                "Scored from one set of model calls: suppression is post-processing over the",
+                "same drafted candidates, so the curve costs nothing extra.",
+                "",
+                "| Min confidence | Recall | Precision | Findings | Quiet runs |",
+                "| --- | --- | --- | --- | --- |",
+            ]
+        )
+        lines.extend(
+            f"| {row['min_publish_confidence']} | {row['issue_recall']:.2f} | "
+            f"{row['comment_precision']:.2f} | {row['findings']} | {row['quiet_runs']} |"
+            for row in report["threshold_sweep"]
+        )
+
     lines.extend(["", "## Limitations", ""])
     lines.extend(f"- {item}" for item in report["limitations"])
     return "\n".join(lines) + "\n"
+
+
+@dataclass
+class RawCaseRun:
+    """One case reviewed once, kept so it can be scored at several thresholds.
+
+    Suppression is post-processing over candidates the model already drafted, so
+    a threshold sweep costs no extra model calls. Reporting a single recall
+    figure without the curve behind it would hide whether the reviewer found
+    nothing or the publish gate rejected what it found.
+    """
+
+    case: BenchmarkCase
+    candidates: tuple[Any, ...] = ()
+    valid_targets: set[tuple[str, int]] = field(default_factory=set)
+    diff_index: Any = None
+    latency_seconds: float = 0.0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
+    error: str | None = None
+
+
+def execute_case(
+    case: BenchmarkCase, *, root: Any, settings: Any, provider: Any = None
+) -> RawCaseRun:
+    """Review one case once and keep everything needed to score it."""
+
+    from .diff import build_diff_index, file_diff_from_changed_file
+    from .graph import run_review_graph
+
+    started = time.monotonic()
+    try:
+        metadata, changed = load_case_inputs(case, root)
+        state = run_review_graph(
+            settings=settings,
+            metadata=metadata,
+            changed_files=changed,
+            provider=provider,
+        )
+    except Exception as exc:
+        return RawCaseRun(case=case, latency_seconds=time.monotonic() - started, error=str(exc))
+
+    usage = state.get("usage")
+    choice = state.get("model_choice")
+    index = build_diff_index([file_diff_from_changed_file(item) for item in changed])
+    return RawCaseRun(
+        case=case,
+        candidates=tuple(state.get("drafted") or ()),
+        valid_targets={
+            (file_diff.path, line)
+            for file_diff in index.files
+            for line in file_diff.commentable_lines
+        },
+        diff_index=index,
+        latency_seconds=time.monotonic() - started,
+        input_tokens=usage.input_tokens if usage else 0,
+        output_tokens=usage.output_tokens if usage else 0,
+        cost_usd=usage.cost_usd(choice.model) if usage and choice else 0.0,
+    )
+
+
+def score_raw(raw: RawCaseRun, *, settings: Any, threshold: int) -> CaseOutcome:
+    """Score one executed case at a given publish-confidence threshold."""
+
+    from dataclasses import replace
+
+    from .critique import critique
+
+    if raw.error is not None:
+        return score_case(raw.case, (), latency_seconds=raw.latency_seconds, error=raw.error)
+
+    reviewed = critique(
+        raw.candidates,
+        diff_index=raw.diff_index,
+        settings=replace(settings, min_publish_confidence=threshold),
+    )
+    return score_case(
+        raw.case,
+        reviewed,
+        valid_targets=raw.valid_targets,
+        latency_seconds=raw.latency_seconds,
+        input_tokens=raw.input_tokens,
+        output_tokens=raw.output_tokens,
+        cost_usd=raw.cost_usd,
+    )
+
+
+def threshold_sweep(
+    raws: Sequence[RawCaseRun], *, settings: Any, thresholds: Sequence[int]
+) -> list[dict[str, Any]]:
+    """Metrics at each publish threshold, from one set of model calls."""
+
+    sweep: list[dict[str, Any]] = []
+    for threshold in thresholds:
+        metrics = aggregate(
+            [score_raw(raw, settings=settings, threshold=threshold) for raw in raws]
+        )
+        sweep.append(
+            {
+                "min_publish_confidence": threshold,
+                "issue_recall": metrics.issue_recall,
+                "comment_precision": metrics.comment_precision,
+                "findings": metrics.findings,
+                "matched": metrics.matched,
+                "invalid_line_rate": metrics.invalid_line_rate,
+                "spam_rate": metrics.spam_rate,
+                "quiet_runs": metrics.quiet_runs,
+            }
+        )
+    return sweep
