@@ -376,6 +376,7 @@ class TestAnthropicResponseHandling:
 
         provider = AnthropicProvider.__new__(AnthropicProvider)
         provider._errors = __import__("anthropic")
+        provider._effort = "low"
 
         class _Stream:
             def __enter__(self):
@@ -438,3 +439,78 @@ class TestAnthropicResponseHandling:
         assert result.usage.input_tokens == 10
         assert result.usage.output_tokens == 20
         assert result.usage.cost_usd("claude-opus-5") > 0
+
+
+class TestEffortConfiguration:
+    def test_an_unknown_effort_is_refused_rather_than_dropped(self) -> None:
+        """Silently ignoring it would bill high-effort work for a low-effort run."""
+
+        from prcritiq.providers import AnthropicProvider, ProviderError
+
+        with pytest.raises(ProviderError, match="PRCRITIQ_MODEL_EFFORT must be one of"):
+            AnthropicProvider("key", None, "turbo")
+
+    @pytest.mark.parametrize("effort", ["low", "medium", "high", "xhigh", "max"])
+    def test_documented_efforts_are_accepted(self, effort: str) -> None:
+        from prcritiq.providers import AnthropicProvider
+
+        assert AnthropicProvider("key", None, effort)._effort == effort
+
+    def test_the_default_is_low(self) -> None:
+        assert Settings().model_effort == "low"
+
+
+class TestOpenAIResponses:
+    def test_typed_responses_api_receives_effort_and_returns_usage(self) -> None:
+        from types import SimpleNamespace
+
+        from prcritiq.providers import ModelChoice, OpenAIProvider
+
+        class Responses:
+            def __init__(self) -> None:
+                self.kwargs = None
+
+            def parse(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(
+                    status="completed",
+                    output_parsed=DraftedFindings(findings=[]),
+                    usage=SimpleNamespace(
+                        input_tokens=100,
+                        output_tokens=25,
+                        input_tokens_details=SimpleNamespace(cached_tokens=40),
+                        output_tokens_details=SimpleNamespace(reasoning_tokens=10),
+                    ),
+                )
+
+        responses = Responses()
+        provider = OpenAIProvider.__new__(OpenAIProvider)
+        provider._client = SimpleNamespace(responses=responses)
+        provider._errors = __import__("openai")
+        provider._effort = "low"
+
+        result = provider.draft(
+            system="system",
+            user="user",
+            choice=ModelChoice("openai", "gpt-5.6-terra", "test"),
+        )
+
+        assert responses.kwargs["instructions"] == "system"
+        assert responses.kwargs["input"] == "user"
+        assert responses.kwargs["reasoning"] == {"effort": "low", "context": "current_turn"}
+        assert responses.kwargs["text_format"] is DraftedFindings
+        assert result.usage.cached_input_tokens == 40
+        assert result.usage.reasoning_output_tokens == 10
+        assert result.usage.cost_usd("gpt-5.6-terra") > 0
+
+    def test_gpt_5_6_prices_are_registered(self) -> None:
+        from prcritiq.providers import Usage
+
+        usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
+
+        assert usage.cost_usd("gpt-5.6-sol") == 24.0
+        assert usage.cost_usd("gpt-5.6-terra") == 14.0
+        assert usage.cost_usd("gpt-5.6-luna") == 1.4
+
+    def test_openai_default_is_terra(self) -> None:
+        assert Settings().openai_model == "gpt-5.6-terra"

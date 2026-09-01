@@ -123,13 +123,21 @@ class CaseOutcome:
     case_id: str
     repo: str
     pr_number: int
+    total_labels: int = 0
     labels: int = 0
+    confirmed_labels: int = 0
+    unadjudicated_labels: int = 0
+    excluded_labels: list[str] = field(default_factory=list)
+    invalid_label_targets: list[str] = field(default_factory=list)
     published: int = 0
     suppressed: int = 0
     matched_labels: list[str] = field(default_factory=list)
     matched_findings: int = 0
+    matched_pairs: list[dict[str, Any]] = field(default_factory=list)
     missed_labels: list[str] = field(default_factory=list)
     unmatched_findings: list[str] = field(default_factory=list)
+    published_findings: list[dict[str, Any]] = field(default_factory=list)
+    suppressed_findings: list[dict[str, Any]] = field(default_factory=list)
     suppressed_by_reason: dict[str, int] = field(default_factory=dict)
     invalid_line: int = 0
     no_evidence: int = 0
@@ -137,7 +145,13 @@ class CaseOutcome:
     latency_seconds: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    reasoning_output_tokens: int = 0
     cost_usd: float = 0.0
+    provider: str | None = None
+    model: str | None = None
+    model_effort: str | None = None
+    route_reason: str | None = None
     error: str | None = None
 
 
@@ -149,6 +163,10 @@ class BenchmarkMetrics:
     completed_cases: int = 0
     failed_cases: int = 0
     labels: int = 0
+    confirmed_labels: int = 0
+    unadjudicated_labels: int = 0
+    invalid_label_targets: int = 0
+    dataset_certified: bool = False
     findings: int = 0
     matched: int = 0
     issue_recall: float = 0.0
@@ -164,6 +182,8 @@ class BenchmarkMetrics:
     cost_per_pr_usd: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    reasoning_output_tokens: int = 0
 
 
 #: Suppression reasons that count as spam the agent avoided emitting.
@@ -181,6 +201,55 @@ def _count_reasons(suppressed: Sequence[ReviewedFinding]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _finding_payload(index: int, finding: ReviewedFinding) -> dict[str, Any]:
+    """Keep enough output for independent adjudication after a paid run."""
+
+    return {
+        "finding_index": index,
+        "candidate": finding.candidate.model_dump(mode="json"),
+        "publish_decision": finding.publish_decision,
+        "suppression_reason": (
+            finding.suppression_reason.value if finding.suppression_reason is not None else None
+        ),
+    }
+
+
+def _maximum_matching(
+    findings: Sequence[ReviewedFinding], labels: Sequence[Label]
+) -> list[tuple[int, int]]:
+    """Return a maximum-cardinality, one-to-one finding/label matching.
+
+    The predicate is still a mechanical proxy, but one finding can no longer
+    claim several labels and several findings can no longer claim one label.
+    """
+
+    edges = [
+        sorted(
+            (index for index, label in enumerate(labels) if matches(finding, label)),
+            key=lambda index: abs(finding.candidate.line - labels[index].line),
+        )
+        for finding in findings
+    ]
+    label_owner: dict[int, int] = {}
+
+    def assign(finding_index: int, visited: set[int]) -> bool:
+        for label_index in edges[finding_index]:
+            if label_index in visited:
+                continue
+            visited.add(label_index)
+            owner = label_owner.get(label_index)
+            if owner is None or assign(owner, visited):
+                label_owner[label_index] = finding_index
+                return True
+        return False
+
+    for finding_index in range(len(findings)):
+        assign(finding_index, set())
+    return sorted(
+        (finding_index, label_index) for label_index, finding_index in label_owner.items()
+    )
+
+
 def score_case(
     case: BenchmarkCase,
     reviewed: Sequence[ReviewedFinding],
@@ -189,7 +258,13 @@ def score_case(
     latency_seconds: float = 0.0,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    cached_input_tokens: int = 0,
+    reasoning_output_tokens: int = 0,
     cost_usd: float = 0.0,
+    provider: str | None = None,
+    model: str | None = None,
+    model_effort: str | None = None,
+    route_reason: str | None = None,
     error: str | None = None,
 ) -> CaseOutcome:
     """Score one case against its labels."""
@@ -197,39 +272,69 @@ def score_case(
     published = [item for item in reviewed if item.published]
     suppressed = [item for item in reviewed if not item.published]
 
-    matched_labels: list[str] = []
-    consumed: set[int] = set()
-    for index, label in enumerate(case.labels):
-        for finding in published:
-            if matches(finding, label):
-                matched_labels.append(f"{label.file_path}:{label.line}")
-                consumed.add(index)
-                break
+    eligible: list[tuple[int, Label]] = []
+    excluded_labels: list[str] = []
+    invalid_label_targets: list[str] = []
+    for original_index, label in enumerate(case.labels):
+        target = f"{label.file_path}:{label.line}"
+        if label.adjudication == "excluded":
+            excluded_labels.append(target)
+        elif valid_targets is not None and (label.file_path, label.line) not in valid_targets:
+            invalid_label_targets.append(target)
+        else:
+            eligible.append((original_index, label))
 
-    matched_findings = sum(
-        1 for item in published if any(matches(item, label) for label in case.labels)
-    )
+    labels = [label for _, label in eligible]
+    pairs = _maximum_matching(published, labels)
+    consumed_findings = {finding_index for finding_index, _ in pairs}
+    consumed_labels = {label_index for _, label_index in pairs}
+    matched_labels = [
+        f"{labels[index].file_path}:{labels[index].line}" for index in sorted(consumed_labels)
+    ]
     unmatched = [
         f"{item.candidate.file_path}:{item.candidate.line}"
-        for item in published
-        if not any(matches(item, label) for label in case.labels)
+        for index, item in enumerate(published)
+        if index not in consumed_findings
     ]
 
     return CaseOutcome(
         case_id=case.id,
         repo=case.repo,
         pr_number=case.pr_number,
-        labels=len(case.labels),
+        total_labels=len(case.labels),
+        labels=len(labels),
+        confirmed_labels=sum(1 for label in labels if label.confirmed),
+        unadjudicated_labels=sum(1 for label in labels if not label.confirmed),
+        excluded_labels=excluded_labels,
+        invalid_label_targets=invalid_label_targets,
         published=len(published),
         suppressed=len(suppressed),
         matched_labels=matched_labels,
-        matched_findings=matched_findings,
+        matched_findings=len(pairs),
+        matched_pairs=[
+            {
+                "finding_index": finding_index,
+                "label_index": eligible[label_index][0],
+                "finding_target": (
+                    f"{published[finding_index].candidate.file_path}:"
+                    f"{published[finding_index].candidate.line}"
+                ),
+                "label_target": f"{labels[label_index].file_path}:{labels[label_index].line}",
+                "source_comment_id": labels[label_index].source_comment_id,
+                "rule": "same file, nearby line, distinctive-token overlap",
+            }
+            for finding_index, label_index in pairs
+        ],
         missed_labels=[
             f"{label.file_path}:{label.line}"
-            for index, label in enumerate(case.labels)
-            if index not in consumed
+            for index, label in enumerate(labels)
+            if index not in consumed_labels
         ],
         unmatched_findings=unmatched,
+        published_findings=[_finding_payload(index, item) for index, item in enumerate(published)],
+        suppressed_findings=[
+            _finding_payload(index, item) for index, item in enumerate(suppressed)
+        ],
         # A run that suppressed everything must say why, or the report states a
         # recall of zero without explaining whether the model found nothing or
         # the gate rejected everything it found.
@@ -249,7 +354,13 @@ def score_case(
         latency_seconds=latency_seconds,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        cached_input_tokens=cached_input_tokens,
+        reasoning_output_tokens=reasoning_output_tokens,
         cost_usd=cost_usd,
+        provider=provider,
+        model=model,
+        model_effort=model_effort,
+        route_reason=route_reason,
         error=error,
     )
 
@@ -268,12 +379,16 @@ def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
     if not outcomes:
         return BenchmarkMetrics()
 
-    labels = sum(item.labels for item in outcomes)
-    matched = sum(len(item.matched_labels) for item in outcomes)
-    findings = sum(item.published for item in outcomes)
-    invalid = sum(item.invalid_line for item in outcomes)
-    no_evidence = sum(item.no_evidence for item in outcomes)
-    spam = sum(item.spam for item in outcomes)
+    completed = [item for item in outcomes if item.error is None]
+    labels = sum(item.labels for item in completed)
+    confirmed_labels = sum(item.confirmed_labels for item in completed)
+    unadjudicated_labels = sum(item.unadjudicated_labels for item in completed)
+    invalid_label_targets = sum(len(item.invalid_label_targets) for item in completed)
+    matched = sum(len(item.matched_labels) for item in completed)
+    findings = sum(item.published for item in completed)
+    invalid = sum(item.invalid_line for item in completed)
+    no_evidence = sum(item.no_evidence for item in completed)
+    spam = sum(item.spam for item in completed)
     latencies = [item.latency_seconds for item in outcomes if item.latency_seconds > 0]
     total_cost = sum(item.cost_usd for item in outcomes)
 
@@ -285,26 +400,32 @@ def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
         completed_cases=sum(1 for item in outcomes if item.error is None),
         failed_cases=sum(1 for item in outcomes if item.error is not None),
         labels=labels,
+        confirmed_labels=confirmed_labels,
+        unadjudicated_labels=unadjudicated_labels,
+        invalid_label_targets=invalid_label_targets,
+        dataset_certified=(labels > 0 and unadjudicated_labels == 0 and invalid_label_targets == 0),
         findings=findings,
         matched=matched,
         issue_recall=round(matched / labels, 4) if labels else 0.0,
         # Findings a human also raised, over findings reported. Counting matched
         # labels here instead would let one finding that answers two comments
         # push precision above 1.
-        comment_precision=round(sum(item.matched_findings for item in outcomes) / findings, 4)
+        comment_precision=round(sum(item.matched_findings for item in completed) / findings, 4)
         if findings
         else 0.0,
         invalid_line_rate=round(invalid / findings, 4) if findings else 0.0,
         no_evidence_rate=round(no_evidence / findings, 4) if findings else 0.0,
         spam_rate=round(spam / (findings + spam), 4) if (findings + spam) else 0.0,
-        quiet_runs=sum(1 for item in outcomes if item.published == 0),
-        suppressed_by_reason=_merge_reasons(outcomes),
+        quiet_runs=sum(1 for item in completed if item.published == 0),
+        suppressed_by_reason=_merge_reasons(completed),
         median_latency_seconds=round(statistics.median(latencies), 2) if latencies else 0.0,
         p95_latency_seconds=round(p95, 2),
         total_cost_usd=round(total_cost, 4),
         cost_per_pr_usd=round(total_cost / len(outcomes), 4),
         input_tokens=sum(item.input_tokens for item in outcomes),
         output_tokens=sum(item.output_tokens for item in outcomes),
+        cached_input_tokens=sum(item.cached_input_tokens for item in outcomes),
+        reasoning_output_tokens=sum(item.reasoning_output_tokens for item in outcomes),
     )
 
 
@@ -338,6 +459,15 @@ def evaluate_gates(metrics: BenchmarkMetrics) -> tuple[Gate, ...]:
             f"{metrics.failed_cases} failed",
         ),
         Gate(
+            "dataset certification",
+            "all scored labels adjudicated and revision-valid",
+            metrics.dataset_certified,
+            (
+                f"{metrics.confirmed_labels}/{metrics.labels} confirmed, "
+                f"{metrics.invalid_label_targets} invalid targets"
+            ),
+        ),
+        Gate(
             "issue recall",
             "> 0.50",
             metrics.issue_recall > 0.50,
@@ -361,7 +491,12 @@ def evaluate_gates(metrics: BenchmarkMetrics) -> tuple[Gate, ...]:
             metrics.no_evidence_rate == 0.0,
             f"{metrics.no_evidence_rate:.2f}",
         ),
-        Gate("spam rate", "<= 0.10", metrics.spam_rate <= 0.10, f"{metrics.spam_rate:.2f}"),
+        Gate(
+            "candidate-noise rate",
+            "<= 0.10",
+            metrics.spam_rate <= 0.10,
+            f"{metrics.spam_rate:.2f}",
+        ),
     )
 
 
@@ -386,17 +521,18 @@ def build_report(
         "metrics": metrics.__dict__,
         "gates": [gate.__dict__ for gate in gates],
         "passed": all(gate.passed for gate in gates),
+        "dataset_certified": metrics.dataset_certified,
         "cases": [outcome.__dict__ for outcome in outcomes],
         "limitations": [
-            "Labels are inline review comments filtered by documented heuristics, "
-            "not hand-adjudicated by a human.",
+            "Legacy or newly harvested labels remain unreviewed until a human marks "
+            "them confirmed_defect; unreviewed labels force the dataset-certification "
+            "gate to fail.",
             "Finding-to-label matching is mechanical: same file, a line within "
             f"{LINE_WINDOW}, and at least {TOKEN_OVERLAP:.0%} shared distinctive "
             "vocabulary. The eval plan asks for manual adjudication of ambiguous "
             "matches, which this run does not perform.",
-            "A human comment can be a question or a design discussion rather than a "
-            "defect, so recall against these labels understates nothing but also "
-            "proves less than recall against curated defects would.",
+            "Label-overlap precision is a matching proxy, not adjudicated correctness. "
+            "The report retains full findings so a human can assess unmatched output.",
         ],
     }
 
@@ -450,40 +586,10 @@ def run_case(
     settings: Any,
     provider: Any = None,
 ) -> CaseOutcome:
-    """Review one case and score it."""
+    """Compatibility wrapper: execute once and score at the configured threshold."""
 
-    from .diff import build_diff_index, file_diff_from_changed_file
-    from .graph import run_review_graph
-
-    started = time.monotonic()
-    try:
-        metadata, changed = load_case_inputs(case, root)
-        state = run_review_graph(
-            settings=settings,
-            metadata=metadata,
-            changed_files=changed,
-            provider=provider,
-        )
-    except Exception as exc:
-        return score_case(case, (), latency_seconds=time.monotonic() - started, error=str(exc))
-
-    reviewed = state.get("reviewed") or ()
-    usage = state.get("usage")
-    choice = state.get("model_choice")
-    index = build_diff_index([file_diff_from_changed_file(item) for item in changed])
-    valid_targets = {
-        (file_diff.path, line) for file_diff in index.files for line in file_diff.commentable_lines
-    }
-
-    return score_case(
-        case,
-        reviewed,
-        valid_targets=valid_targets,
-        latency_seconds=time.monotonic() - started,
-        input_tokens=usage.input_tokens if usage else 0,
-        output_tokens=usage.output_tokens if usage else 0,
-        cost_usd=usage.cost_usd(choice.model) if usage and choice else 0.0,
-    )
+    raw = execute_case(case, root=root, settings=settings, provider=provider)
+    return score_raw(raw, settings=settings, threshold=settings.min_publish_confidence)
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
@@ -521,10 +627,12 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "| Metric | Value |",
             "| --- | --- |",
             f"| Issue recall | {metrics['issue_recall']:.2f} |",
-            f"| Comment precision | {metrics['comment_precision']:.2f} |",
+            f"| Label-overlap precision (proxy) | {metrics['comment_precision']:.2f} |",
+            f"| Confirmed labels | {metrics['confirmed_labels']} of {metrics['labels']} |",
+            f"| Invalid label targets excluded | {metrics['invalid_label_targets']} |",
             f"| Invalid-line rate | {metrics['invalid_line_rate']:.2f} |",
             f"| No-evidence rate | {metrics['no_evidence_rate']:.2f} |",
-            f"| Spam rate | {metrics['spam_rate']:.2f} |",
+            f"| Candidate-noise rate | {metrics['spam_rate']:.2f} |",
             f"| Findings published | {metrics['findings']} |",
             f"| Human labels matched | {metrics['matched']} of {metrics['labels']} |",
             f"| Quiet runs | {metrics['quiet_runs']} of {metrics['cases']} |",
@@ -533,7 +641,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"| P95 latency | {metrics['p95_latency_seconds']:.2f}s |",
             f"| Cost per PR | ${metrics['cost_per_pr_usd']:.4f} |",
             f"| Total cost | ${metrics['total_cost_usd']:.4f} |",
-            f"| Tokens | {metrics['input_tokens']} in, {metrics['output_tokens']} out |",
+            (
+                f"| Tokens | {metrics['input_tokens']} in "
+                f"({metrics['cached_input_tokens']} cached), {metrics['output_tokens']} out "
+                f"({metrics['reasoning_output_tokens']} reasoning) |"
+            ),
             "",
             "## Per case",
             "",
@@ -588,27 +700,82 @@ class RawCaseRun:
     latency_seconds: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    reasoning_output_tokens: int = 0
     cost_usd: float = 0.0
+    provider: str | None = None
+    model: str | None = None
+    model_effort: str | None = None
+    route_reason: str | None = None
     error: str | None = None
 
 
+def _github_client(settings: Any) -> Any:
+    from .github import GitHubClient
+
+    return GitHubClient(
+        token=settings.github_token,
+        api_base_url=settings.github_api_base_url,
+        timeout_seconds=settings.github_request_timeout_seconds,
+    )
+
+
 def execute_case(
-    case: BenchmarkCase, *, root: Any, settings: Any, provider: Any = None
+    case: BenchmarkCase,
+    *,
+    root: Any,
+    settings: Any,
+    provider: Any = None,
+    include_context: bool = False,
+    client: Any = None,
+    task: str = "batch_eval",
 ) -> RawCaseRun:
-    """Review one case once and keep everything needed to score it."""
+    """Review one case once and keep everything needed to score it.
+
+    With `include_context`, the repository is snapshotted at the case's pinned
+    head SHA and surrounding code is retrieved, which is how the product runs
+    with `--context`. That needs the network and a token, so the benchmark's
+    usual offline property does not hold for those runs.
+    """
 
     from .diff import build_diff_index, file_diff_from_changed_file
     from .graph import run_review_graph
+    from .guardrails import apply_guardrails, reviewable_files
+    from .providers import ProviderBillingError
+    from .review import gather_evidence
 
     started = time.monotonic()
     try:
         metadata, changed = load_case_inputs(case, root)
+        retrieval = None
+        if include_context:
+            diffs = [file_diff_from_changed_file(item) for item in changed]
+            in_scope = reviewable_files(diffs, apply_guardrails(diffs, settings))
+            owned = client is None
+            resolved = client or _github_client(settings)
+            try:
+                _, retrieval, _ = gather_evidence(
+                    client=resolved,
+                    repo=case.repo,
+                    ref=case.head_sha,
+                    file_diffs=in_scope,
+                    settings=settings,
+                    want_context=True,
+                    want_tools=False,
+                )
+            finally:
+                if owned:
+                    resolved.close()
         state = run_review_graph(
             settings=settings,
             metadata=metadata,
             changed_files=changed,
+            retrieval=retrieval,
             provider=provider,
+            task=task,
         )
+    except ProviderBillingError:
+        raise
     except Exception as exc:
         return RawCaseRun(case=case, latency_seconds=time.monotonic() - started, error=str(exc))
 
@@ -627,7 +794,13 @@ def execute_case(
         latency_seconds=time.monotonic() - started,
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
+        cached_input_tokens=usage.cached_input_tokens if usage else 0,
+        reasoning_output_tokens=usage.reasoning_output_tokens if usage else 0,
         cost_usd=usage.cost_usd(choice.model) if usage and choice else 0.0,
+        provider=choice.provider if choice else None,
+        model=choice.model if choice else None,
+        model_effort=settings.model_effort if choice else None,
+        route_reason=choice.reason if choice else None,
     )
 
 
@@ -639,7 +812,16 @@ def score_raw(raw: RawCaseRun, *, settings: Any, threshold: int) -> CaseOutcome:
     from .critique import critique
 
     if raw.error is not None:
-        return score_case(raw.case, (), latency_seconds=raw.latency_seconds, error=raw.error)
+        return score_case(
+            raw.case,
+            (),
+            latency_seconds=raw.latency_seconds,
+            provider=raw.provider,
+            model=raw.model,
+            model_effort=raw.model_effort,
+            route_reason=raw.route_reason,
+            error=raw.error,
+        )
 
     reviewed = critique(
         raw.candidates,
@@ -653,7 +835,13 @@ def score_raw(raw: RawCaseRun, *, settings: Any, threshold: int) -> CaseOutcome:
         latency_seconds=raw.latency_seconds,
         input_tokens=raw.input_tokens,
         output_tokens=raw.output_tokens,
+        cached_input_tokens=raw.cached_input_tokens,
+        reasoning_output_tokens=raw.reasoning_output_tokens,
         cost_usd=raw.cost_usd,
+        provider=raw.provider,
+        model=raw.model,
+        model_effort=raw.model_effort,
+        route_reason=raw.route_reason,
     )
 
 

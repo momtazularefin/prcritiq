@@ -82,7 +82,8 @@ class Settings:
     tool_timeout_seconds: int = 60
     max_tool_output_bytes: int = 200_000
     anthropic_model: str = "claude-opus-5"
-    openai_model: str = "gpt-5"
+    model_effort: str = "low"
+    openai_model: str = "gpt-5.6-terra"
     anthropic_api_key: str | None = None
     anthropic_workspace_id: str | None = None
     database_url: str | None = None
@@ -122,7 +123,8 @@ def load_settings() -> Settings:
         tool_timeout_seconds=_int_from_env("PRCRITIQ_TOOL_TIMEOUT_SECONDS", 60),
         max_tool_output_bytes=_int_from_env("PRCRITIQ_MAX_TOOL_OUTPUT_BYTES", 200_000),
         anthropic_model=getenv("PRCRITIQ_ANTHROPIC_MODEL", "claude-opus-5"),
-        openai_model=getenv("PRCRITIQ_OPENAI_MODEL", "gpt-5"),
+        model_effort=getenv("PRCRITIQ_MODEL_EFFORT", "low"),
+        openai_model=getenv("PRCRITIQ_OPENAI_MODEL", "gpt-5.6-terra"),
         anthropic_api_key=getenv("ANTHROPIC_API_KEY") or None,
         anthropic_workspace_id=getenv("ANTHROPIC_WORKSPACE_ID") or None,
         database_url=getenv("DATABASE_URL") or None,

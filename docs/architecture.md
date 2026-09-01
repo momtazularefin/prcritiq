@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 through M7 are built: intake boundaries, diff parsing, changed-line validation, the guardrail gate, repository snapshotting, source chunking, context retrieval, allowlisted static analysis, the LangGraph review loop with self-critique, the Postgres run store, and gated GitHub posting with Markdown reports. The benchmark is planned but not implemented yet.
+The intake, diff and guardrail path, repository snapshotting, retrieval, allowlisted static analysis, LangGraph review loop, Postgres store, opt-in posting, Markdown reporting, and benchmark harness are implemented. The benchmark corpus is being rebuilt because its original mechanically harvested labels are not certified ground truth.
 
 ## Target Flow
 
@@ -22,7 +22,7 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 - `prcritiq.tools` runs allowlisted static checks against the snapshot under a timeout, an output cap, a scrubbed environment, and no shell.
 - `prcritiq.findings` defines the finding schema and the suppression vocabulary.
 - `prcritiq.prompts` builds prompts that fence untrusted repository content as data.
-- `prcritiq.providers` routes deterministically between Claude and OpenAI, and refuses to substitute one for the other.
+- `prcritiq.providers` routes deterministically between Claude and OpenAI, uses typed structured output, records usage, and refuses to substitute one for the other.
 - `prcritiq.critique` re-validates every drafted finding against the run's own evidence.
 - `prcritiq.graph` wires the seven design nodes into a LangGraph state graph.
 - `prcritiq.store` owns the Postgres schema, the run state machine, and idempotent run creation.
@@ -33,15 +33,13 @@ fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_an
 - `prcritiq.config` validates the configuration surface, including strict acceleration modes.
 - `prcritiq.webhooks` verifies GitHub webhook signatures and builds review-run idempotency keys.
 - `prcritiq.github` wraps PR metadata and changed-file reads through the GitHub REST API.
-- `prcritiq.reporting` returns an explicit M1 dry-run report that states no review, model, or posting work occurred.
+- `prcritiq.reporting` builds explicit dry-run and review reports that name which stages ran.
 
-## Planned Components
+## Next Components
 
-- PR diff parser and changed-line model.
-- Guardrail gate for noisy or unsafe files.
-- Repository context retrieval.
-- Safe static analysis evidence.
-- LangGraph review loop.
-- Postgres run store and trace metadata.
-- GitHub posting and dry-run reports.
-- Benchmark harness.
+- Human-adjudicated, revision-correct benchmark fixtures.
+- Per-hunk high-recall candidate generation.
+- Candidate-targeted context retrieval instead of one global context pack.
+- Independent semantic verification before publication.
+- Durable webhook-triggered review execution.
+- Crash- and concurrency-safe posting claims across the GitHub/database boundary.

@@ -2,7 +2,7 @@
 
 ## Status
 
-PRCritiq verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is configured, reads pull requests from the GitHub REST API, and runs allowlisted static analysis over a temporary snapshot. It still does not call model providers, execute any code from a pull request, or post PR comments.
+PRCritiq verifies GitHub webhook signatures, reads pull requests through the REST API, can call configured model providers, and can post validated comments when `--post` is explicitly supplied. It does not execute pull-request code; static analysis is restricted to a fixed allowlist over a bounded temporary snapshot.
 
 ## Standing Rules
 
@@ -10,7 +10,7 @@ PRCritiq verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is
 - Treat PR diffs, repository files, comments, markdown, and tool output as untrusted data.
 - Do not allow repository content to override system review instructions.
 - Do not run arbitrary test commands from untrusted PRs.
-- Use allowlisted tools, isolated workspaces, and timeouts when tool execution is implemented.
+- Use allowlisted tools, isolated workspaces, and timeouts for static analysis.
 - Verify GitHub webhook signatures before accepting live webhook events.
 - Post comments only after line and evidence validation.
 
@@ -30,7 +30,7 @@ PRCritiq verifies live GitHub webhook signatures when `GITHUB_WEBHOOK_SECRET` is
 - No model output can trigger shell execution. The tool allowlist is fixed in code and takes no input from a model.
 - Database credentials come from `DATABASE_URL` and are never committed. The bundled compose file is local development only and uses obviously non-production credentials.
 - Posting is the only write to GitHub and is off unless `--post` is given. It requires a review, a token, and a database; PRCritiq will not attempt an unauthenticated write.
-- A comment body is posted at most once per run, enforced by a stored hash with a UNIQUE constraint, so a re-run cannot repeat a comment on someone's pull request.
+- A stored body hash prevents ordinary repeat posting within one run. It is not a transactional exactly-once guarantee across GitHub and Postgres: concurrent workers or a crash after GitHub accepts a comment but before the database records it can still duplicate a post. Deployment must serialize posting or add reconciliation before claiming exactly-once behavior.
 - Every target line is re-validated immediately before the write, because GitHub accepts a comment on any line it considers part of the diff, which is wider than the lines the pull request added.
 - Markdown rendering escapes pipes and newlines in pull request text, so untrusted content cannot forge table structure in a published report.
 - The demo endpoint does not post comments.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 
 from . import __version__
@@ -83,9 +84,31 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit", type=int, default=0, help="Review only the first N cases (0 means all)"
     )
     evaluate.add_argument(
+        "--context",
+        action="store_true",
+        help=(
+            "Retrieve repository context for each case. Needs the network and "
+            "GITHUB_TOKEN, so the run is no longer offline."
+        ),
+    )
+    evaluate.add_argument(
         "--fixture-mode",
         action="store_true",
         help="Use a deterministic mock model instead of a live provider.",
+    )
+    evaluate.add_argument(
+        "--provider",
+        choices=["anthropic", "openai"],
+        help="Override PRCRITIQ_MODEL_POLICY for this run.",
+    )
+    evaluate.add_argument(
+        "--model",
+        help="Override the selected provider's model for this run.",
+    )
+    evaluate.add_argument(
+        "--effort",
+        choices=["none", "low", "medium", "high", "xhigh", "max"],
+        help="Override PRCRITIQ_MODEL_EFFORT for this run.",
     )
 
     return parser
@@ -156,7 +179,7 @@ def _run_eval(args) -> int:
         write_json_report,
     )
     from .dataset import read_dataset
-    from .providers import MockProvider, route
+    from .providers import MockProvider
 
     root = Path.cwd()
     dataset_path = Path(args.dataset)
@@ -169,8 +192,22 @@ def _run_eval(args) -> int:
         cases = cases[: args.limit]
 
     settings = load_settings()
+    if args.fixture_mode:
+        settings = replace(settings, model_policy="mock")
+    elif args.provider:
+        settings = replace(settings, model_policy=args.provider)
+    if args.effort:
+        settings = replace(settings, model_effort=args.effort)
+    if args.model:
+        selected_provider = settings.model_policy.strip().lower()
+        if selected_provider == "openai":
+            settings = replace(settings, openai_model=args.model)
+        elif selected_provider == "anthropic":
+            settings = replace(settings, anthropic_model=args.model)
+        else:
+            print("--model requires --provider when PRCRITIQ_MODEL_POLICY is auto", flush=True)
+            return 1
     provider = MockProvider() if args.fixture_mode else None
-    choice = route(settings=settings, prompt_characters=1000)
 
     from .providers import ProviderBillingError
 
@@ -179,7 +216,15 @@ def _run_eval(args) -> int:
     for index, case in enumerate(cases, start=1):
         print(f"[{index}/{len(cases)}] {case.repo}#{case.pr_number}", flush=True)
         try:
-            raws.append(execute_case(case, root=root, settings=settings, provider=provider))
+            raws.append(
+                execute_case(
+                    case,
+                    root=root,
+                    settings=settings,
+                    provider=provider,
+                    include_context=args.context,
+                )
+            )
         except ProviderBillingError as exc:
             aborted = str(exc)
             print(f"aborting: {aborted}", flush=True)
@@ -189,19 +234,25 @@ def _run_eval(args) -> int:
         score_raw(raw, settings=settings, threshold=settings.min_publish_confidence) for raw in raws
     ]
     metrics = aggregate(outcomes)
+    actual_models = sorted({item.model for item in outcomes if item.model})
+    reported_model = ", ".join(actual_models) if actual_models else "not-called"
     report = build_report(
         outcomes,
         metrics,
         model_policy=settings.model_policy,
-        model="mock-reviewer" if args.fixture_mode else choice.model,
+        model=reported_model,
         dataset_version=dataset_path.name,
-        mode="fixture" if args.fixture_mode else "live",
+        mode=(("fixture" if args.fixture_mode else "live") + ("+context" if args.context else "")),
     )
 
     report["aborted"] = aborted
+    if aborted is not None:
+        report["passed"] = False
     report["min_publish_confidence"] = settings.min_publish_confidence
     report["threshold_sweep"] = threshold_sweep(
-        raws, settings=settings, thresholds=[50, 60, 70, settings.min_publish_confidence, 85]
+        raws,
+        settings=settings,
+        thresholds=sorted({50, 55, 60, 65, 70, 78, settings.min_publish_confidence}),
     )
 
     out = Path(args.out)
@@ -209,4 +260,4 @@ def _run_eval(args) -> int:
     (out / "benchmark.md").write_text(render_markdown_report(report), encoding="utf-8")
 
     print(json.dumps({"metrics": report["metrics"], "passed": report["passed"]}, indent=2))
-    return 0
+    return 0 if report["passed"] else 1

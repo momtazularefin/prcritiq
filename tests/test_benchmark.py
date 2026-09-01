@@ -25,6 +25,8 @@ from prcritiq.config import Settings
 from prcritiq.dataset import (
     BenchmarkCase,
     Label,
+    adjudication_queue,
+    apply_adjudications,
     classify_comment,
     is_meaningful_comment,
     labels_from_comments,
@@ -45,6 +47,7 @@ def label(**overrides) -> Label:
         "severity": "high",
         "human_comment": "This divides by n without checking for a zero argument first.",
         "expected_issue": "zero division",
+        "adjudication": "confirmed_defect",
     }
     defaults.update(overrides)
     return Label(**defaults)
@@ -130,6 +133,53 @@ class TestCommentFiltering:
         ]
 
         assert len(labels_from_comments(comments)) == 1
+
+    def test_authors_bots_replies_and_old_revisions_are_not_labels(self) -> None:
+        body = "This will raise ZeroDivisionError when n is zero here"
+        comments = [
+            {"id": 1, "body": body, "path": "a.py", "line": 4, "user": "author"},
+            {
+                "id": 2,
+                "body": body,
+                "path": "a.py",
+                "line": 4,
+                "user": {"login": "review-bot", "type": "Bot"},
+            },
+            {
+                "id": 3,
+                "body": body,
+                "path": "a.py",
+                "line": 4,
+                "user": "reviewer",
+                "in_reply_to_id": 99,
+            },
+            {
+                "id": 4,
+                "body": body,
+                "path": "a.py",
+                "line": 4,
+                "user": "reviewer",
+                "commit_id": "old",
+            },
+            {
+                "id": 5,
+                "body": body,
+                "path": "a.py",
+                "line": 4,
+                "user": "reviewer",
+                "commit_id": "head",
+            },
+        ]
+
+        labels = labels_from_comments(
+            comments,
+            pr_author_login="author",
+            head_sha="head",
+        )
+
+        assert [item.source_comment_id for item in labels] == [5]
+        assert labels[0].reviewer_login == "reviewer"
+        assert labels[0].adjudication == "unreviewed"
 
 
 class TestMatching:
@@ -237,6 +287,49 @@ class TestScoring:
         assert outcome.published == 0
         assert outcome.spam == 1
 
+    def test_matching_is_one_to_one(self) -> None:
+        case = BenchmarkCase(
+            id="c1",
+            repo="example/repo",
+            pr_number=1,
+            base_sha="a",
+            head_sha="b",
+            languages=["python"],
+            diff_path="x",
+            human_comments_path="x",
+            labels=[label(), label(line=5)],
+        )
+
+        outcome = score_case(case, [finding()])
+
+        assert len(outcome.matched_pairs) == 1
+        assert outcome.matched_findings == 1
+        assert len(outcome.missed_labels) == 1
+
+    def test_invalid_label_targets_are_excluded_and_reported(self) -> None:
+        case = BenchmarkCase(
+            id="c1",
+            repo="example/repo",
+            pr_number=1,
+            base_sha="a",
+            head_sha="b",
+            languages=["python"],
+            diff_path="x",
+            human_comments_path="x",
+            labels=[label(line=99)],
+        )
+
+        outcome = score_case(case, [], valid_targets={("src/app.py", 4)})
+
+        assert outcome.labels == 0
+        assert outcome.invalid_label_targets == ["src/app.py:99"]
+
+    def test_report_keeps_complete_findings_for_adjudication(self) -> None:
+        outcome = score_case(self_case(), [finding(), finding(publish=False)])
+
+        assert outcome.published_findings[0]["candidate"]["finding"]
+        assert outcome.suppressed_findings[0]["suppression_reason"] == "generic"
+
 
 class TestAggregation:
     def _case(self, **overrides):
@@ -341,6 +434,55 @@ class TestDatasetRoundTrip:
 
         assert restored[0].id == case.id
         assert restored[0].labels[0].human_comment == case.labels[0].human_comment
+        assert restored[0].labels[0].label_id == "legacy:c:001"
+
+    def test_adjudications_apply_by_stable_label_id(self) -> None:
+        case = self_case()
+        restored = read_after_write(case)
+        label_id = restored.labels[0].label_id
+
+        updated = apply_adjudications(
+            [restored],
+            [
+                {
+                    "label_id": label_id,
+                    "adjudication": "excluded",
+                    "adjudication_notes": "author reply",
+                }
+            ],
+        )
+
+        assert updated[0].labels[0].adjudication == "excluded"
+        assert updated[0].labels[0].adjudication_notes == "author reply"
+
+    def test_missing_adjudications_fail_closed(self) -> None:
+        restored = read_after_write(self_case())
+
+        with pytest.raises(ValueError, match="Missing adjudications"):
+            apply_adjudications([restored], [])
+
+    def test_queue_contains_provenance_and_decision_fields(self) -> None:
+        restored = read_after_write(self_case())
+
+        row = adjudication_queue([restored])[0]
+
+        assert row["label_id"] == "legacy:c:001"
+        assert row["case_id"] == "c"
+        assert row["adjudication"] == "confirmed_defect"
+
+
+def read_after_write(case: BenchmarkCase) -> BenchmarkCase:
+    """Round-trip through a real temporary-shaped JSONL payload without I/O fixtures."""
+
+    payload = case.to_json()
+    for item in payload["labels"]:
+        item["label_id"] = ""
+    labels = []
+    for index, item in enumerate(payload.pop("labels"), start=1):
+        if not item.get("label_id"):
+            item["label_id"] = f"legacy:{payload['id']}:{index:03d}"
+        labels.append(Label(**item))
+    return BenchmarkCase(**payload, labels=labels)
 
 
 class TestShippedCorpus:
@@ -402,7 +544,7 @@ class TestFixtureModeRun:
         assert all(item.error is None for item in outcomes)
         assert metrics.cases == 2
         assert report["passed"] is False  # a two-case corpus cannot pass
-        assert "Labels are inline review comments" in report["limitations"][0]
+        assert "unreviewed" in report["limitations"][0]
 
     def test_the_markdown_report_renders(self, tmp_path: Path) -> None:
         report = build_report(
@@ -506,3 +648,63 @@ class TestThresholdSweep:
 
         assert outcome.error == "provider exploded"
         assert outcome.published == 0
+
+
+class TestContextInBenchmark:
+    """Context retrieval is opt-in and must not fire by default."""
+
+    def _case(self):
+        path = REPO_ROOT / "eval" / "dataset.jsonl"
+        if not path.exists():
+            pytest.skip("eval/dataset.jsonl has not been built")
+        return read_dataset(path)[0]
+
+    def test_context_is_not_retrieved_by_default(self) -> None:
+        from prcritiq.benchmark import execute_case
+
+        provider = MockProvider()
+        raw = execute_case(self._case(), root=REPO_ROOT, settings=Settings(), provider=provider)
+
+        assert raw.error is None
+        _system, user, _ = provider.calls[0]
+        assert "<CONTEXT>" not in user
+
+    def test_requesting_context_reaches_the_prompt(self, stub_client) -> None:
+        """The stub serves an archive, so no network is touched."""
+
+        from prcritiq.benchmark import execute_case
+
+        provider = MockProvider()
+        raw = execute_case(
+            self._case(),
+            root=REPO_ROOT,
+            settings=Settings(),
+            provider=provider,
+            include_context=True,
+            client=stub_client,
+        )
+
+        assert raw.error is None
+        assert any(call[0] == "download_source_archive" for call in stub_client.calls)
+
+
+class TestEvaluationFailures:
+    def test_billing_errors_escape_execute_case_and_abort_the_batch(self) -> None:
+        from prcritiq.benchmark import execute_case
+        from prcritiq.providers import ProviderBillingError
+
+        class ExhaustedProvider:
+            def draft(self, **_kwargs):
+                raise ProviderBillingError("no quota")
+
+        path = REPO_ROOT / "eval" / "dataset.jsonl"
+        if not path.exists():
+            pytest.skip("eval/dataset.jsonl has not been built")
+
+        with pytest.raises(ProviderBillingError, match="no quota"):
+            execute_case(
+                read_dataset(path)[0],
+                root=REPO_ROOT,
+                settings=Settings(model_policy="anthropic"),
+                provider=ExhaustedProvider(),
+            )

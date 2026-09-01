@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes the M1 intake surfaces and the M2 dry-run review. The reasoning engine is not implemented yet.
+The local review pipeline is implemented through diff intake, optional repository context and static analysis, model drafting, deterministic critique, persistence, and opt-in posting. The benchmark is diagnostic while its labels are being rebuilt and adjudicated.
 
 ## Requirements
 
@@ -15,6 +15,8 @@ This document describes the M1 intake surfaces and the M2 dry-run review. The re
 uv sync --dev
 uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review
+uv run prcritiq eval --fixture-mode --limit 2
 ```
 
 ## Validation
@@ -29,8 +31,10 @@ uv run pytest
 
 - `GET /health` returns service status.
 - `POST /demo/review` runs a dry review of a real pull request and returns the report.
-- `POST /webhooks/github` verifies GitHub webhook signatures and accepts supported pull request events.
+- `POST /webhooks/github` verifies signatures and acknowledges supported events. It does not yet enqueue a review run.
 - The CLI returns the same health payload and dry-run report.
+- `review --review` calls the configured model; `--context` and `--tools` fetch a bounded source archive; `--post` writes validated findings only when persistence and GitHub credentials are configured.
+- `eval --provider openai --model gpt-5.6-terra --effort low` selects one bake-off configuration without editing `.env`.
 
 ## Local Postgres
 
@@ -42,7 +46,4 @@ $env:DATABASE_URL = "postgresql://prcritiq:prcritiq@localhost:5433/prcritiq"
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --persist
 ```
 
-Migrations run automatically on connect and are idempotent.
-- No GitHub data is fetched.
-- No LLM provider is called.
-- No PR comments are posted.
+Migrations run automatically on connect and are idempotent. The command above fetches GitHub data but does not call a model or post comments unless the corresponding flags are supplied.

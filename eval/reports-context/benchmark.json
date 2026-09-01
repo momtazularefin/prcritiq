@@ -1,0 +1,710 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "case_id": "pydantic__pydantic__13623",
+      "cost_usd": 0.14245,
+      "error": null,
+      "input_tokens": 19585,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 30.60999999998603,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "pydantic/_internal/_validators.py:433"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1781,
+      "pr_number": 13623,
+      "published": 3,
+      "repo": "pydantic/pydantic",
+      "spam": 0,
+      "suppressed": 1,
+      "suppressed_by_reason": {
+        "low_confidence": 1
+      },
+      "unmatched_findings": [
+        "pydantic/_internal/_validators.py:437",
+        "pydantic/_internal/_validators.py:436",
+        "tests/types/test_defaultdict.py:45"
+      ]
+    },
+    {
+      "case_id": "pydantic__pydantic__13717",
+      "cost_usd": 0.402375,
+      "error": null,
+      "input_tokens": 73720,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 29.06299999996554,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "pydantic/json_schema.py:1611"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1351,
+      "pr_number": 13717,
+      "published": 0,
+      "repo": "pydantic/pydantic",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "encode__starlette__3489",
+      "cost_usd": 0.161295,
+      "error": null,
+      "input_tokens": 22384,
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 30.10899999999674,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "starlette/endpoints.py:25",
+        "starlette/schemas.py:81"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1975,
+      "pr_number": 3489,
+      "published": 2,
+      "repo": "encode/starlette",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "starlette/endpoints.py:25",
+        "starlette/schemas.py:136"
+      ]
+    },
+    {
+      "case_id": "encode__starlette__2767",
+      "cost_usd": 0.148625,
+      "error": null,
+      "input_tokens": 24945,
+      "invalid_line": 0,
+      "labels": 4,
+      "latency_seconds": 15.578000000037719,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "starlette/websockets.py:30",
+        "starlette/websockets.py:30",
+        "starlette/websockets.py:30",
+        "starlette/websockets.py:30"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 956,
+      "pr_number": 2767,
+      "published": 0,
+      "repo": "encode/starlette",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "encode__starlette__3472",
+      "cost_usd": 0.22401,
+      "error": null,
+      "input_tokens": 27357,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 49.09399999998277,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "starlette/_utils.py:113"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3489,
+      "pr_number": 3472,
+      "published": 1,
+      "repo": "encode/starlette",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "starlette/middleware/httpsredirect.py:14"
+      ]
+    },
+    {
+      "case_id": "psf__black__5321",
+      "cost_usd": 0.326085,
+      "error": null,
+      "input_tokens": 52887,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 37.59399999998277,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "tests/data/cases/annotated_assignment_target_parens.py:32"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 2466,
+      "pr_number": 5321,
+      "published": 0,
+      "repo": "psf/black",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "pytest-dev__pytest__14824",
+      "cost_usd": 0.428995,
+      "error": null,
+      "input_tokens": 70034,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 45.48399999999674,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "src/_pytest/config/__init__.py:188"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3153,
+      "pr_number": 14824,
+      "published": 2,
+      "repo": "pytest-dev/pytest",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "low_confidence": 3
+      },
+      "unmatched_findings": [
+        "src/_pytest/config/__init__.py:960",
+        "src/_pytest/config/__init__.py:975"
+      ]
+    },
+    {
+      "case_id": "pytest-dev__pytest__14921",
+      "cost_usd": 0.160285,
+      "error": null,
+      "input_tokens": 19452,
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 36.29700000002049,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "scripts/diff-assert-rewrite.py:60",
+        "scripts/diff-assert-rewrite.py:121"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 2521,
+      "pr_number": 14921,
+      "published": 2,
+      "repo": "pytest-dev/pytest",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "scripts/diff-assert-rewrite.py:26",
+        "scripts/diff-assert-rewrite.py:128"
+      ]
+    },
+    {
+      "case_id": "pytest-dev__pytest__14284",
+      "cost_usd": 0.300215,
+      "error": null,
+      "input_tokens": 55033,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 21.17200000002049,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "src/_pytest/logging.py:595"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1002,
+      "pr_number": 14284,
+      "published": 1,
+      "repo": "pytest-dev/pytest",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "src/_pytest/logging.py:588"
+      ]
+    },
+    {
+      "case_id": "HypothesisWorks__hypothesis__4812",
+      "cost_usd": 0.2857,
+      "error": null,
+      "input_tokens": 38640,
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 55.25,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "hypothesis/docs/conf.py:95",
+        "hypothesis/docs/conf.py:95"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3700,
+      "pr_number": 4812,
+      "published": 2,
+      "repo": "HypothesisWorks/hypothesis",
+      "spam": 0,
+      "suppressed": 4,
+      "suppressed_by_reason": {
+        "low_confidence": 4
+      },
+      "unmatched_findings": [
+        "hypothesis/docs/_ext/hypothesis_redirects.py:63",
+        "hypothesis/docs/_ext/hypothesis_redirects.py:170"
+      ]
+    },
+    {
+      "case_id": "HypothesisWorks__hypothesis__4860",
+      "cost_usd": 0.179095,
+      "error": null,
+      "input_tokens": 28829,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 24.43699999997625,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/strategies/_internal/strategies.py:908"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1398,
+      "pr_number": 4860,
+      "published": 1,
+      "repo": "HypothesisWorks/hypothesis",
+      "spam": 0,
+      "suppressed": 1,
+      "suppressed_by_reason": {
+        "low_confidence": 1
+      },
+      "unmatched_findings": [
+        "hypothesis/src/hypothesis/strategies/_internal/strategies.py:925"
+      ]
+    },
+    {
+      "case_id": "HypothesisWorks__hypothesis__4861",
+      "cost_usd": 0.24016,
+      "error": null,
+      "input_tokens": 34702,
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 39.82799999997951,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/strategies/_internal/types.py:1011",
+        "hypothesis/src/hypothesis/strategies/_internal/types.py:1011"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 2666,
+      "pr_number": 4861,
+      "published": 1,
+      "repo": "HypothesisWorks/hypothesis",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "low_confidence": 3
+      },
+      "unmatched_findings": [
+        "hypothesis/src/hypothesis/internal/lambda_sources.py:107"
+      ]
+    },
+    {
+      "case_id": "HypothesisWorks__hypothesis__4842",
+      "cost_usd": 0.786755,
+      "error": null,
+      "input_tokens": 110631,
+      "invalid_line": 0,
+      "labels": 6,
+      "latency_seconds": 131.6720000000205,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/internal/conjecture/choice.py:100",
+        "hypothesis/src/hypothesis/internal/conjecture/data.py:166",
+        "hypothesis/src/hypothesis/internal/conjecture/utils.py:366",
+        "hypothesis/tests/cover/test_invert.py:116",
+        "hypothesis/tests/cover/test_invert.py:134",
+        "hypothesis/tests/cover/test_invert.py:116"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 9344,
+      "pr_number": 4842,
+      "published": 1,
+      "repo": "HypothesisWorks/hypothesis",
+      "spam": 0,
+      "suppressed": 4,
+      "suppressed_by_reason": {
+        "low_confidence": 4
+      },
+      "unmatched_findings": [
+        "hypothesis/src/hypothesis/strategies/_internal/strategies.py:1338"
+      ]
+    },
+    {
+      "case_id": "HypothesisWorks__hypothesis__4806",
+      "cost_usd": 0.522265,
+      "error": null,
+      "input_tokens": 78548,
+      "invalid_line": 0,
+      "labels": 5,
+      "latency_seconds": 73.82799999997951,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/internal/conjecture/data.py:1260",
+        "hypothesis/tests/quality/test_widening_shrinks.py:26",
+        "hypothesis/src/hypothesis/internal/conjecture/data.py:254",
+        "hypothesis/src/hypothesis/internal/conjecture/data.py:254",
+        "hypothesis/src/hypothesis/internal/conjecture/data.py:254"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 5181,
+      "pr_number": 4806,
+      "published": 0,
+      "repo": "HypothesisWorks/hypothesis",
+      "spam": 0,
+      "suppressed": 5,
+      "suppressed_by_reason": {
+        "low_confidence": 5
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "Textualize__rich__4070",
+      "cost_usd": 0.452225,
+      "error": null,
+      "input_tokens": 75075,
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 46.78100000001723,
+      "matched_findings": 1,
+      "matched_labels": [
+        "rich/console.py:2371"
+      ],
+      "missed_labels": [
+        "rich/console.py:1899"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3074,
+      "pr_number": 4070,
+      "published": 2,
+      "repo": "Textualize/rich",
+      "spam": 0,
+      "suppressed": 4,
+      "suppressed_by_reason": {
+        "low_confidence": 4
+      },
+      "unmatched_findings": [
+        "rich/logging.py:232"
+      ]
+    },
+    {
+      "case_id": "Textualize__rich__3180",
+      "cost_usd": 0.32706,
+      "error": null,
+      "input_tokens": 57357,
+      "invalid_line": 0,
+      "labels": 5,
+      "latency_seconds": 27.0,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "rich/_wrap.py:42",
+        "rich/_wrap.py:44",
+        "rich/_wrap.py:26",
+        "tests/test_cells.py:61",
+        "tests/test_cells.py:61"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 1611,
+      "pr_number": 3180,
+      "published": 1,
+      "repo": "Textualize/rich",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "rich/cells.py:124"
+      ]
+    },
+    {
+      "case_id": "scrapy__scrapy__2746",
+      "cost_usd": 0.165105,
+      "error": null,
+      "input_tokens": 28161,
+      "invalid_line": 0,
+      "labels": 3,
+      "latency_seconds": 20.01600000000326,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "scrapy/statscollectors.py:53",
+        "scrapy/statscollectors.py:53",
+        "scrapy/statscollectors.py:53"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 972,
+      "pr_number": 2746,
+      "published": 0,
+      "repo": "scrapy/scrapy",
+      "spam": 0,
+      "suppressed": 1,
+      "suppressed_by_reason": {
+        "low_confidence": 1
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "aio-libs__aiohttp__12748",
+      "cost_usd": 0.21073,
+      "error": null,
+      "input_tokens": 26806,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 45.17099999997299,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "tests/test_run_app.py:1088"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3068,
+      "pr_number": 12748,
+      "published": 1,
+      "repo": "aio-libs/aiohttp",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "invalid_line": 1,
+        "low_confidence": 2
+      },
+      "unmatched_findings": [
+        "tests/test_run_app.py:1150"
+      ]
+    },
+    {
+      "case_id": "aio-libs__aiohttp__12747",
+      "cost_usd": 0.28667,
+      "error": null,
+      "input_tokens": 38414,
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 52.51600000000326,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "missed_labels": [
+        "tests/test_run_app.py:1115"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 3784,
+      "pr_number": 12747,
+      "published": 0,
+      "repo": "aio-libs/aiohttp",
+      "spam": 0,
+      "suppressed": 5,
+      "suppressed_by_reason": {
+        "low_confidence": 5
+      },
+      "unmatched_findings": []
+    },
+    {
+      "case_id": "aio-libs__aiohttp__12674",
+      "cost_usd": 0.22575,
+      "error": null,
+      "input_tokens": 34880,
+      "invalid_line": 0,
+      "labels": 4,
+      "latency_seconds": 32.82800000003772,
+      "matched_findings": 1,
+      "matched_labels": [
+        "aiohttp/compression_utils.py:303"
+      ],
+      "missed_labels": [
+        "tests/test_compression_utils.py:114",
+        "tests/test_compression_utils.py:1",
+        "aiohttp/compression_utils.py:308"
+      ],
+      "no_evidence": 0,
+      "output_tokens": 2054,
+      "pr_number": 12674,
+      "published": 2,
+      "repo": "aio-libs/aiohttp",
+      "spam": 0,
+      "suppressed": 1,
+      "suppressed_by_reason": {
+        "low_confidence": 1
+      },
+      "unmatched_findings": [
+        "aiohttp/compression_utils.py:315"
+      ]
+    }
+  ],
+  "dataset_version": "dataset.jsonl",
+  "gates": [
+    {
+      "actual": "20 of 20",
+      "name": "corpus size",
+      "passed": true,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "0.04",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.09",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "spam rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-08-31T13:39:05Z",
+  "limitations": [
+    "Labels are inline review comments filtered by documented heuristics, not hand-adjudicated by a human.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "A human comment can be a question or a design discussion rather than a defect, so recall against these labels understates nothing but also proves less than recall against curated defects would."
+  ],
+  "metrics": {
+    "cases": 20,
+    "comment_precision": 0.0909,
+    "completed_cases": 20,
+    "cost_per_pr_usd": 0.2988,
+    "failed_cases": 0,
+    "findings": 22,
+    "input_tokens": 917440,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.0435,
+    "labels": 46,
+    "matched": 2,
+    "median_latency_seconds": 36.95,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 55546,
+    "p95_latency_seconds": 131.67,
+    "quiet_runs": 6,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {
+      "invalid_line": 1,
+      "low_confidence": 50
+    },
+    "total_cost_usd": 5.9759
+  },
+  "min_publish_confidence": 65,
+  "mode": "live+context",
+  "model": "claude-opus-5",
+  "model_policy": "anthropic",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.1194,
+      "findings": 67,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2174,
+      "matched": 10,
+      "min_publish_confidence": 50,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.127,
+      "findings": 63,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2174,
+      "matched": 10,
+      "min_publish_confidence": 55,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.1176,
+      "findings": 51,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.1087,
+      "matched": 5,
+      "min_publish_confidence": 60,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0909,
+      "findings": 22,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0435,
+      "matched": 2,
+      "min_publish_confidence": 65,
+      "quiet_runs": 6,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.1667,
+      "findings": 12,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0435,
+      "matched": 2,
+      "min_publish_confidence": 70,
+      "quiet_runs": 10,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.3333,
+      "findings": 3,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0217,
+      "matched": 1,
+      "min_publish_confidence": 78,
+      "quiet_runs": 18,
+      "spam_rate": 0.0
+    }
+  ]
+}

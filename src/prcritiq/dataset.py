@@ -1,14 +1,10 @@
-"""Benchmark dataset construction from real pull request review history.
+"""Benchmark dataset construction from pull request review history.
 
-Labels come from inline review comments humans actually left on real pull
-requests. Those comments carry a file path and a line, which is exactly the
-shape a finding has, so a label is a real reviewer's judgment rather than
-something invented for the benchmark.
-
-The filter below is mechanical and documented, not hand-adjudicated. That is a
-real limitation: it approximates the eval plan's labeling rules with heuristics,
-so a report built on this dataset must say so rather than implying a human
-curated every label.
+GitHub comments are *label candidates*, not ground truth.  A trustworthy label
+must come from an independent human reviewer, refer to the exact revision in the
+fixture, and be adjudicated as a real defect.  The mechanical filters here remove
+known provenance failures; they deliberately do not pretend to replace human
+adjudication.
 """
 
 from __future__ import annotations
@@ -16,9 +12,10 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
+from hashlib import sha256
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 #: Comments that carry no reviewable claim. These implement the eval plan's
 #: exclusion list: praise, social replies, bikeshedding, and project management.
@@ -47,10 +44,12 @@ _STYLE: Final[tuple[re.Pattern[str], ...]] = tuple(
 _MIN_COMMENT_CHARACTERS: Final = 40
 _MIN_LABELS_PER_CASE: Final = 1
 
+LabelAdjudication = Literal["unreviewed", "confirmed_defect", "excluded"]
+
 
 @dataclass(frozen=True)
 class Label:
-    """One human review comment kept as an expected issue."""
+    """One review comment candidate and the provenance needed to trust it."""
 
     file_path: str
     line: int
@@ -59,6 +58,18 @@ class Label:
     human_comment: str
     expected_issue: str
     match_notes: str = ""
+    label_id: str = ""
+    reviewer_login: str = ""
+    source_comment_id: int | None = None
+    review_commit_sha: str = ""
+    adjudication: LabelAdjudication = "unreviewed"
+    adjudication_notes: str = ""
+
+    @property
+    def confirmed(self) -> bool:
+        """Whether a human has confirmed that this comment describes a defect."""
+
+        return self.adjudication == "confirmed_defect"
 
 
 @dataclass(frozen=True)
@@ -73,6 +84,7 @@ class BenchmarkCase:
     languages: list[str]
     diff_path: str
     human_comments_path: str
+    dataset_schema_version: int = 2
     labels: list[Label] = field(default_factory=list)
     notes: str = ""
 
@@ -121,15 +133,61 @@ def classify_comment(body: str) -> tuple[str, str]:
     return "bug", "medium"
 
 
-def labels_from_comments(comments: Iterable[dict[str, Any]]) -> list[Label]:
-    """Turn a pull request's inline review comments into labels."""
+def _reviewer(comment: dict[str, Any]) -> tuple[str, str]:
+    """Return the reviewer's login and GitHub account type."""
+
+    user = comment.get("user")
+    if isinstance(user, dict):
+        return str(user.get("login") or ""), str(user.get("type") or "")
+    return str(user or ""), str(comment.get("user_type") or "")
+
+
+def _is_bot(login: str, account_type: str) -> bool:
+    """Recognize GitHub bot accounts without maintaining a vendor allow-list."""
+
+    normalized = login.strip().lower()
+    return account_type.strip().lower() == "bot" or normalized.endswith("[bot]")
+
+
+def _candidate_id(*, comment_id: int | None, path: str, line: int, reviewer: str, body: str) -> str:
+    """Build a stable id that an adjudication file can address."""
+
+    if comment_id is not None:
+        return f"github-review-comment:{comment_id}"
+    digest = sha256(f"{path}\0{line}\0{reviewer}\0{body}".encode()).hexdigest()[:20]
+    return f"review-comment-digest:{digest}"
+
+
+def labels_from_comments(
+    comments: Iterable[dict[str, Any]],
+    *,
+    pr_author_login: str = "",
+    head_sha: str = "",
+) -> list[Label]:
+    """Turn primary, independent review comments into label candidates.
+
+    When ``head_sha`` is supplied, comments on earlier revisions are excluded.
+    Supporting several review revisions correctly requires one frozen fixture
+    per revision; silently scoring them against the final diff is invalid.
+    """
 
     labels: list[Label] = []
     for comment in comments:
         body = str(comment.get("body") or "")
         path = str(comment.get("path") or "")
         line = comment.get("line") or comment.get("original_line")
+        reviewer_login, account_type = _reviewer(comment)
+        review_commit_sha = str(comment.get("commit_id") or "")
+        comment_id = int(comment["id"]) if comment.get("id") is not None else None
         if not path or not line or not is_meaningful_comment(body):
+            continue
+        if comment.get("in_reply_to_id") is not None:
+            continue
+        if pr_author_login and reviewer_login.casefold() == pr_author_login.casefold():
+            continue
+        if _is_bot(reviewer_login, account_type):
+            continue
+        if head_sha and review_commit_sha != head_sha:
             continue
         category, severity = classify_comment(body)
         labels.append(
@@ -140,7 +198,17 @@ def labels_from_comments(comments: Iterable[dict[str, Any]]) -> list[Label]:
                 severity=severity,
                 human_comment=body.strip(),
                 expected_issue=body.strip()[:280],
-                match_notes="derived from an inline review comment",
+                match_notes="unadjudicated primary inline review comment",
+                label_id=_candidate_id(
+                    comment_id=comment_id,
+                    path=path,
+                    line=int(line),
+                    reviewer=reviewer_login,
+                    body=body.strip(),
+                ),
+                reviewer_login=reviewer_login,
+                source_comment_id=comment_id,
+                review_commit_sha=review_commit_sha,
             )
         )
     return labels
@@ -164,12 +232,99 @@ def read_dataset(path: Path) -> list[BenchmarkCase]:
         if not raw.strip():
             continue
         payload = json.loads(raw)
-        labels = [Label(**item) for item in payload.pop("labels", [])]
+        labels = []
+        for index, item in enumerate(payload.pop("labels", []), start=1):
+            if not item.get("label_id"):
+                item["label_id"] = f"legacy:{payload['id']}:{index:03d}"
+            labels.append(Label(**item))
         cases.append(BenchmarkCase(**payload, labels=labels))
     return cases
 
 
 def case_is_usable(case: BenchmarkCase) -> bool:
-    """A case earns its place only if a human left something to measure against."""
+    """A candidate case needs at least one mechanically eligible comment."""
 
     return len(case.labels) >= _MIN_LABELS_PER_CASE
+
+
+def case_is_certified(case: BenchmarkCase) -> bool:
+    """A publishable benchmark case contains only adjudicated defect labels."""
+
+    scored = [label for label in case.labels if label.adjudication != "excluded"]
+    return bool(scored) and all(label.confirmed for label in scored)
+
+
+def adjudication_queue(cases: Sequence[BenchmarkCase]) -> list[dict[str, Any]]:
+    """Flatten labels into an editable, provenance-rich decision queue."""
+
+    queue: list[dict[str, Any]] = []
+    for case in cases:
+        for label in case.labels:
+            queue.append(
+                {
+                    "label_id": label.label_id,
+                    "case_id": case.id,
+                    "repo": case.repo,
+                    "pr_number": case.pr_number,
+                    "target": f"{label.file_path}:{label.line}",
+                    "reviewer_login": label.reviewer_login,
+                    "review_commit_sha": label.review_commit_sha,
+                    "source_comment_id": label.source_comment_id,
+                    "human_comment": label.human_comment,
+                    "adjudication": label.adjudication,
+                    "adjudication_notes": label.adjudication_notes,
+                }
+            )
+    return queue
+
+
+def apply_adjudications(
+    cases: Sequence[BenchmarkCase],
+    decisions: Iterable[dict[str, Any]],
+    *,
+    require_complete: bool = True,
+) -> list[BenchmarkCase]:
+    """Apply a human decision file without silently ignoring missing or extra ids."""
+
+    allowed = {"unreviewed", "confirmed_defect", "excluded"}
+    by_id: dict[str, dict[str, Any]] = {}
+    for decision in decisions:
+        label_id = str(decision.get("label_id") or "")
+        if not label_id:
+            raise ValueError("Every adjudication decision needs label_id")
+        if label_id in by_id:
+            raise ValueError(f"Duplicate adjudication decision for {label_id}")
+        verdict = str(decision.get("adjudication") or "")
+        if verdict not in allowed:
+            raise ValueError(
+                f"Adjudication for {label_id} must be one of: {', '.join(sorted(allowed))}"
+            )
+        by_id[label_id] = decision
+
+    expected_ids = {label.label_id for case in cases for label in case.labels}
+    extra = sorted(set(by_id) - expected_ids)
+    if extra:
+        raise ValueError(f"Unknown adjudication label ids: {', '.join(extra)}")
+    missing = sorted(expected_ids - set(by_id))
+    if require_complete and missing:
+        raise ValueError(
+            f"Missing adjudications for {len(missing)} labels: {', '.join(missing[:5])}"
+        )
+
+    updated: list[BenchmarkCase] = []
+    for case in cases:
+        labels: list[Label] = []
+        for label in case.labels:
+            decision = by_id.get(label.label_id)
+            if decision is None:
+                labels.append(label)
+                continue
+            labels.append(
+                replace(
+                    label,
+                    adjudication=str(decision["adjudication"]),  # type: ignore[arg-type]
+                    adjudication_notes=str(decision.get("adjudication_notes") or ""),
+                )
+            )
+        updated.append(replace(case, labels=labels))
+    return updated

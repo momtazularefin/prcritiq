@@ -38,6 +38,7 @@ class ReviewState(TypedDict, total=False):
     metadata: PullRequestMetadata
     changed_files: Sequence[ChangedFile]
     provider: ModelProvider | None
+    task: str
 
     file_diffs: list[FileDiff]
     outcomes: tuple[GuardrailOutcome, ...]
@@ -117,7 +118,11 @@ def reason_and_draft(state: ReviewState) -> dict[str, Any]:
         retrieval=state.get("retrieval"),
         tool_runs=state.get("tool_runs"),
     )
-    choice = route(settings=settings, prompt_characters=len(prompt))
+    choice = route(
+        settings=settings,
+        prompt_characters=len(prompt),
+        task=state.get("task", "review_synthesis"),
+    )
     provider = state.get("provider") or build_provider(choice, settings)
     result = provider.draft(system=SYSTEM_PROMPT, user=prompt, choice=choice)
     drafted = result.findings
@@ -210,6 +215,7 @@ def run_review_graph(
     retrieval: RetrievalResult | None = None,
     tool_runs: Sequence[ToolRun] | None = None,
     provider: ModelProvider | None = None,
+    task: str = "review_synthesis",
 ) -> ReviewState:
     """Run one review through the graph and return its final state."""
 
@@ -221,6 +227,7 @@ def run_review_graph(
         "retrieval": retrieval,
         "tool_runs": tuple(tool_runs) if tool_runs is not None else None,
         "provider": provider,
+        "task": task,
         "notes": [],
     }
     return graph.invoke(initial)
