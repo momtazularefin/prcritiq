@@ -1,0 +1,73 @@
+{
+  "files": [
+    {
+      "additions": 1,
+      "changes": 1,
+      "deletions": 0,
+      "filename": "changelog/14921.contrib.rst",
+      "patch": "@@ -0,0 +1 @@\n+Added `scripts/diff-assert-rewrite.py`, which diffs the assert-rewritten form of a snippet between the plain source, this checkout and released pytest versions.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 157,
+      "changes": 157,
+      "deletions": 0,
+      "filename": "scripts/diff-assert-rewrite.py",
+      "patch": "@@ -0,0 +1,157 @@\n+\"\"\"Show what assertion rewriting does to a snippet, as a diff.\n+\n+Each side is one of ``plain`` (the source as written), ``worktree`` (this\n+checkout's ``src/``) or a released pytest version, which is fetched on demand\n+with ``uv run --with pytest==VERSION``.  Sides are dumped as rewritten source\n+(``ast.unparse``) or as an AST, then diffed.\n+\n+Every side runs on one interpreter -- the one running this script, or the one\n+``--python`` names.  Pin it whenever the comparison is about pytest versions:\n+an unpinned ``uv run`` is free to pick a different Python for a released\n+pytest than the worktree runs on, and the grammar differences between the two\n+then show up in the diff as if the rewriter had changed.\n+\n+Usage::\n+\n+    # what rewriting does to a snippet -- plain vs worktree, as source:\n+    python scripts/diff-assert-rewrite.py -c 'assert (x := f()) and (x := False)'\n+\n+    # a behaviour change against a release, over a whole file:\n+    python scripts/diff-assert-rewrite.py --left 8.3.4 testing/example.py\n+\n+    # same, as AST, when the source form hides the difference:\n+    python scripts/diff-assert-rewrite.py --left 8.3.4 --format ast -c 'assert a == b'\n+\n+    # both sides on one interpreter, whatever this script runs on:\n+    python scripts/diff-assert-rewrite.py --left 8.3.4 --python 3.14 example.py\n+\n+Exits 1 when the two sides differ, 0 when they do not.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import difflib\n+import os\n+from pathlib import Path\n+import subprocess\n+import sys\n+import tempfile\n+\n+\n+# Runs inside the environment of the pytest version under inspection: reads\n+# the source file named on its command line, writes the dump to stdout.\n+_WORKER = \"\"\"\n+import ast, sys\n+fmt, mode, path = sys.argv[1:4]\n+source = open(path, \"rb\").read()\n+tree = ast.parse(source)\n+if mode == \"rewrite\":\n+    from _pytest.assertion.rewrite import rewrite_asserts\n+    rewrite_asserts(tree, source)\n+    ast.fix_missing_locations(tree)\n+print(ast.unparse(tree) if fmt == \"source\" else ast.dump(tree, indent=2))\n+\"\"\"\n+\n+_COLORS = {\"-\": \"\\033[31m\", \"+\": \"\\033[32m\", \"@\": \"\\033[36m\"}\n+\n+\n+def spawn(\n+    spec: str, fmt: str, path: Path, python: str | None\n+) -> subprocess.Popen[bytes]:\n+    \"\"\"Start the dump of one side -- callers start both, then collect.\"\"\"\n+    args = [fmt, \"plain\" if spec == \"plain\" else \"rewrite\", str(path)]\n+    repo = Path(__file__).parent.parent\n+    # src/ ahead of whatever is installed, so 'worktree' means this checkout.\n+    env = os.environ | {\"PYTHONPATH\": str(repo / \"src\")} if spec == \"worktree\" else None\n+    if python is None and spec in (\"plain\", \"worktree\"):\n+        cmd = [sys.executable, \"-c\", _WORKER, *args]\n+    else:\n+        cmd = [\"uv\", \"run\"]\n+        if python is not None:\n+            cmd += [\"--python\", python]\n+        # The worktree needs pytest's dependencies; the other sides need none.\n+        cmd += [\"--project\", str(repo)] if spec == \"worktree\" else [\"--no-project\"]\n+        if spec not in (\"plain\", \"worktree\"):\n+            cmd += [\"--with\", f\"pytest=={spec}\"]\n+        cmd += [\"--\", \"python\", \"-c\", _WORKER, *args]\n+    try:\n+        return subprocess.Popen(\n+            cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE\n+        )\n+    except FileNotFoundError as exc:\n+        raise SystemExit(\n+            f\"{exc.filename} not found (uv: https://docs.astral.sh/uv/)\"\n+        ) from None\n+\n+\n+def collect(procs: list[tuple[str, subprocess.Popen[bytes]]]) -> list[list[str]]:\n+    \"\"\"Wait for every side before reporting, so no worker outlives the source.\"\"\"\n+    done = [(spec, *proc.communicate(), proc.returncode) for spec, proc in procs]\n+    for spec, _, err, code in done:\n+        if code:\n+            sys.stderr.buffer.write(err)\n+            raise SystemExit(f\"dumping {spec} failed\")\n+    return [out.decode().splitlines() for _, out, _, _ in done]\n+\n+\n+def main(argv: list[str] | None = None) -> None:\n+    parser = argparse.ArgumentParser(\n+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter\n+    )\n+    parser.add_argument(\n+        \"file\", type=Path, nargs=\"?\", help=\"file to rewrite (default: stdin)\"\n+    )\n+    parser.add_argument(\"-c\", \"--code\", help=\"snippet to rewrite instead of a file\")\n+    parser.add_argument(\n+        \"--left\",\n+        default=\"plain\",\n+        metavar=\"SPEC\",\n+        help=\"'plain', 'worktree' or a pytest version\",\n+    )\n+    parser.add_argument(\n+        \"--right\", default=\"worktree\", metavar=\"SPEC\", help=\"the same, other side\"\n+    )\n+    parser.add_argument(\"--format\", choices=(\"source\", \"ast\"), default=\"source\")\n+    parser.add_argument(\n+        \"--python\",\n+        metavar=\"X.Y\",\n+        help=\"run both sides on this Python (default: the current one)\",\n+    )\n+    parser.add_argument(\"--no-color\", action=\"store_true\")\n+    args = parser.parse_args(argv)\n+\n+    if args.code is not None:\n+        source = args.code.encode()\n+    elif args.file is not None:\n+        source = args.file.read_bytes()\n+    else:\n+        source = sys.stdin.buffer.read()\n+\n+    with tempfile.TemporaryDirectory() as tmp:\n+        path = Path(tmp, \"snippet.py\")\n+        path.write_bytes(source)\n+        left, right = collect(\n+            [\n+                (side, spawn(side, args.format, path, args.python))\n+                for side in (args.left, args.right)\n+            ]\n+        )\n+    diff = list(\n+        difflib.unified_diff(\n+            left, right, fromfile=args.left, tofile=args.right, lineterm=\"\"\n+        )\n+    )\n+    if not diff:\n+        print(f\"{args.left} and {args.right} agree on the {args.format} form\")\n+        return\n+\n+    color = not args.no_color and sys.stdout.isatty()\n+    for line in diff:\n+        prefix = _COLORS.get(line[:1], \"\") if color else \"\"\n+        print(f\"{prefix}{line}\\033[0m\" if prefix else line)\n+    raise SystemExit(1)\n+\n+\n+if __name__ == \"__main__\":\n+    main()",
+      "previous_filename": null,
+      "status": "added"
+    }
+  ],
+  "metadata": {
+    "author_login": "RonnyPfannschmidt",
+    "base_sha": "df87db7b0462fb764ef73fa00561adf8ad047572",
+    "head_sha": "f147a1297fb8f202987772f3d825372df314e138",
+    "html_url": "https://github.com/pytest-dev/pytest/pull/14921",
+    "number": 14921,
+    "repo": "pytest-dev/pytest",
+    "state": "closed",
+    "title": "scripts: add an assert-rewrite diff tool"
+  },
+  "review_comments": [
+    {
+      "body": "Do we want to set the expected python version as 3.14 or more ?",
+      "commit_id": "be39f2fffef341b37edc3fa3420ddcc7d7928123",
+      "id": 3836946275,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "be39f2fffef341b37edc3fa3420ddcc7d7928123",
+      "original_line": 60,
+      "path": "scripts/diff-assert-rewrite.py",
+      "side": "RIGHT",
+      "user": "Pierre-Sassoulas",
+      "user_type": "User"
+    },
+    {
+      "body": "We could set the python interpreter version through uv",
+      "commit_id": "f147a1297fb8f202987772f3d825372df314e138",
+      "id": 3836946876,
+      "in_reply_to_id": null,
+      "line": 121,
+      "original_commit_id": "be39f2fffef341b37edc3fa3420ddcc7d7928123",
+      "original_line": 96,
+      "path": "scripts/diff-assert-rewrite.py",
+      "side": "RIGHT",
+      "user": "Pierre-Sassoulas",
+      "user_type": "User"
+    },
+    {
+      "body": "Should probably be a cli arg ",
+      "commit_id": "be39f2fffef341b37edc3fa3420ddcc7d7928123",
+      "id": 3837624112,
+      "in_reply_to_id": 3836946275,
+      "line": null,
+      "original_commit_id": "be39f2fffef341b37edc3fa3420ddcc7d7928123",
+      "original_line": 60,
+      "path": "scripts/diff-assert-rewrite.py",
+      "side": "RIGHT",
+      "user": "RonnyPfannschmidt",
+      "user_type": "User"
+    }
+  ]
+}

@@ -26,6 +26,7 @@ from prcritiq.dataset import (
     adjudication_queue,
     apply_adjudications,
     read_dataset,
+    select_confirmed_cases,
     write_dataset,
 )
 
@@ -69,11 +70,16 @@ def main() -> int:
         action="store_true",
         help="Allow missing or still-unreviewed decisions in a draft output.",
     )
+    parser.add_argument(
+        "--confirmed-only",
+        action="store_true",
+        help=("With --apply, retain only cases containing at least one confirmed-defect label."),
+    )
     args = parser.parse_args()
 
     cases = read_dataset(Path(args.dataset))
     if args.export:
-        queue = adjudication_queue(cases)
+        queue = adjudication_queue(cases, root=Path.cwd())
         _write_jsonl(queue, Path(args.export))
         print(f"wrote {len(queue)} label decisions to {args.export}")
         return 0
@@ -98,6 +104,9 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+    input_cases = len(updated)
+    if args.confirmed_only:
+        updated = select_confirmed_cases(updated)
     write_dataset(updated, Path(args.output))
     confirmed = sum(
         label.adjudication == "confirmed_defect" for case in updated for label in case.labels
@@ -106,6 +115,7 @@ def main() -> int:
     print(
         f"wrote {len(updated)} cases to {args.output}: "
         f"{confirmed} confirmed, {excluded} excluded, {unreviewed} unreviewed"
+        + (f"; selected from {input_cases} adjudicated cases" if args.confirmed_only else "")
     )
     return 0
 

@@ -1,0 +1,229 @@
+{
+  "files": [
+    {
+      "additions": 8,
+      "changes": 8,
+      "deletions": 0,
+      "filename": "hypothesis/RELEASE.rst",
+      "patch": "@@ -0,0 +1,8 @@\n+RELEASE_TYPE: minor\n+\n+Values recorded with :func:`~hypothesis.note` are now included in\n+:ref:`observability <observability>` reports, as an ordered list of strings\n+under the ``metadata.notes`` key of each test-case observation.  Previously,\n+notes were only shown in the terminal for the |minimal failing test case|\n+(or for every test case under |Verbosity.verbose|), and never appeared in\n+observations at all.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 4,
+      "changes": 4,
+      "deletions": 0,
+      "filename": "hypothesis/docs/reference/integrations.rst",
+      "patch": "@@ -142,6 +142,10 @@ float observation associated with it.  All events are collected and summarized i\n recording them in observations, Hypothesis will try to maximize the targeted value.\n Knowing that, you can use this to guide the search for failing inputs.\n \n+:func:`~hypothesis.note` values are also recorded, in order, under the\n+``metadata.notes`` key of each test-case observation - whether or not they\n+were printed to the terminal.\n+\n \n Data Format\n ~~~~~~~~~~~",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 6,
+      "changes": 7,
+      "deletions": 1,
+      "filename": "hypothesis/docs/reference/schema_metadata.json",
+      "patch": "@@ -9,6 +9,11 @@\n             \"type\": [\"string\", \"null\"],\n             \"description\": \"The ``@reproduce_failure`` decorator string for failing tests, if and only if ``status == \\\"failed\\\"``.\"\n         },\n+        \"notes\": {\n+            \"type\": \"array\",\n+            \"items\": {\"type\": \"string\"},\n+            \"description\": \"The values recorded by calls to |note|, in order.\"\n+        },\n         \"predicates\": {\n             \"type\": \"object\",\n             \"description\": \"The number of times each |assume| and |@precondition| predicate was satisfied (``True``) and not satisfied (``False``).\",\n@@ -61,6 +66,6 @@\n             \"description\": \"The internal ``InterestingOrigin`` object for failing tests, if and only if ``status == \\\"failed\\\"``. The ``traceback`` string value is derived from this object.\"\n         }\n     },\n-    \"required\": [\"traceback\", \"reproduction_decorator\", \"predicates\", \"backend\", \"sys.argv\", \"os.getpid()\", \"imported_at\", \"data_status\", \"interesting_origin\"],\n+    \"required\": [\"traceback\", \"reproduction_decorator\", \"notes\", \"predicates\", \"backend\", \"sys.argv\", \"os.getpid()\", \"imported_at\", \"data_status\", \"interesting_origin\"],\n     \"additionalProperties\": false\n }",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 12,
+      "changes": 15,
+      "deletions": 3,
+      "filename": "hypothesis/src/hypothesis/control.py",
+      "patch": "@@ -274,12 +274,21 @@ def note(value: object) -> None:\n     to a string.\n \n     This value is reported for the |minimal failing test case|, and on |Verbosity.verbose|\n-    or lower.\n+    or higher.\n+\n+    Notes are also recorded in the ``metadata.notes`` key of each test case\n+    observation, if :ref:`observability <observability>` is enabled.\n     \"\"\"\n-    if should_note():\n+    should_report = should_note()\n+    if should_report or observability_enabled():\n         if not isinstance(value, str):\n             value = pretty(value)\n-        report(value)\n+        context = _current_build_context.value\n+        assert context is not None\n+        if observability_enabled():\n+            context.data.note(value)\n+        if should_report:\n+            report(value)\n \n \n def event(value: str, payload: Any = \"\") -> None:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 17,
+      "changes": 18,
+      "deletions": 1,
+      "filename": "hypothesis/src/hypothesis/core.py",
+      "patch": "@@ -81,7 +81,11 @@\n )\n from hypothesis.internal.conjecture.choice import ChoiceT\n from hypothesis.internal.conjecture.data import ConjectureData, Status\n-from hypothesis.internal.conjecture.engine import BUFFER_SIZE, ConjectureRunner\n+from hypothesis.internal.conjecture.engine import (\n+    BUFFER_SIZE,\n+    ConjectureRunner,\n+    ExitReason,\n+)\n from hypothesis.internal.conjecture.junkdrawer import (\n     ensure_free_stackframes,\n     gc_cumulative_time,\n@@ -1361,6 +1365,11 @@ def _execute_once_for_engine(self, data: ConjectureData) -> None:\n                 except BackendCannotProceed:\n                     self._string_repr = \"<backend failed to realize symbolic arguments>\"\n \n+                try:\n+                    data.notes = data.provider.realize(data.notes)\n+                except BackendCannotProceed:\n+                    data.notes = []\n+\n                 data.freeze()\n                 tc = make_testcase(\n                     run_start=self._start_timestamp,\n@@ -1443,6 +1452,13 @@ def run_engine(self):\n         else:\n             if runner.valid_examples == 0:\n                 explanations = []\n+                if runner.exit_reason is ExitReason.finished:\n+                    explanations.append(\n+                        \"Hypothesis tried every possible input, so the \"\n+                        \"assumptions of this test are impossible to satisfy - \"\n+                        \"not merely unlikely - and running more test cases \"\n+                        \"cannot help.\"\n+                    )\n                 # use a somewhat arbitrary cutoff to avoid recommending spurious\n                 # fixes.\n                 # eg, a few invalid examples from internal filters when the",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 7,
+      "changes": 16,
+      "deletions": 9,
+      "filename": "hypothesis/src/hypothesis/errors.py",
+      "patch": "@@ -50,15 +50,13 @@ def __init__(self, condition_string: str, extra: str = \"\") -> None:\n \n \n class Unsatisfiable(_Trimmable):\n-    \"\"\"We ran out of time or test cases before we could find enough test cases\n-    which satisfy the assumptions of this hypothesis.\n-\n-    This could be because the function is too slow. If so, try upping\n-    the timeout. It could also be because the function is using assume\n-    in a way that is too hard to satisfy. If so, try writing a custom\n-    strategy or using a better starting point (e.g if you are requiring\n-    a list has unique values you could instead filter out all duplicate\n-    values from the list)\n+    \"\"\"We ran out of test cases before we could find enough which satisfy the\n+    assumptions of this hypothesis.\n+\n+    This could be because the function is using |assume| in a way that is\n+    too hard to satisfy. If so, try writing a custom strategy or using a\n+    better starting point (e.g if you are requiring a list has unique\n+    values you could instead filter out all duplicate values from the list)\n     \"\"\"\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 5,
+      "changes": 12,
+      "deletions": 7,
+      "filename": "hypothesis/src/hypothesis/internal/conjecture/data.py",
+      "patch": "@@ -582,7 +582,7 @@ class ConjectureResult:\n     interesting_origin: InterestingOrigin | None\n     nodes: tuple[ChoiceNode, ...] = field(repr=False, compare=False)\n     length: int\n-    output: str\n+    notes: list[str]\n     expected_exception: BaseException | None\n     expected_traceback: str | None\n     has_discards: bool\n@@ -655,7 +655,7 @@ def __init__(\n \n         self.length: int = 0\n         self.index: int = 0\n-        self.output: str = \"\"\n+        self.notes: list[str] = []\n         self.status: Status = Status.VALID\n         self.frozen: bool = False\n         self.testcounter: int = threadlocal.global_test_counter\n@@ -1146,7 +1146,7 @@ def as_result(self) -> ConjectureResult | _Overrun:\n                 spans=self.spans,\n                 nodes=self.nodes,\n                 length=self.length,\n-                output=self.output,\n+                notes=self.notes,\n                 expected_traceback=self.expected_traceback,\n                 expected_exception=self.expected_exception,\n                 has_discards=self.has_discards,\n@@ -1164,11 +1164,9 @@ def __assert_not_frozen(self, name: str) -> None:\n         if self.frozen:\n             raise Frozen(f\"Cannot call {name} on frozen ConjectureData\")\n \n-    def note(self, value: Any) -> None:\n+    def note(self, value: str) -> None:\n         self.__assert_not_frozen(\"note\")\n-        if not isinstance(value, str):\n-            value = repr(value)\n-        self.output += value\n+        self.notes.append(value)\n \n     def draw(\n         self,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 6,
+      "deletions": 5,
+      "filename": "hypothesis/src/hypothesis/internal/conjecture/engine.py",
+      "patch": "@@ -962,11 +962,7 @@ def debug_data(self, data: ConjectureData | ConjectureResult) -> None:\n             assert isinstance(data, ConjectureData)  # mypy is silly\n             status = f\"{status} ({data.events.get('invalid because', '?')})\"\n \n-        newline_tab = \"\\n\\t\"\n-        self.debug(\n-            f\"{len(data.choices)} choices -> {status}\\n\\t{data.choices}\"\n-            f\"{newline_tab + data.output if data.output else ''}\"\n-        )\n+        self.debug(f\"{len(data.choices)} choices -> {status}\\n\\t{data.choices}\")\n \n     def observe_for_provider(self) -> AbstractContextManager:\n         def on_observation(observation: Observation) -> None:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 3,
+      "deletions": 0,
+      "filename": "hypothesis/src/hypothesis/internal/observability.py",
+      "patch": "@@ -173,6 +173,7 @@ def nodes_to_json(nodes: tuple[ChoiceNode, ...]) -> list[dict[str, Any]]:\n class ObservationMetadata:\n     traceback: str | None\n     reproduction_decorator: str | None\n+    notes: list[str]\n     predicates: dict[str, PredicateCounts]\n     backend: dict[str, Any]\n     sys_argv: list[str]\n@@ -188,6 +189,7 @@ def to_json(self) -> dict[str, Any]:\n         data = {\n             \"traceback\": self.traceback,\n             \"reproduction_decorator\": self.reproduction_decorator,\n+            \"notes\": self.notes,\n             \"predicates\": self.predicates,\n             \"backend\": self.backend,\n             \"sys.argv\": self.sys_argv,\n@@ -461,6 +463,7 @@ def make_testcase(\n                 \"reproduction_decorator\": (\n                     reproduction_decorator(data.choices) if status == \"failed\" else None\n                 ),\n+                \"notes\": list(data.notes),\n                 \"predicates\": dict(data._observability_predicates),\n                 \"backend\": backend_metadata or {},\n                 \"data_status\": data.status,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 17,
+      "deletions": 15,
+      "filename": "hypothesis/tests/conjecture/test_test_data.py",
+      "patch": "@@ -56,12 +56,6 @@ def test_draw_past_end_sets_overflow():\n     assert d.status == Status.OVERRUN\n \n \n-def test_notes_repr():\n-    d = ConjectureData.for_choices([])\n-    d.note(b\"hi\")\n-    assert repr(b\"hi\") in d.output\n-\n-\n def test_can_mark_interesting():\n     d = ConjectureData.for_choices([])\n     with pytest.raises(StopTest):\n@@ -286,17 +280,10 @@ def test_empty_strategy_is_invalid():\n     assert d.status == Status.INVALID\n \n \n-def test_can_note_non_str():\n-    d = ConjectureData.for_choices([])\n-    x = object()\n-    d.note(x)\n-    assert repr(x) in d.output\n-\n-\n-def test_can_note_str_as_non_repr():\n+def test_can_note():\n     d = ConjectureData.for_choices([])\n     d.note(\"foo\")\n-    assert d.output == \"foo\"\n+    assert d.notes == [\"foo\"]\n \n \n def test_result_is_overrun():",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 38,
+      "changes": 38,
+      "deletions": 0,
+      "filename": "hypothesis/tests/cover/test_observability.py",
+      "patch": "@@ -59,10 +59,12 @@\n from hypothesis.strategies._internal.utils import to_jsonable\n \n from tests.common.utils import (\n+    Why,\n     capture_observations,\n     checks_deprecated_behaviour,\n     run_concurrently,\n     skipif_threading,\n+    xfail_on_crosshair,\n )\n from tests.conjecture.common import choices, integer_constr, nodes\n \n@@ -175,6 +177,41 @@ def test_fails_with_note(data):\n     assert test_cases[-1].representation == expected\n \n \n+def test_notes_recorded_for_every_observation():\n+    @given(st.integers(0, 100))\n+    @settings(database=None)\n+    def f(x):\n+        note(f\"noted {x}\")\n+        note([x])\n+\n+    with capture_observations() as observations:\n+        f()\n+\n+    test_cases = [tc for tc in observations if tc.type == \"test_case\"]\n+    assert test_cases\n+    for tc in test_cases:\n+        x = tc.arguments[\"x\"]\n+        assert tc.metadata.notes == [f\"noted {x}\", f\"[{x}]\"]\n+\n+\n+# the f-string here formats a symbolic integer, which distracts crosshair\n+# from exploring the x >= 10 branch of the assertion\n+@xfail_on_crosshair(Why.undiscovered)\n+def test_notes_recorded_for_minimal_failing_example():\n+    @given(st.integers())\n+    @settings(database=None)\n+    def f(x):\n+        note(f\"noted {x}\")\n+        assert x < 10\n+\n+    with capture_observations() as observations, pytest.raises(AssertionError):\n+        f()\n+\n+    final = [tc for tc in observations if tc.type == \"test_case\"][-1]\n+    assert final.how_generated == \"minimal failing test case\"\n+    assert final.metadata.notes == [\"noted 10\"]\n+\n+\n def test_normal_representation_includes_draws():\n     @given(st.data())\n     def f(data):\n@@ -548,6 +585,7 @@ def f(n):\n         ) == {\n             \"traceback\",\n             \"reproduction_decorator\",\n+            \"notes\",\n             \"predicates\",\n             \"backend\",\n             \"sys.argv\",",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 15,
+      "changes": 16,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_randoms.py",
+      "patch": "@@ -27,6 +27,7 @@\n )\n \n from tests.common.debug import assert_all_examples, find_any\n+from tests.common.utils import Why, xfail_on_crosshair\n \n \n def test_implements_all_random_methods():\n@@ -123,7 +124,20 @@ def any_call(draw):\n     return (method, *draw(any_call_of_method(method)))\n \n \n-@pytest.mark.parametrize(\"method\", RANDOM_METHODS)\n+@pytest.mark.parametrize(\n+    \"method\",\n+    [\n+        pytest.param(\n+            method,\n+            marks=(\n+                xfail_on_crosshair(Why.other, strict=False, as_marks=True)\n+                if method == \"triangular\"\n+                else ()\n+            ),\n+        )\n+        for method in RANDOM_METHODS\n+    ],\n+)\n @given(any_random, st.data())\n def test_call_all_methods(method, rnd, data):\n     args, kwargs = data.draw(any_call_of_method(method))",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 15,
+      "changes": 15,
+      "deletions": 0,
+      "filename": "hypothesis/tests/cover/test_testdecorators.py",
+      "patch": "@@ -514,6 +514,21 @@ def f(v):\n         f()\n \n \n+def test_notes_exhausted_search_space_in_unsatisfiable_error():\n+    @given(booleans())\n+    def f(v):\n+        assume(False)\n+\n+    with pytest.raises(\n+        Unsatisfiable,\n+        match=(\n+            r\"Unable to satisfy assumptions of f\\. Hypothesis tried every \"\n+            r\"possible input\"\n+        ),\n+    ):\n+        f()\n+\n+\n # crosshair generates one valid input before verifying the test function,\n # so the Unsatisfiable check never occurs.\n # (not strict due to slowness causing crosshair to bail out on the first input,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 15,
+      "changes": 17,
+      "deletions": 2,
+      "filename": "hypothesis/tests/cover/test_verbosity.py",
+      "patch": "@@ -10,13 +10,13 @@\n \n from contextlib import contextmanager\n \n-from hypothesis import example, find, given\n+from hypothesis import example, find, given, note\n from hypothesis._settings import Verbosity, settings\n from hypothesis.reporting import default as default_reporter, with_reporter\n from hypothesis.strategies import booleans, integers, lists\n \n from tests.common.debug import minimal\n-from tests.common.utils import capture_out, fails\n+from tests.common.utils import capture_observations, capture_out, fails\n \n \n @contextmanager\n@@ -37,6 +37,19 @@ def test_works(x):\n     assert \"Test case:\" in o.getvalue()\n \n \n+def test_notes_are_not_printed_twice_in_debug_mode():\n+    # the engine's debug output must not repeat notes which were already\n+    # printed, even when observability has recorded them on the data\n+    @settings(verbosity=Verbosity.debug, max_examples=1, database=None)\n+    @given(booleans())\n+    def test_works(x):\n+        note(\"this is a note\")\n+\n+    with capture_verbosity() as o, capture_observations():\n+        test_works()\n+    assert o.getvalue().count(\"this is a note\") == 1\n+\n+\n def test_does_not_log_in_quiet_mode():\n     with capture_verbosity() as o:\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 0,
+      "changes": 1,
+      "deletions": 1,
+      "filename": "hypothesis/tests/quality/test_poisoned_lists.py",
+      "patch": "@@ -75,7 +75,6 @@ def test_minimal_poisoned_containers(seed, size, p, strategy_class):\n \n     def test_function(data):\n         v = data.draw(strategy)\n-        data.output = repr(v)\n         if POISON in v:\n             data.mark_interesting(interesting_origin())\n ",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Zac-HD",
+    "base_sha": "aee8b3f6769dafaa5251f0dafef406cd70858d6a",
+    "head_sha": "2aada67e1248242b4959009a44e74ee09d75726f",
+    "html_url": "https://github.com/HypothesisWorks/hypothesis/pull/4810",
+    "number": 4810,
+    "repo": "HypothesisWorks/hypothesis",
+    "state": "closed",
+    "title": "Track `note()` in observability outputs"
+  },
+  "review_comments": [
+    {
+      "body": "pretty sure this is going to double up on output - I had fable write this test:\r\n\r\n```python\r\ndef test_debug_output_includes_notes(snapshot):\r\n    # data.notes is only populated under observability, so the debug output\r\n    # only includes notes when observability is enabled.\r\n    @settings(\r\n        SNAPSHOT_SETTINGS,\r\n        verbosity=Verbosity.debug,\r\n        phases=[Phase.generate],\r\n        max_examples=1,\r\n    )\r\n    @given(st.just(0))\r\n    def inner(x):\r\n        note(\"hello\")\r\n        note(\"world\")\r\n\r\n    with capture_out() as out, capture_observations():\r\n        inner()\r\n\r\n    assert out.getvalue() == snapshot\r\n```\r\n\r\nand the output is\r\n\r\n```\r\n  Generating new test cases\r\n  Test case: inner(\r\n      x=0,\r\n  )\r\n  hello\r\n  world\r\n  0 choices -> Status.VALID\r\n        ()\r\n        hello\r\n        world\r\n  exit_with(max_examples)\r\n  Run complete after 1 examples (1 valid) and 0 shrinks\r\n```\r\n\r\nI'd possibly just drop this tab-indented output?\r\n\r\n---\r\n\r\nalso, I think I'd want to print events/target values alongside notes in this indented space, if we're going to keep the current branch's behavior of adding this print - `note` doesn't seem particularly special here relative to other info like `event` and `target`",
+      "commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "id": 3635760003,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 969,
+      "path": "hypothesis/src/hypothesis/internal/conjecture/engine.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n                if runner.exit_reason is ExitReason.finished:\n                    explanations.append(\n                        \"Hypothesis tried every possible input, so the \"\n                        \"assumptions of this test are impossible to satisfy - \"\n                        \"not merely unlikely - and running more test cases \"\n                        \"cannot help.\"\n```\n\nwe'll all have to get used to this!",
+      "commit_id": "2aada67e1248242b4959009a44e74ee09d75726f",
+      "id": 3635763359,
+      "in_reply_to_id": null,
+      "line": 1460,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 1455,
+      "path": "hypothesis/src/hypothesis/core.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "can we just delete this `data.note` call? is it just for developer debugging? If not can it be replaced by the public API `note(v)`?",
+      "commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "id": 3635774425,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 78,
+      "path": "hypothesis/tests/quality/test_poisoned_lists.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\nRELEASE_TYPE: minor\n\nValues recorded with :func:`~hypothesis.note` are now included in\n:ref:`observability <observability>` reports, as an ordered list of strings\nunder the ``metadata.notes`` key of each test-case observation.  Previously,\nnotes were only shown in the terminal for the minimal failing test case (or\nfor every test case under |Verbosity.verbose|), and never appeared in\nobservations at all.\n```",
+      "commit_id": "2aada67e1248242b4959009a44e74ee09d75726f",
+      "id": 3635780416,
+      "in_reply_to_id": null,
+      "line": 8,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 8,
+      "path": "hypothesis/RELEASE.rst",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "this is pre-existing, but: I'd prefer to change this method to `note(self, value: str)` and make the string conversion the responsibility of the (currently single) caller. I want the ConjectureData API to be minimal and strict by default. (Note that it's already drifted; `repr` vs `pretty`).",
+      "commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "id": 3635797591,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 1171,
+      "path": "hypothesis/src/hypothesis/internal/conjecture/data.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "I'd prefer to drop the `context.data.frozen` condition. It's possible adding this condition makes edge cases around `finally` more correct, but I don't recall us having a similar condition in other public APIs, and I'll take the consistent devil I know over adding one I don't.",
+      "commit_id": "2aada67e1248242b4959009a44e74ee09d75726f",
+      "id": 3635810611,
+      "in_reply_to_id": null,
+      "line": 290,
+      "original_commit_id": "145531e011c1480f9dbcde2d74a04f602a2af154",
+      "original_line": 290,
+      "path": "hypothesis/src/hypothesis/control.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    }
+  ]
+}

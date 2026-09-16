@@ -1,0 +1,253 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "HypothesisWorks__hypothesis__4861",
+      "confirmed_labels": 1,
+      "cost_usd": 0.063185,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 4417,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 25.04699999996228,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/strategies/_internal/types.py:1011"
+      ],
+      "model": "claude-opus-5",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1644,
+      "pr_number": 4861,
+      "provider": "anthropic",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 0,
+      "repo": "HypothesisWorks/hypothesis",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=anthropic was requested",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "low_confidence": 3
+      },
+      "suppressed_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 62,
+            "evidence": "`_global_type_lookup[builtins.sentinel] = st.builds(builtins.sentinel, st.text())` \u2014 st.text() produces arbitrarily many distinct names, each creating a permanently interned sentinel.",
+            "file_path": "hypothesis/src/hypothesis/strategies/_internal/types.py",
+            "finding": "Registering `builtins.sentinel` with `st.builds(builtins.sentinel, st.text())` will create a new interned sentinel object per generated name. PEP 661-style sentinels are cached globally by name, so drawing arbitrary text values leaks an unbounded number of module-level sentinel objects across a test run.",
+            "line": 1008,
+            "severity": "medium",
+            "source_refs": [
+              "types.py:1008-1013"
+            ],
+            "suggested_fix": "Restrict to a small fixed set of names, e.g. `st.sampled_from([\"A\", \"B\", \"C\"]).map(builtins.sentinel)`, or use `st.just(builtins.sentinel(\"hypothesis_sentinel\"))`."
+          },
+          "finding_index": 0,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "error_handling",
+            "confidence": 55,
+            "evidence": "`result = ModuleType(...)` followed immediately by `del result.__spec__` with no guard.",
+            "file_path": "hypothesis/src/hypothesis/internal/reflection.py",
+            "finding": "`del result.__spec__` unconditionally removes the attribute; if a future/other Python does not set `__spec__` in the module's instance dict (it is not guaranteed to be settable/deletable across implementations), this raises AttributeError at module-creation time for every dynamically compiled function.",
+            "line": 362,
+            "severity": "low",
+            "source_refs": [
+              "reflection.py:354-363"
+            ],
+            "suggested_fix": "Use `result.__dict__.pop(\"__spec__\", None)` instead of `del`."
+          },
+          "finding_index": 1,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 58,
+            "evidence": "`# accessing ByteString warns on 3.15` above `collections.abc.ByteString if sys.version_info[:2] < (3, 14) else ...` and a skipif with reason=\"removed\" at 3.14.",
+            "file_path": "hypothesis/tests/cover/test_lookup.py",
+            "finding": "The comment says accessing `ByteString` warns on 3.15, but the guard uses `< (3, 14)` and the param is skipped for >=3.14 with reason \"removed\". Either the comment or the version boundary is wrong, making the intent of the deprecation guard unclear/possibly mis-versioned.",
+            "line": 140,
+            "severity": "low",
+            "source_refs": [
+              "test_lookup.py:136-142"
+            ],
+            "suggested_fix": "Correct the comment to state that ByteString is removed in 3.14 (or fix the version bound to 3.15 if the warning is the real reason)."
+          },
+          "finding_index": 2,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        }
+      ],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "1 of 1",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "1/1 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.00",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.00",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-01T22:52:51Z",
+  "limitations": [
+    "Legacy or newly harvested labels remain unreviewed until a human marks them confirmed_defect; unreviewed labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 0,
+    "cases": 1,
+    "comment_precision": 0.0,
+    "completed_cases": 1,
+    "confirmed_labels": 1,
+    "cost_per_pr_usd": 0.0632,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 0,
+    "input_tokens": 4417,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.0,
+    "labels": 1,
+    "matched": 0,
+    "median_latency_seconds": 25.05,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 1644,
+    "p95_latency_seconds": 25.05,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 0,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {
+      "low_confidence": 3
+    },
+    "total_cost_usd": 0.0632,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "claude-opus-5",
+  "model_policy": "anthropic",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.0,
+      "findings": 3,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 3,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 65,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    }
+  ]
+}

@@ -186,6 +186,17 @@ class BenchmarkMetrics:
     reasoning_output_tokens: int = 0
 
 
+@dataclass(frozen=True)
+class DatasetCertification:
+    """Preflight result for a dataset that is eligible for paid evaluation."""
+
+    certified: bool
+    cases: int
+    certified_cases: int
+    confirmed_labels: int
+    issues: tuple[str, ...] = ()
+
+
 #: Suppression reasons that count as spam the agent avoided emitting.
 _SPAM_REASONS: Final[frozenset[SuppressionReason]] = frozenset(
     {SuppressionReason.GENERIC, SuppressionReason.DUPLICATE}
@@ -540,6 +551,129 @@ def build_report(
 def write_json_report(report: dict[str, Any], path: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def certify_dataset(cases: Sequence[BenchmarkCase], root: Any) -> DatasetCertification:
+    """Verify human decisions, source provenance, revision, and diff targets.
+
+    This runs before any live provider is constructed. A post-run gate is too
+    late: it can report that the corpus was invalid only after spending money.
+    Excluded candidates remain auditable but do not need positive provenance;
+    every scored defect does.
+    """
+
+    from .diff import build_diff_index, file_diff_from_changed_file
+
+    issues: list[str] = []
+    certified_cases = 0
+    confirmed_labels = 0
+    if not cases:
+        issues.append("dataset: no cases selected")
+
+    for case in cases:
+        case_issues: list[str] = []
+        prefix = case.id
+        if case.dataset_schema_version < 2:
+            case_issues.append(f"{prefix}: dataset schema is not v2")
+
+        fixture: dict[str, Any] | None = None
+        valid_targets: set[tuple[str, int]] = set()
+        try:
+            fixture_path = root / case.diff_path
+            fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+            metadata, changed = load_case_inputs(case, root)
+            index = build_diff_index([file_diff_from_changed_file(item) for item in changed])
+            valid_targets = {
+                (file_diff.path, line)
+                for file_diff in index.files
+                for line in file_diff.commentable_lines
+            }
+            if metadata.repo != case.repo or metadata.number != case.pr_number:
+                case_issues.append(f"{prefix}: fixture identifies a different pull request")
+            if metadata.base_sha != case.base_sha or metadata.head_sha != case.head_sha:
+                case_issues.append(f"{prefix}: fixture revision does not match the dataset")
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            case_issues.append(f"{prefix}: fixture cannot be validated: {exc}")
+
+        scored = [label for label in case.labels if label.adjudication != "excluded"]
+        if not scored:
+            case_issues.append(f"{prefix}: no confirmed defect labels remain after exclusions")
+
+        source_comments: dict[int, dict[str, Any]] = {}
+        if fixture is not None:
+            source_comments = {
+                int(item["id"]): item
+                for item in fixture.get("review_comments", [])
+                if isinstance(item, dict) and item.get("id") is not None
+            }
+            author = str(fixture.get("metadata", {}).get("author_login") or "")
+        else:
+            author = ""
+
+        for label in case.labels:
+            label_prefix = f"{prefix}/{label.label_id or '<missing-label-id>'}"
+            if label.adjudication == "excluded":
+                if not label.adjudication_notes.strip():
+                    case_issues.append(f"{label_prefix}: excluded label needs adjudication notes")
+                continue
+            if not label.confirmed:
+                case_issues.append(f"{label_prefix}: label is not human-confirmed")
+                continue
+
+            confirmed_labels += 1
+            if not label.label_id or label.label_id.startswith("legacy:"):
+                case_issues.append(f"{label_prefix}: stable v2 source id is missing")
+            if not label.reviewer_login:
+                case_issues.append(f"{label_prefix}: reviewer provenance is missing")
+            if label.source_comment_id is None:
+                case_issues.append(f"{label_prefix}: source comment id is missing")
+            if label.review_commit_sha != case.head_sha:
+                case_issues.append(f"{label_prefix}: review revision does not match the head SHA")
+            if (label.file_path, label.line) not in valid_targets:
+                case_issues.append(f"{label_prefix}: target is not an added line in the fixture")
+
+            source = (
+                source_comments.get(label.source_comment_id)
+                if label.source_comment_id is not None
+                else None
+            )
+            if source is None:
+                case_issues.append(f"{label_prefix}: source comment is absent from the fixture")
+                continue
+            source_user = source.get("user")
+            reviewer = (
+                str(source_user.get("login") or "")
+                if isinstance(source_user, dict)
+                else str(source_user or "")
+            )
+            source_line = source.get("line") or source.get("original_line")
+            if (
+                str(source.get("path") or "") != label.file_path
+                or int(source_line or 0) != label.line
+                or str(source.get("body") or "").strip() != label.human_comment.strip()
+                or reviewer != label.reviewer_login
+                or str(source.get("commit_id") or "") != label.review_commit_sha
+            ):
+                case_issues.append(f"{label_prefix}: source comment provenance does not match")
+            if source.get("in_reply_to_id") is not None:
+                case_issues.append(f"{label_prefix}: source comment is a reply")
+            if author and reviewer.casefold() == author.casefold():
+                case_issues.append(f"{label_prefix}: source comment was written by the PR author")
+            user_type = str(source.get("user_type") or "")
+            if user_type.casefold() == "bot" or reviewer.casefold().endswith("[bot]"):
+                case_issues.append(f"{label_prefix}: source comment was written by a bot")
+
+        if not case_issues:
+            certified_cases += 1
+        issues.extend(case_issues)
+
+    return DatasetCertification(
+        certified=bool(cases) and certified_cases == len(cases),
+        cases=len(cases),
+        certified_cases=certified_cases,
+        confirmed_labels=confirmed_labels,
+        issues=tuple(issues),
+    )
 
 
 def load_case_inputs(case: BenchmarkCase, root: Any) -> tuple[Any, list[Any]]:

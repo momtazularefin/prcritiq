@@ -172,6 +172,7 @@ def _run_eval(args) -> int:
     from .benchmark import (
         aggregate,
         build_report,
+        certify_dataset,
         execute_case,
         render_markdown_report,
         score_raw,
@@ -190,6 +191,27 @@ def _run_eval(args) -> int:
     cases = read_dataset(dataset_path)
     if args.limit:
         cases = cases[: args.limit]
+
+    if not args.fixture_mode:
+        certification = certify_dataset(cases, root)
+        if not certification.certified:
+            print(
+                json.dumps(
+                    {
+                        "service": "prcritiq",
+                        "error": (
+                            "Refusing live evaluation: the selected dataset is not certified; "
+                            "no provider was called."
+                        ),
+                        "certified_cases": certification.certified_cases,
+                        "selected_cases": certification.cases,
+                        "confirmed_labels": certification.confirmed_labels,
+                        "issues": list(certification.issues),
+                    },
+                    indent=2,
+                )
+            )
+            return 1
 
     settings = load_settings()
     if args.fixture_mode:

@@ -15,6 +15,7 @@ from prcritiq.benchmark import (
     LINE_WINDOW,
     aggregate,
     build_report,
+    certify_dataset,
     evaluate_gates,
     matches,
     render_markdown_report,
@@ -31,6 +32,7 @@ from prcritiq.dataset import (
     is_meaningful_comment,
     labels_from_comments,
     read_dataset,
+    select_confirmed_cases,
     write_dataset,
 )
 from prcritiq.findings import CandidateFinding, DraftedFindings, ReviewedFinding
@@ -461,6 +463,20 @@ class TestDatasetRoundTrip:
         with pytest.raises(ValueError, match="Missing adjudications"):
             apply_adjudications([restored], [])
 
+    def test_a_decision_without_notes_fails_closed(self) -> None:
+        restored = read_after_write(self_case())
+
+        with pytest.raises(ValueError, match="needs notes"):
+            apply_adjudications(
+                [restored],
+                [
+                    {
+                        "label_id": restored.labels[0].label_id,
+                        "adjudication": "confirmed_defect",
+                    }
+                ],
+            )
+
     def test_queue_contains_provenance_and_decision_fields(self) -> None:
         restored = read_after_write(self_case())
 
@@ -469,6 +485,70 @@ class TestDatasetRoundTrip:
         assert row["label_id"] == "legacy:c:001"
         assert row["case_id"] == "c"
         assert row["adjudication"] == "confirmed_defect"
+
+    def test_queue_includes_replies_and_marks_the_pr_author(self, tmp_path: Path) -> None:
+        fixture = {
+            "metadata": {"author_login": "author"},
+            "review_comments": [
+                {
+                    "id": 8,
+                    "in_reply_to_id": 7,
+                    "body": "This object is not importable by that name, so it is not picklable.",
+                    "user": "author",
+                    "user_type": "User",
+                    "commit_id": "head",
+                }
+            ],
+        }
+        (tmp_path / "fixture.json").write_text(json.dumps(fixture), encoding="utf-8")
+        case = BenchmarkCase(
+            id="threaded",
+            repo="example/repo",
+            pr_number=1,
+            base_sha="base",
+            head_sha="head",
+            languages=["python"],
+            diff_path="fixture.json",
+            human_comments_path="fixture.json",
+            labels=[
+                label(
+                    label_id="github-review-comment:7",
+                    reviewer_login="reviewer",
+                    source_comment_id=7,
+                    review_commit_sha="head",
+                )
+            ],
+        )
+
+        row = adjudication_queue([case], root=tmp_path)[0]
+
+        assert row["pr_author_login"] == "author"
+        assert row["thread_replies"][0]["is_pr_author"] is True
+        assert "not picklable" in row["thread_replies"][0]["human_comment"]
+
+    def test_confirmed_case_selection_keeps_only_scored_ground_truth(self) -> None:
+        confirmed = self_case()
+        excluded = BenchmarkCase(
+            id="excluded",
+            repo="example/repo",
+            pr_number=2,
+            base_sha="a",
+            head_sha="b",
+            languages=["python"],
+            diff_path="x",
+            human_comments_path="x",
+            labels=[
+                label(
+                    label_id="github-review-comment:2",
+                    adjudication="excluded",
+                    adjudication_notes="Style preference, not a defect.",
+                )
+            ],
+        )
+
+        selected = select_confirmed_cases([confirmed, excluded])
+
+        assert [case.id for case in selected] == [confirmed.id]
 
 
 def read_after_write(case: BenchmarkCase) -> BenchmarkCase:
@@ -516,6 +596,107 @@ class TestShippedCorpus:
             changed = {item["filename"] for item in payload["files"]}
             for item in case.labels:
                 assert item.file_path in changed, f"{case.id}: {item.file_path}"
+
+
+class TestDatasetCertification:
+    def _write_case(
+        self,
+        tmp_path: Path,
+        *,
+        adjudication: str = "confirmed_defect",
+        review_commit_sha: str = "head",
+        label_id: str = "github-review-comment:7",
+        source_comment_id: int | None = 7,
+    ) -> BenchmarkCase:
+        fixture = {
+            "metadata": {
+                "repo": "example/repo",
+                "number": 1,
+                "title": "Fix division",
+                "state": "closed",
+                "base_sha": "base",
+                "head_sha": "head",
+                "author_login": "author",
+                "html_url": "https://github.com/example/repo/pull/1",
+            },
+            "files": [
+                {
+                    "filename": "src/app.py",
+                    "status": "modified",
+                    "additions": 2,
+                    "deletions": 0,
+                    "changes": 2,
+                    "patch": "@@ -1,2 +1,4 @@\n import os\n \n+def retry(n):\n+    return 1 / n\n",
+                    "previous_filename": None,
+                }
+            ],
+            "review_comments": [
+                {
+                    "id": 7,
+                    "path": "src/app.py",
+                    "line": 4,
+                    "original_line": 4,
+                    "body": "This divides by n without checking for a zero argument first.",
+                    "user": "reviewer",
+                    "user_type": "User",
+                    "commit_id": "head",
+                    "in_reply_to_id": None,
+                }
+            ],
+        }
+        (tmp_path / "fixture.json").write_text(json.dumps(fixture), encoding="utf-8")
+        return BenchmarkCase(
+            id="case",
+            repo="example/repo",
+            pr_number=1,
+            base_sha="base",
+            head_sha="head",
+            languages=["python"],
+            diff_path="fixture.json",
+            human_comments_path="fixture.json",
+            labels=[
+                label(
+                    label_id=label_id,
+                    reviewer_login="reviewer",
+                    source_comment_id=source_comment_id,
+                    review_commit_sha=review_commit_sha,
+                    adjudication=adjudication,
+                    adjudication_notes="Verified against the changed behavior.",
+                )
+            ],
+        )
+
+    def test_exact_revision_human_label_is_certified(self, tmp_path: Path) -> None:
+        result = certify_dataset([self._write_case(tmp_path)], tmp_path)
+
+        assert result.certified
+        assert result.certified_cases == 1
+        assert result.confirmed_labels == 1
+        assert result.issues == ()
+
+    def test_unreviewed_label_is_not_certified(self, tmp_path: Path) -> None:
+        result = certify_dataset([self._write_case(tmp_path, adjudication="unreviewed")], tmp_path)
+
+        assert not result.certified
+        assert any("not human-confirmed" in issue for issue in result.issues)
+
+    def test_legacy_or_wrong_revision_provenance_is_not_certified(self, tmp_path: Path) -> None:
+        result = certify_dataset(
+            [
+                self._write_case(
+                    tmp_path,
+                    label_id="legacy:case:001",
+                    source_comment_id=None,
+                    review_commit_sha="old",
+                )
+            ],
+            tmp_path,
+        )
+
+        assert not result.certified
+        assert any("stable v2 source id" in issue for issue in result.issues)
+        assert any("source comment id" in issue for issue in result.issues)
+        assert any("review revision" in issue for issue in result.issues)
 
 
 class TestFixtureModeRun:

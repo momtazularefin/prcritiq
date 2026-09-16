@@ -1,0 +1,215 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "HypothesisWorks__hypothesis__4861",
+      "confirmed_labels": 1,
+      "cost_usd": 0.029264,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 2536,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 20.26600000000326,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/strategies/_internal/types.py:1011"
+      ],
+      "model": "gpt-5.6-sol",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 956,
+      "pr_number": 4861,
+      "provider": "openai",
+      "published": 1,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 84,
+            "evidence": "`LOAD_FAST_LOAD_FAST` and the two borrow opcodes are indexed with `dis.opmap[...]` based only on `sys.version_info`; actual membership in `dis.opmap` is never checked. The subsequent transform filtering expects missing opcodes to have been represented as `None`, but execution never reaches it when lookup raises.",
+            "file_path": "hypothesis/src/hypothesis/internal/lambda_sources.py",
+            "finding": "The dynamic opcode lookup can still raise `KeyError` on an interpreter whose Python version meets the gate but whose `dis.opmap` lacks the CPython-specific opcode. This contradicts the stated fallback to `None` and can make importing this module fail, particularly on alternate Python implementations or if a later version removes an opcode.",
+            "line": 106,
+            "severity": "medium",
+            "source_refs": [
+              "hypothesis/src/hypothesis/internal/lambda_sources.py:102-143"
+            ],
+            "suggested_fix": "Use `dis.opmap.get(\"LOAD_FAST_LOAD_FAST\")`, `dis.opmap.get(\"LOAD_FAST_BORROW\")`, and `dis.opmap.get(\"LOAD_FAST_BORROW_LOAD_FAST_BORROW\")` directly, then retain the existing filtering of transforms containing `None`."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 687,
+      "repo": "HypothesisWorks/hypothesis",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "hypothesis/src/hypothesis/internal/lambda_sources.py:106"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "1 of 1",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "1/1 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.00",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.00",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-01T22:54:26Z",
+  "limitations": [
+    "Legacy or newly harvested labels remain unreviewed until a human marks them confirmed_defect; unreviewed labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 0,
+    "cases": 1,
+    "comment_precision": 0.0,
+    "completed_cases": 1,
+    "confirmed_labels": 1,
+    "cost_per_pr_usd": 0.0293,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 1,
+    "input_tokens": 2536,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.0,
+    "labels": 1,
+    "matched": 0,
+    "median_latency_seconds": 20.27,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 956,
+    "p95_latency_seconds": 20.27,
+    "quiet_runs": 0,
+    "reasoning_output_tokens": 687,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0293,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "gpt-5.6-sol",
+  "model_policy": "openai",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 65,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    }
+  ]
+}

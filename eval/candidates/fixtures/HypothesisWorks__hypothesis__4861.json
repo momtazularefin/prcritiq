@@ -1,0 +1,105 @@
+{
+  "files": [
+    {
+      "additions": 5,
+      "changes": 9,
+      "deletions": 4,
+      "filename": ".github/workflows/main.yml",
+      "patch": "@@ -104,6 +104,10 @@ jobs:\n           - check-py313-niche\n           # niche tests also collect coverage on 3.14; see the run step below.\n           - check-py314-niche\n+          - check-py315-cover\n+          - check-py315-nocover\n+          - check-py315t-cover\n+          - check-py315t-nocover\n           - check-quality\n           - check-pytest9\n           - check-pytest84\n@@ -172,11 +176,8 @@ jobs:\n           - check-py314t-cover\n           - check-py314t-nocover\n           - check-py314t-niche\n-          # - check-py315-cover\n-          # - check-py315-nocover\n+          # 3.15 niche is waiting on scipy and lark to support 3.15\n           # - check-py315-niche\n-          # - check-py315t-cover\n-          # - check-py315t-nocover\n           # - check-py315t-niche\n           - check-django52\n           ## `-cover` is too slow under crosshair; use a custom split",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 3,
+      "deletions": 0,
+      "filename": "hypothesis/RELEASE.rst",
+      "patch": "@@ -0,0 +1,3 @@\n+RELEASE_TYPE: patch\n+\n+This release adds support for Python 3.15. |st.from_type| can now resolve the new ``sentinel`` builtin.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 18,
+      "changes": 24,
+      "deletions": 6,
+      "filename": "hypothesis/src/hypothesis/internal/lambda_sources.py",
+      "patch": "@@ -9,6 +9,7 @@\n # obtain one at https://mozilla.org/MPL/2.0/.\n \n import ast\n+import dis\n import hashlib\n import inspect\n import linecache\n@@ -101,12 +102,21 @@ def _function_key(f, *, bounded_size=False, ignore_name=False):\n \n \n class _op:\n-    # Opcodes, from dis.opmap. These may change between major versions.\n-    NOP = 9\n-    LOAD_FAST = 85\n-    LOAD_FAST_LOAD_FAST = 88\n-    LOAD_FAST_BORROW = 86\n-    LOAD_FAST_BORROW_LOAD_FAST_BORROW = 87\n+    # Look up the opcode values dynamically, since they can change between versions. If\n+    # the opcode does not exist on a version, we set it to None.\n+    NOP = dis.opmap[\"NOP\"]\n+    LOAD_FAST = dis.opmap[\"LOAD_FAST\"]\n+    LOAD_FAST_LOAD_FAST = (\n+        dis.opmap[\"LOAD_FAST_LOAD_FAST\"] if sys.version_info[:2] >= (3, 13) else None\n+    )\n+    LOAD_FAST_BORROW = (\n+        dis.opmap[\"LOAD_FAST_BORROW\"] if sys.version_info[:2] >= (3, 14) else None\n+    )\n+    LOAD_FAST_BORROW_LOAD_FAST_BORROW = (\n+        dis.opmap[\"LOAD_FAST_BORROW_LOAD_FAST_BORROW\"]\n+        if sys.version_info[:2] >= (3, 14)\n+        else None\n+    )\n \n \n def _normalize_code(f, l):\n@@ -129,6 +139,8 @@ def _normalize_code(f, l):\n             lambda a, b: a == [b[0] >> 4, b[0] & 15],\n         ),\n     ]\n+    # Avoid applying any transform with an opcode that doesn't exist on this python version.\n+    transforms = [t for t in transforms if None not in t[0] + t[1]]\n     # augment with converse\n     transforms += [\n         (",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 7,
+      "changes": 7,
+      "deletions": 0,
+      "filename": "hypothesis/src/hypothesis/internal/reflection.py",
+      "patch": "@@ -354,6 +354,13 @@ def source_exec_as_module(source: str) -> ModuleType:\n \n     hexdigest = hashlib.sha384(source.encode()).hexdigest()\n     result = ModuleType(\"hypothesis_temporary_module_\" + hexdigest)\n+    # ModuleType() sets __spec__ = None. Later, we call @impersonate on functions defined\n+    # in the module, which gives it a real co_filename. Python traceback formatting then\n+    # calls internal linecache code which warns on the combination of \"real on-disk file\"\n+    # + \"null __spec__\".\n+    #\n+    # Sidestep this by deleting __spec__; we don't need it.\n+    del result.__spec__\n     assert isinstance(source, str)\n     exec(source, result.__dict__)\n     eval_cache[source] = result",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 6,
+      "changes": 6,
+      "deletions": 0,
+      "filename": "hypothesis/src/hypothesis/strategies/_internal/types.py",
+      "patch": "@@ -1005,6 +1005,12 @@ def _networks(bits):\n \n     _global_type_lookup[memoryview] = st.binary().map(memoryview)\n \n+if sys.version_info[:2] >= (3, 15):\n+    _global_type_lookup[builtins.sentinel] = st.builds(  # type: ignore\n+        builtins.sentinel,  # type: ignore\n+        st.text(),\n+    )\n+\n \n _global_type_lookup.update(\n     {",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 3,
+      "deletions": 0,
+      "filename": "hypothesis/tests/cover/test_interactive_example.py",
+      "patch": "@@ -141,6 +141,9 @@ def test_script_example_does_not_emit_warning(tmp_path):\n \n @skipif_emscripten\n @pytest.mark.skipif(WINDOWS, reason=\"pexpect.spawn not supported on Windows\")\n+# pexpect forks, and 3.15 warns about forking from a process with threads in it,\n+# which we are under xdist.\n+@pytest.mark.filterwarnings(\"ignore:.*is multi-threaded.*:DeprecationWarning\")\n def test_interactive_example_does_not_emit_warning():\n     import pexpect\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 5,
+      "changes": 12,
+      "deletions": 7,
+      "filename": "hypothesis/tests/cover/test_lookup.py",
+      "patch": "@@ -74,12 +74,9 @@\n         t\n         for t in types._global_type_lookup\n         # We ignore TypeVar, because it is not a Generic type:\n-        if isinstance(t, types.typing_root_type)\n-        and t != typing.TypeVar\n-        and (\n-            sys.version_info[:2] <= (3, 11)\n-            or t != getattr(typing, \"ByteString\", object())\n-        )\n+        if isinstance(t, types.typing_root_type) and t != typing.TypeVar\n+        # accessing ByteString warns on 3.15\n+        and (not ((3, 12) <= sys.version_info[:2] < (3, 14)) or t != typing.ByteString)\n     ),\n     key=str,\n )\n@@ -139,7 +136,8 @@ def test_typing_Type_Union(ex):\n     \"typ\",\n     [\n         pytest.param(\n-            getattr(collections.abc, \"ByteString\", ...),\n+            # accessing ByteString warns on 3.15\n+            collections.abc.ByteString if sys.version_info[:2] < (3, 14) else ...,\n             marks=pytest.mark.skipif(sys.version_info[:2] >= (3, 14), reason=\"removed\"),\n         ),\n         typing.Match,",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Liam-DeVoe",
+    "base_sha": "a598ab9fe272ebfa4cf2f4f2eef3c4dfdd32a609",
+    "head_sha": "37999eb97e416a19881c3cc463f9f7a73623d0e7",
+    "html_url": "https://github.com/HypothesisWorks/hypothesis/pull/4861",
+    "number": 4861,
+    "repo": "HypothesisWorks/hypothesis",
+    "state": "closed",
+    "title": "Add support for python 3.15"
+  },
+  "review_comments": [
+    {
+      "body": "I think this has to be a valid identifier?  That's at least strongly expected, and required for pickle support.  Fortunately `st.text().filter(str.isidentifier)` has an efficient implementation \ud83d\ude01 ",
+      "commit_id": "37999eb97e416a19881c3cc463f9f7a73623d0e7",
+      "id": 3780249396,
+      "in_reply_to_id": null,
+      "line": 1011,
+      "original_commit_id": "37999eb97e416a19881c3cc463f9f7a73623d0e7",
+      "original_line": 1011,
+      "path": "hypothesis/src/hypothesis/strategies/_internal/types.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "Hmm, the detail here being the expectation that the variable name assigned to the sentinel is equal to the string passed to the sentinel. This is not a requirement, but it is implied that type hints (and, as you say, pickling) only work if these names match:\r\n\r\n> Sentinels are conventionally assigned to a variable with a matching name. Sentinels defined in this way can be used in [type hints](https://docs.python.org/3.15/glossary.html#term-type-hint):\r\n\r\nHowever I doubt our sentinel objects will be picklable (or usable in type hints) regardless of if we enforce no-identifier names, since we're creating them in our own module without an associated variable name; from https://peps.python.org/pep-0661/\r\n\r\n> When sentinel() creates a sentinel, it records the calling module as the sentinel\u2019s __module__ attribute. Pickling records the sentinel by module and name. Unpickling then imports the module and retrieves the sentinel by name, so the following round trip preserves identity:\r\n\r\ngiven this I'd weakly prefer to keep generating all sentinel objects here. if someone is asking for arbitrary sentinel objects I think we are already breaking the expectation that they work like \"standard\" sentinel objects.\r\n\r\nmaybe we could do something like exec'ing in a temporary module with the correct variable association?",
+      "commit_id": "37999eb97e416a19881c3cc463f9f7a73623d0e7",
+      "id": 3780367870,
+      "in_reply_to_id": 3780249396,
+      "line": 1011,
+      "original_commit_id": "37999eb97e416a19881c3cc463f9f7a73623d0e7",
+      "original_line": 1011,
+      "path": "hypothesis/src/hypothesis/strategies/_internal/types.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    }
+  ]
+}

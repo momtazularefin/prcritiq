@@ -254,27 +254,79 @@ def case_is_certified(case: BenchmarkCase) -> bool:
     return bool(scored) and all(label.confirmed for label in scored)
 
 
-def adjudication_queue(cases: Sequence[BenchmarkCase]) -> list[dict[str, Any]]:
-    """Flatten labels into an editable, provenance-rich decision queue."""
+def select_confirmed_cases(cases: Sequence[BenchmarkCase]) -> list[BenchmarkCase]:
+    """Keep cases with at least one human-confirmed defect label.
+
+    Excluded labels remain attached to a retained case so its adjudication trail
+    stays auditable.  Only cases with no scored ground truth are removed.
+    """
+
+    return [case for case in cases if any(label.confirmed for label in case.labels)]
+
+
+def adjudication_queue(
+    cases: Sequence[BenchmarkCase],
+    *,
+    root: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Flatten labels into an editable, provenance-rich decision queue.
+
+    When ``root`` is supplied, direct replies from the frozen review thread are
+    included.  A primary comment can be corrected, narrowed, or rejected in the
+    discussion that follows it; adjudicating without that context can turn a
+    disputed suggestion into false ground truth.
+    """
 
     queue: list[dict[str, Any]] = []
     for case in cases:
+        thread_replies: dict[int, list[dict[str, Any]]] = {}
+        author_login = ""
+        if root is not None:
+            fixture_path = root / case.human_comments_path
+            try:
+                fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+            except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError(
+                    f"Cannot load adjudication context for {case.id} from {fixture_path}: {exc}"
+                ) from exc
+            author_login = str(fixture.get("metadata", {}).get("author_login") or "")
+            for comment in fixture.get("review_comments", []):
+                if not isinstance(comment, dict) or comment.get("in_reply_to_id") is None:
+                    continue
+                parent_id = int(comment["in_reply_to_id"])
+                reviewer_login, _account_type = _reviewer(comment)
+                thread_replies.setdefault(parent_id, []).append(
+                    {
+                        "source_comment_id": comment.get("id"),
+                        "reviewer_login": reviewer_login,
+                        "is_pr_author": bool(
+                            author_login and reviewer_login.casefold() == author_login.casefold()
+                        ),
+                        "review_commit_sha": str(comment.get("commit_id") or ""),
+                        "human_comment": str(comment.get("body") or "").strip(),
+                    }
+                )
         for label in case.labels:
-            queue.append(
-                {
-                    "label_id": label.label_id,
-                    "case_id": case.id,
-                    "repo": case.repo,
-                    "pr_number": case.pr_number,
-                    "target": f"{label.file_path}:{label.line}",
-                    "reviewer_login": label.reviewer_login,
-                    "review_commit_sha": label.review_commit_sha,
-                    "source_comment_id": label.source_comment_id,
-                    "human_comment": label.human_comment,
-                    "adjudication": label.adjudication,
-                    "adjudication_notes": label.adjudication_notes,
-                }
-            )
+            row = {
+                "label_id": label.label_id,
+                "case_id": case.id,
+                "repo": case.repo,
+                "pr_number": case.pr_number,
+                "target": f"{label.file_path}:{label.line}",
+                "pr_author_login": author_login,
+                "reviewer_login": label.reviewer_login,
+                "review_commit_sha": label.review_commit_sha,
+                "source_comment_id": label.source_comment_id,
+                "human_comment": label.human_comment,
+                "thread_replies": (
+                    thread_replies.get(label.source_comment_id, [])
+                    if label.source_comment_id is not None
+                    else []
+                ),
+                "adjudication": label.adjudication,
+                "adjudication_notes": label.adjudication_notes,
+            }
+            queue.append(row)
     return queue
 
 
@@ -298,6 +350,11 @@ def apply_adjudications(
         if verdict not in allowed:
             raise ValueError(
                 f"Adjudication for {label_id} must be one of: {', '.join(sorted(allowed))}"
+            )
+        notes = str(decision.get("adjudication_notes") or "").strip()
+        if verdict != "unreviewed" and not notes:
+            raise ValueError(
+                f"Adjudication for {label_id} needs notes explaining the human decision"
             )
         by_id[label_id] = decision
 

@@ -1,0 +1,234 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "HypothesisWorks__hypothesis__4861",
+      "confirmed_labels": 1,
+      "cost_usd": 0.026216,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 2536,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 28.98499999998603,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "hypothesis/src/hypothesis/strategies/_internal/types.py:1011"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1762,
+      "pr_number": 4861,
+      "provider": "openai",
+      "published": 2,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 74,
+            "evidence": "`LOAD_FAST_BORROW` and `LOAD_FAST_BORROW_LOAD_FAST_BORROW` use `dis.opmap[...]` whenever `sys.version_info[:2] >= (3, 14)`, while the subsequent filtering only handles `None` values. Thus the filter is never reached if an opcode is unavailable.",
+            "file_path": "hypothesis/src/hypothesis/internal/lambda_sources.py",
+            "finding": "The version checks do not actually make optional opcodes safe: on any supported interpreter reporting 3.14+ where a borrow opcode is absent (including a future CPython version which removes it), indexing `dis.opmap` raises `KeyError` during module import instead of assigning `None` as the comment promises.",
+            "line": 109,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Use `dis.opmap.get(\"LOAD_FAST_BORROW\")` and `dis.opmap.get(\"LOAD_FAST_BORROW_LOAD_FAST_BORROW\")` (and similarly for other version-dependent opcodes) rather than version-gated dictionary indexing."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "test_gap",
+            "confidence": 90,
+            "evidence": "For Python 3.15, `not ((3, 12) <= sys.version_info[:2] < (3, 14))` is true, so the `or` expression evaluates its right side, `t != typing.ByteString`. The adjacent comment explicitly says that accessing `ByteString` warns on 3.15.",
+            "file_path": "hypothesis/tests/cover/test_lookup.py",
+            "finding": "The condition intended to avoid accessing deprecated `typing.ByteString` on Python 3.15 still evaluates `typing.ByteString` on 3.15 (and 3.14), so test collection can emit the warning this change is meant to suppress.",
+            "line": 79,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Change the version guard so the `typing.ByteString` operand is not evaluated on versions where its access warns, e.g. short-circuit it for 3.15+ (or use a warning-free lookup/removal-compatible predicate as appropriate)."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 1300,
+      "repo": "HypothesisWorks/hypothesis",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "hypothesis/src/hypothesis/internal/lambda_sources.py:109",
+        "hypothesis/tests/cover/test_lookup.py:79"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "1 of 1",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "1/1 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.00",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.00",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-01T22:53:28Z",
+  "limitations": [
+    "Legacy or newly harvested labels remain unreviewed until a human marks them confirmed_defect; unreviewed labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 0,
+    "cases": 1,
+    "comment_precision": 0.0,
+    "completed_cases": 1,
+    "confirmed_labels": 1,
+    "cost_per_pr_usd": 0.0262,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 2,
+    "input_tokens": 2536,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.0,
+    "labels": 1,
+    "matched": 0,
+    "median_latency_seconds": 28.98,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 1762,
+    "p95_latency_seconds": 28.98,
+    "quiet_runs": 0,
+    "reasoning_output_tokens": 1300,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0262,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "gpt-5.6-terra",
+  "model_policy": "openai",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.0,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 65,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    }
+  ]
+}

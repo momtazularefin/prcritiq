@@ -1,0 +1,1244 @@
+{
+  "files": [
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "README.md",
+      "patch": "@@ -21,7 +21,7 @@ def test_matches_builtin(ls):\n     assert sorted(ls) == my_sort(ls)\n ```\n \n-This randomized testing can catch bugs and edge cases that you didn't think of and wouldn't have found. In addition, when Hypothesis does find a bug, it doesn't just report any failing example \u2014 it reports the simplest possible one. This makes property-based tests a powerful tool for debugging, as well as testing.\n+This randomized testing can catch bugs and edge cases that you didn't think of and wouldn't have found. In addition, when Hypothesis does find a bug, it doesn't just report any failing test case \u2014 it reports the simplest possible one. This makes property-based tests a powerful tool for debugging, as well as testing.\n \n For instance,\n \n@@ -30,10 +30,10 @@ def my_sort(ls):\n     return sorted(set(ls))\n ```\n \n-fails with the simplest possible failing example:\n+fails with the simplest possible failing test case:\n \n ```\n-Falsifying example: test_matches_builtin(ls=[0, 0])\n+Failing test case: test_matches_builtin(ls=[0, 0])\n ```\n \n ### Installation",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 7,
+      "changes": 7,
+      "deletions": 0,
+      "filename": "hypothesis/RELEASE.rst",
+      "patch": "@@ -0,0 +1,7 @@\n+RELEASE_TYPE: minor\n+\n+Hypothesis has historically referred to the single execution of a test function as an \"example\". However, we have in recent years tended to call a single execution a \"test case\" instead, which we think is a more precise and less overloaded term.\n+\n+This release updates user-facing documentation, log messages, and error messages to use the \"test case\" terminology. Some |observability| fields which contain raw strings from Hypothesis might change in format as a result.\n+\n+This is not a breaking change, as we have intentionally not changed any code APIs. In particular, |settings.max_examples| has not been changed.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 0,
+      "changes": 13,
+      "deletions": 13,
+      "filename": "hypothesis/docs/_static/better-signatures.css",
+      "patch": "@@ -1,13 +0,0 @@\n-/* dl gets used both for defining each top-level `.. autofunc` on a page (where we want vertical margsin)\n-   and is wrapped around multiline signatures (where we don't).\n-   If a dl is being used inside a .sig, that's a multiline signature; remove its margins. */\n-.sig > dl {\n-  margin-block-start: 0rem;\n-  margin-block-end: 0rem;\n-}\n-\n-/* with thanks to https://github.com/pradyunsg/furo/discussions/749 */\n-.sig:not(.sig-inline) {\n-  padding-left: 0.5em;\n-  text-indent: 0;\n-}",
+      "previous_filename": null,
+      "status": "removed"
+    },
+    {
+      "additions": 0,
+      "changes": 28,
+      "deletions": 28,
+      "filename": "hypothesis/docs/_static/dark-fix.css",
+      "patch": "@@ -1,28 +0,0 @@\n-/*\n-See https://github.com/HypothesisWorks/hypothesis/issues/4588 and\n-https://github.com/pradyunsg/furo/discussions/909. Once this is fixed in furo,\n-we can remove this.\n-*/\n-\n-body[data-theme=\"dark\"] .tooltip .tooltip-content {\n-    background-color: var(--color-background-primary);\n-}\n-\n-body[data-theme=\"dark\"] .tooltip .arrow {\n-    background: var(--color-background-primary);\n-}\n-\n-/*\n-Furo also renders dark when the theme is \"auto\" (the default) and the OS\n-prefers dark, via this same media query. Cover that case too; see\n-https://github.com/HypothesisWorks/hypothesis/issues/4734.\n-*/\n-@media (prefers-color-scheme: dark) {\n-    body:not([data-theme=\"light\"]) .tooltip .tooltip-content {\n-        background-color: var(--color-background-primary);\n-    }\n-\n-    body:not([data-theme=\"light\"]) .tooltip .arrow {\n-        background: var(--color-background-primary);\n-    }\n-}",
+      "previous_filename": null,
+      "status": "removed"
+    },
+    {
+      "additions": 0,
+      "changes": 5,
+      "deletions": 5,
+      "filename": "hypothesis/docs/_static/no-scroll.css",
+      "patch": "@@ -1,5 +0,0 @@\n-/* disable autoscroll-to-target behavior\n-   https://github.com/pradyunsg/furo/discussions/384#discussioncomment-2249243 */\n-html {\n-    scroll-behavior: auto;\n-}",
+      "previous_filename": null,
+      "status": "removed"
+    },
+    {
+      "additions": 71,
+      "changes": 71,
+      "deletions": 0,
+      "filename": "hypothesis/docs/_static/styles.css",
+      "patch": "@@ -0,0 +1,71 @@\n+/* dl gets used both for defining each top-level `.. autofunc` on a page (where we want vertical margsin)\n+   and is wrapped around multiline signatures (where we don't).\n+   If a dl is being used inside a .sig, that's a multiline signature; remove its margins. */\n+.sig > dl {\n+  margin-block-start: 0rem;\n+  margin-block-end: 0rem;\n+}\n+\n+/* with thanks to https://github.com/pradyunsg/furo/discussions/749 */\n+.sig:not(.sig-inline) {\n+  padding-left: 0.5em;\n+  text-indent: 0;\n+}\n+\n+/* override table width restrictions */\n+/* thanks to https://github.com/readthedocs/sphinx_rtd_theme/issues/117#issuecomment-153083280 */\n+@media screen and (min-width: 767px) {\n+\n+    .wy-table-responsive table td {\n+        /* !important prevents the common CSS stylesheets from\n+            overriding this as on RTD they are loaded after this stylesheet */\n+        white-space: normal !important;\n+    }\n+\n+    .wy-table-responsive {\n+        overflow: visible !important;\n+    }\n+\n+}\n+\n+/* disable autoscroll-to-target behavior\n+   https://github.com/pradyunsg/furo/discussions/384#discussioncomment-2249243 */\n+html {\n+    scroll-behavior: auto;\n+}\n+\n+/*\n+See https://github.com/HypothesisWorks/hypothesis/issues/4588 and\n+https://github.com/pradyunsg/furo/discussions/909. Once this is fixed in furo,\n+we can remove this.\n+*/\n+\n+body[data-theme=\"dark\"] .tooltip .tooltip-content {\n+    background-color: var(--color-background-primary);\n+}\n+\n+body[data-theme=\"dark\"] .tooltip .arrow {\n+    background: var(--color-background-primary);\n+}\n+\n+/*\n+Furo also renders dark when the theme is \"auto\" (the default) and the OS\n+prefers dark, via this same media query. Cover that case too; see\n+https://github.com/HypothesisWorks/hypothesis/issues/4734.\n+*/\n+@media (prefers-color-scheme: dark) {\n+    body:not([data-theme=\"light\"]) .tooltip .tooltip-content {\n+        background-color: var(--color-background-primary);\n+    }\n+\n+    body:not([data-theme=\"light\"]) .tooltip .arrow {\n+        background: var(--color-background-primary);\n+    }\n+}\n+\n+a:has(> .std-term),\n+a:has(> .std-term):hover {\n+    color: inherit;\n+    text-decoration-color: currentColor;\n+    text-decoration-style: dotted;\n+}",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 0,
+      "changes": 15,
+      "deletions": 15,
+      "filename": "hypothesis/docs/_static/wrap-in-tables.css",
+      "patch": "@@ -1,15 +0,0 @@\n-/* override table width restrictions */\n-/* thanks to https://github.com/readthedocs/sphinx_rtd_theme/issues/117#issuecomment-153083280 */\n-@media screen and (min-width: 767px) {\n-\n-    .wy-table-responsive table td {\n-        /* !important prevents the common CSS stylesheets from\n-            overriding this as on RTD they are loaded after this stylesheet */\n-        white-space: normal !important;\n-    }\n-\n-    .wy-table-responsive {\n-        overflow: visible !important;\n-    }\n-\n-}",
+      "previous_filename": null,
+      "status": "removed"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/compatibility.rst",
+      "patch": "@@ -155,4 +155,4 @@ We ship type hints with Hypothesis itself. Though we always try to minimize brea\n \n We may also find more precise ways to describe the type of various interfaces, or change their type and runtime behaviour together in a way which is otherwise backwards-compatible.\n \n-There are known issues with inferring the type of examples generated by |st.deferred|, |st.recursive|, |st.one_of|, |st.dictionaries|, and |st.fixed_dictionaries|. We're following proposed updates to Python's typing standards, but unfortunately the long-standing interfaces of these strategies cannot (yet) be statically typechecked.\n+There are known issues with inferring the type of values generated by |st.deferred|, |st.recursive|, |st.one_of|, |st.dictionaries|, and |st.fixed_dictionaries|. We're following proposed updates to Python's typing standards, but unfortunately the long-standing interfaces of these strategies cannot (yet) be statically typechecked.",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 9,
+      "deletions": 6,
+      "filename": "hypothesis/docs/conf.py",
+      "patch": "@@ -67,6 +67,7 @@\n     \"supported\": \"compatibility.html\",\n     \"changes\": \"changelog.html\",\n     \"strategies\": \"extensions.html\",\n+    \"explanation/example-count\": \"test-case-count.html\",\n     # these pages were removed without replacement\n     \"support\": \"index.html\",\n     \"manifesto\": \"index.html\",\n@@ -183,6 +184,7 @@ def process_signature(app, what, name, obj, options, signature, return_annotatio\n     \"redis\": (\"https://redis.readthedocs.io/en/stable/\", None),\n     \"attrs\": (\"https://www.attrs.org/en/stable/\", None),\n     \"sphinx\": (\"https://www.sphinx-doc.org/en/master/\", None),\n+    \"typing\": (\"https://typing.python.org/en/latest/\", None),\n     \"IPython\": (\"https://ipython.readthedocs.io/en/stable/\", None),\n     \"lark\": (\"https://lark-parser.readthedocs.io/en/stable/\", None),\n     \"xarray\": (\"https://docs.xarray.dev/en/stable/\", None),\n@@ -221,12 +223,7 @@ def process_signature(app, what, name, obj, options, signature, return_annotatio\n # remove \"Hypothesis <version> documentation\" from just below logo on the sidebar\n html_theme_options = {\"sidebar_hide_name\": True}\n html_static_path = [\"_static\"]\n-html_css_files = [\n-    \"better-signatures.css\",\n-    \"wrap-in-tables.css\",\n-    \"no-scroll.css\",\n-    \"dark-fix.css\",\n-]\n+html_css_files = [\"styles.css\"]\n htmlhelp_basename = \"Hypothesisdoc\"\n html_favicon = \"../../brand/favicon.ico\"\n html_logo = \"../../brand/dragonfly-rainbow-150w.svg\"",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/docs/explanation/domain.rst",
+      "patch": "@@ -40,10 +40,10 @@ An exact answer depends on both the strategy or strategies for the tests, and th\n \n Hypothesis' default configuration uses a distribution which is tuned to maximize the chance of finding bugs, in as few executions as possible.  We explicitly *don't* aim for a uniform distribution, nor for a 'realistic' distribution of inputs; Hypothesis' goal is to search the domain for a failing input as efficiently as possible.\n \n-The test case distribution remains an active area of research and development, and we change it whenever we think that would be a net improvement for users.  Today, Hypothesis' default distribution is shaped by a wide variety of techniques and heuristics:\n+The |test case| distribution remains an active area of research and development, and we change it whenever we think that would be a net improvement for users.  Today, Hypothesis' default distribution is shaped by a wide variety of techniques and heuristics:\n \n * some are statically designed into strategies - for example, |st.integers| upweights range endpoints, and samples from a mixed distribution over integer bit-widths.\n-* some are dynamic features of the engine - like replaying prior examples with subsections of the input 'cloned' or otherwise altered, for bugs which trigger only when different fields have the same value (which is otherwise exponentially unlikely).\n+* some are dynamic features of the engine - like replaying prior test cases with subsections of the input 'cloned' or otherwise altered, for bugs which trigger only when different fields have the same value (which is otherwise exponentially unlikely).\n * some vary depending on the code under test - we collect interesting-looking constants from imported source files as seeds for test cases.\n * `swarm testing <https://www.cs.utah.edu/~regehr/papers/swarm12.pdf>`__ adds further randomization when choosing which rules to execute in stateful testing.\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/explanation/index.rst",
+      "patch": "@@ -7,4 +7,4 @@ These explanation pages are oriented towards deepening your understanding of Hyp\n    :maxdepth: 1\n \n    domain\n-   example-count\n+   test-case-count",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 13,
+      "changes": 26,
+      "deletions": 13,
+      "filename": "hypothesis/docs/explanation/test-case-count.rst",
+      "patch": "@@ -4,19 +4,19 @@ How many times will Hypothesis run my test?\n This is a trickier question than you might expect. The short answer is \"exactly |max_examples| times\", with the following exceptions:\n \n - Less than |max_examples| times, if Hypothesis exhausts the search space early.\n-- More than |max_examples| times, if Hypothesis retries some examples because either:\n+- More than |max_examples| times, if Hypothesis retries some |test cases| because either:\n \n   - They failed an |assume| or |.filter| condition, or\n   - They were too large to continue generating.\n \n-- Either less or more than |max_examples| times, if Hypothesis finds a failing example.\n+- Either less or more than |max_examples| times, if Hypothesis finds a |failing test case|.\n \n Read on for details.\n \n Search space exhaustion\n -----------------------\n \n-If Hypothesis detects that there are no more examples left to try, it may stop generating examples before it hits |max_examples|. For example:\n+If Hypothesis detects that there are no more test cases left to try, it may stop generating test cases before it hits |max_examples|. For example:\n \n .. code-block:: python\n \n@@ -45,7 +45,7 @@ The search space tracking in Hypothesis is good, but not perfect. We treat this\n |assume| and |.filter|\n ----------------------\n \n-If an example fails to satisfy an |assume| or |.filter| condition, Hypothesis will retry generating that example and will not count it towards the |max_examples| limit. For instance:\n+If a test case fails to satisfy an |assume| or |.filter| condition, Hypothesis will retry generating that test case and will not count it towards the |max_examples| limit. For instance:\n \n .. code-block:: python\n \n@@ -55,25 +55,25 @@ If an example fails to satisfy an |assume| or |.filter| condition, Hypothesis wi\n     def test_function(n):\n         assume(n % 2 == 0)\n \n-will run roughly 200 times, since half of the examples are discarded from the |assume|.\n+will run roughly 200 times, since half of the test cases are discarded from the |assume|.\n \n-Note that while failing an |assume| triggers an immediate retry of the entire example, Hypothesis will try several times in the same example to satisfy a |.filter| condition. This makes expressing the same condition using |.filter| more efficient than |assume|.\n+Note that while failing an |assume| triggers an immediate retry of the entire test case, Hypothesis will try several times in the same test case to satisfy a |.filter| condition. This makes expressing the same condition using |.filter| more efficient than |assume|.\n \n Also note that even if your code does not explicitly use |assume| or |.filter|, a builtin strategy may still use them and cause retries. We try to directly satisfy conditions where possible instead of relying on rejection sampling, so this should be relatively uncommon.\n \n-Examples which are too large\n-----------------------------\n+Test cases which are too large\n+------------------------------\n \n-For performance reasons, Hypothesis places an internal limit on the size of a single example. If an example exceeds this size limit, we will retry generating it and will not count it towards the |max_examples| limit. (And if we see too many of these large examples, we will raise |HealthCheck.data_too_large|, unless suppressed with |settings.suppress_health_check|).\n+For performance reasons, Hypothesis places an internal limit on the number of choices required to generate any single test case. If a test case exceeds this limit, we will retry generating it and will not count it towards the |max_examples| limit. (And if we see too many of these large test cases, we will raise |HealthCheck.data_too_large|, unless suppressed with |settings.suppress_health_check|).\n \n The specific value of this size limit is an undocumented implementation detail. The majority of Hypothesis tests do not come close to hitting it.\n \n-Failing examples\n-----------------\n+Failing test cases\n+------------------\n \n-If Hypothesis finds a failing example, it stops generation early, and may call the test function additional times during the |Phase.shrink| and |Phase.explain| phases. Sometimes, Hypothesis determines that the initial failing example was already as simple as possible, in which case |Phase.shrink| will not result in additional test executions (but |Phase.explain| might).\n+If Hypothesis finds a failing test case, it stops generation early, and may call the test function additional times during the |Phase.shrink| and |Phase.explain| phases. Sometimes, Hypothesis determines that the initial failing test case was already as simple as possible, in which case |Phase.shrink| will not result in additional test executions (but |Phase.explain| might).\n \n-Regardless of whether Hypothesis runs the test during the shrinking and explain phases, it will always run the minimal failing example one additional time to check for flakiness. For instance, the following trivial test runs with ``n=0`` *twice*, even though it only uses the |Phase.generate| phase:\n+Regardless of whether Hypothesis runs the test during the shrinking and explain phases, it will always run the minimal failing test case one additional time to check for flakiness. For instance, the following trivial test runs with ``n=0`` *twice*, even though it only uses the |Phase.generate| phase:\n \n .. code-block:: python\n ",
+      "previous_filename": "hypothesis/docs/explanation/example-count.rst",
+      "status": "renamed"
+    },
+    {
+      "additions": 86,
+      "changes": 86,
+      "deletions": 0,
+      "filename": "hypothesis/docs/glossary.rst",
+      "patch": "@@ -0,0 +1,86 @@\n+Glossary\n+========\n+\n+User glossary\n+-------------\n+\n+Terms that are part of our public API.\n+\n+.. glossary::\n+\n+    explicit example\n+        A |test case| from |@example|.\n+\n+        .. code-block:: python\n+\n+            @example(42)\n+            def f(n):\n+                pass\n+\n+        Here, ``42`` is an explicit example.\n+\n+        Explicit examples are always run, in the |Phase.explicit| phase. Unlike Hypothesis-generated test cases, Hypothesis does not shrink explicit examples.\n+\n+    failing test case\n+        A |test case| which causes the test to fail, usually by causing an exception to be raised.\n+\n+    minimal failing test case\n+        The |failing test case| which has been fully shrunk (minimized) by Hypothesis. Hypothesis reports only the minimal failing test case to the user at the end of the test.\n+\n+        .. code-block:: python\n+\n+            @given(st.integers())\n+            def f(n):\n+                print(\"called with\", n)\n+                assert n < 10\n+\n+        .. code-block:: none\n+\n+            called with 0\n+            called with 921\n+            called with 212\n+            ...\n+            called with 10\n+            ...\n+            Failing test case: f(\n+                n=10,\n+            )\n+\n+        Here, each of ``921``, ``212``, and ``10`` are failing test cases. ``10`` is the minimal failing test case.\n+\n+    test case\n+        The Hypothesis-generated input to a test function.\n+\n+        .. code-block:: python\n+\n+            @given(st.integers())\n+            def f(n):\n+                print(\"called with\", n)\n+                assume(n >= 0)\n+\n+        .. code-block:: none\n+\n+            called with 0\n+            called with 18588\n+            called with 672780074\n+            called with -32616\n+            ...\n+\n+        Here, the first four test cases are ``0``, ``18588``, ``672780074``, and ``-32616``.\n+\n+        \"Test case\" may also refer to the resulting execution of an input in a test function. Above, we might say that \"the test case ``-32616`` failed the |assume|\", referring to its entire execution.\n+\n+\n+Developer glossary\n+------------------\n+\n+Terms that are part of our developer API. The developer API is intended for advanced users, researchers, and developers building on top of Hypothesis.\n+\n+.. glossary::\n+\n+    choice sequence\n+        The underlying sequence of primitive values corresponding to a :term:`test case`. Conceptually, a choice sequence is the sequence of random choices made in the course of generating a value in a strategy. Each test case is represented internally as a choice sequence.\n+\n+        The exact representation is an implementation detail and depends on the strategy. For example, the value ``True`` from |st.booleans| is represented by the choice sequence ``[True]``, while the value ``[2, 42]`` from ``st.lists(st.integers())`` is represented by the choice sequence ``[True, 2, True, 42, False]``.\n+\n+        Currently, a choice sequence consists of booleans, integers, floats, strings, and bytes.",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/docs/how-to/external-fuzzers.rst",
+      "patch": "@@ -1,14 +1,14 @@\n Use Hypothesis with an external fuzzer\n ======================================\n \n-Sometimes you might want to point a traditional fuzzer like `python-afl <https://github.com/jwilk/python-afl>`__ or Google's :pypi:`atheris` at your code, to get coverage-guided exploration of native C extensions.  The associated tooling is often much less mature than property-based testing libraries though, so you might want to use Hypothesis strategies to describe your input data, and our world-class shrinking and :ref:`observability <observability>` tools to wrangle the results.  That's exactly what this how-to guide is about!\n+Sometimes you might want to point a traditional fuzzer like `python-afl <https://github.com/jwilk/python-afl>`__ or Google's :pypi:`atheris` at your code, to get coverage-guided exploration of native C extensions.  The associated tooling is often much less mature than property-based testing libraries though, so you might want to use Hypothesis strategies to describe your input data, and our world-class shrinking and |observability| tools to wrangle the results.  That's exactly what this how-to guide is about!\n \n .. note::\n \n     If you already have Hypothesis tests and want to fuzz them, or are targeting pure Python code, we strongly recommend the purpose-built `HypoFuzz <https://hypofuzz.com/>`_.\n     This page is about writing traditional 'fuzz harnesses' with an external fuzzer, using parts of Hypothesis.\n \n-In order to support this workflow, Hypothesis exposes the |fuzz_one_input| method. |fuzz_one_input| takes a bytestring, parses it into a test case, and executes the corresponding test once. This means you can treat each of your Hypothesis tests as a traditional fuzz target, by pointing the fuzzer at |fuzz_one_input|.\n+In order to support this workflow, Hypothesis exposes the |fuzz_one_input| method. |fuzz_one_input| takes a bytestring, parses it into a |test case|, and executes the corresponding test once. This means you can treat each of your Hypothesis tests as a traditional fuzz target, by pointing the fuzzer at |fuzz_one_input|.\n \n For example:\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/how-to/suppress-healthchecks.rst",
+      "patch": "@@ -1,7 +1,7 @@\n Suppress a health check everywhere\n ==================================\n \n-Hypothesis sometimes raises a |HealthCheck| to indicate that your test may be less effective than you expect, slower than you expect, unlikely to generate effective examples, or otherwise has silently degraded performance.\n+Hypothesis sometimes raises a |HealthCheck| to indicate that your test may be less effective than you expect, slower than you expect, unlikely to generate effective |test cases|, or otherwise has silently degraded performance.\n \n While |HealthCheck| can be useful to proactively identify issues, you may not care about certain classes of them. If you want to disable a |HealthCheck| everywhere, you can register and load a settings profile with |settings.register_profile| and |settings.load_profile|. Place the following code in any file which is loaded before running your tests (or in ``conftest.py``, if using pytest):\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/how-to/type-strategies.rst",
+      "patch": "@@ -13,7 +13,7 @@ Hypothesis provides type hints for all strategies and functions which return a s\n     reveal_type(st.lists(st.integers()))\n     # SearchStrategy[list[int]]\n \n-|SearchStrategy| is the type of a strategy. It is parametrized by the type of the example it generates. You can use it to write type hints for your functions which return a strategy:\n+|SearchStrategy| is the type of a strategy. It is :ref:`generic <typing:generics>` in the type of the values it generates. You can use it to write type hints for your functions which return a strategy:\n \n .. code-block:: python\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 1,
+      "deletions": 0,
+      "filename": "hypothesis/docs/index.rst",
+      "patch": "@@ -102,6 +102,7 @@ Technical API reference.\n   reference/index\n   stateful\n   Extras <extras>\n+  glossary\n   changelog\n \n .. toctree::",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 15,
+      "changes": 15,
+      "deletions": 0,
+      "filename": "hypothesis/docs/prolog.rst",
+      "patch": "@@ -216,4 +216,19 @@\n .. |alternative backend| replace:: :ref:`alternative backend <alternative-backends>`\n .. |alternative backends| replace:: :ref:`alternative backends <alternative-backends>`\n \n+.. |observability| replace:: :ref:`observability <observability>`\n+.. |Observability| replace:: :ref:`Observability <observability>`\n+\n+.. |test case| replace:: :term:`test case`\n+.. |test cases| replace:: :term:`test cases <test case>`\n+.. |explicit example| replace:: :term:`explicit example`\n+.. |explicit examples| replace:: :term:`explicit examples <explicit example>`\n+.. |Explicit examples| replace:: :term:`Explicit examples <explicit example>`\n+.. |failing test case| replace:: :term:`failing test case`\n+.. |failing test cases| replace:: :term:`failing test cases <failing test case>`\n+.. |minimal failing test case| replace:: :term:`minimal failing test case`\n+.. |minimal failing test cases| replace:: :term:`minimal failing test cases <minimal failing test case>`\n+.. |choice sequence| replace:: :term:`choice sequence`\n+.. |choice sequences| replace:: :term:`choice sequences <choice sequence>`\n+\n .. |pytest.mark.parametrize| replace:: :ref:`pytest.mark.parametrize <pytest:pytest.mark.parametrize ref>`",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/docs/quickstart.rst",
+      "patch": "@@ -70,7 +70,7 @@ This test will clearly fail, which can be confirmed by running ``pytest example.\n         def test_integers(n):\n     >       assert n < 50\n     E       assert 50 < 50\n-    E       Falsifying example: test_integers(\n+    E       Failing test case: test_integers(\n     E           n=50,\n     E       )\n \n@@ -111,7 +111,7 @@ Sometimes, you need to remove invalid cases from your test. The best way to do t\n     def test_integers(n):\n         assert n % 2 == 0\n \n-For more complicated conditions, you can use |assume|, which tells Hypothesis to discard any test case with a false-y argument:\n+For more complicated conditions, you can use |assume|, which tells Hypothesis to discard any |test case| with a false-y argument:\n \n .. code-block:: python\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 8,
+      "changes": 16,
+      "deletions": 8,
+      "filename": "hypothesis/docs/reference/api.rst",
+      "patch": "@@ -95,7 +95,7 @@ Reproducing inputs\n Control\n -------\n \n-Functions that can be called from anywhere inside a test, to either modify how Hypothesis treats the current test case, or to give Hypothesis more information about the current test case.\n+Functions that can be called from anywhere inside a test, to either modify how Hypothesis treats the current |test case|, or to give Hypothesis more information about the current test case.\n \n .. autofunction:: hypothesis.assume\n .. autofunction:: hypothesis.note\n@@ -111,7 +111,7 @@ You can mark custom events in a test using |event|:\n   def test_even_integers(i):\n       event(f\"i mod 3 = {i%3}\")\n \n-These events appear in :ref:`observability <observability>` output, as well as the output of :ref:`our pytest plugin <pytest-plugin>` when run with ``--hypothesis-show-statistics``.\n+These events appear in |observability| output, as well as the output of :ref:`our pytest plugin <pytest-plugin>` when run with ``--hypothesis-show-statistics``.\n \n For instance, in the latter case, you would see output like:\n \n@@ -121,7 +121,7 @@ For instance, in the latter case, you would see output like:\n \n     - during generate phase (0.09 seconds):\n         - Typical runtimes: < 1ms, ~ 59% in data generation\n-        - 100 passing examples, 0 failing examples, 32 invalid examples\n+        - 100 passing, 0 failing, and 32 invalid test cases\n         - Events:\n           * 54.55%, Retried draw from integers().filter(lambda x: x % 2 == 0) to satisfy filter\n           * 31.06%, i mod 3 = 2\n@@ -262,7 +262,7 @@ Using it is quite straightforward: All you need to do is subclass\n :class:`~hypothesis.extra.django.LiveServerTestCase` or\n :class:`~hypothesis.extra.django.StaticLiveServerTestCase`\n and you can use |@given| as normal,\n-and the transactions will be per example\n+and the transactions will be per test case\n rather than per test function as they would be if you used |@given| with a normal\n django test suite (this is important because your test function will be called\n multiple times and you don't want them to interfere with each other). Test cases\n@@ -280,7 +280,7 @@ Because Hypothesis runs this in a loop, the performance problems :class:`django:\n are significantly exacerbated and your tests will be really slow.\n If you are using :class:`~hypothesis.extra.django.TransactionTestCase`,\n you may need to use ``@settings(suppress_health_check=[HealthCheck.too_slow])``\n-to avoid a |HealthCheck| error due to slow example generation.\n+to avoid a |HealthCheck| error due to slow test case generation.\n \n Having set up a test class, you can now pass |@given|\n a strategy for Django models with |django.from_model|.\n@@ -309,7 +309,7 @@ to set the valid range for this field (or used a\n :class:`~django:django.db.models.PositiveSmallIntegerField`, which would only\n need a maximum value validator).\n \n-If you *do* have validators attached, Hypothesis will only generate examples\n+If you *do* have validators attached, Hypothesis will only generate test cases\n that pass validation.  Sometimes that will mean that we fail a\n :class:`~hypothesis.HealthCheck` because of the filtering, so let's explicitly\n pass a strategy to skip validation at the strategy level:\n@@ -451,9 +451,9 @@ External fuzzers\n Custom function execution\n -------------------------\n \n-Hypothesis provides you with a hook that lets you control how it runs examples.\n+Hypothesis provides you with a hook that lets you control how it runs test cases.\n \n-This lets you do things like set up and tear down around each example, run examples in a subprocess, transform coroutine tests into normal tests, etc. For example, :class:`~hypothesis.extra.django.TransactionTestCase` in the Django extra runs each example in a separate database transaction.\n+This lets you do things like set up and tear down around each test case, run test cases in a subprocess, transform coroutine tests into normal tests, etc. For example, :class:`~hypothesis.extra.django.TransactionTestCase` in the Django extra runs each test case in a separate database transaction.\n \n The way this works is by introducing the concept of an executor. An executor is essentially a function that takes a block of code and run it. The default executor is:\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 7,
+      "changes": 14,
+      "deletions": 7,
+      "filename": "hypothesis/docs/reference/integrations.rst",
+      "patch": "@@ -96,11 +96,11 @@ is to let you answer questions you didn't think of in advance.  In slogan form,\n \n   *Debugging should be a data analysis problem.*\n \n-By default, Hypothesis only reports the minimal failing example... but sometimes you might\n-want to know something about *all* the examples.  Printing them to the terminal by increasing\n+By default, Hypothesis only reports the |minimal failing test case|... but sometimes you might\n+want to know something about *all* the test cases.  Printing them to the terminal by increasing\n |Verbosity| might be nice, but isn't always enough.\n This feature gives you an analysis-ready dataframe with useful columns and one row\n-per test case, with columns from arguments to code coverage to pass/fail status.\n+per |test case|, with columns from arguments to code coverage to pass/fail status.\n \n This is deliberately a much lighter-weight and task-specific system than e.g.\n `OpenTelemetry <https://opentelemetry.io/>`__.  It's also less detailed than time-travel\n@@ -213,7 +213,7 @@ Test statistics\n \n .. note::\n \n-  While test statistics are only available under pytest, you can use the :ref:`observability <observability>` interface to view similar information about your tests.\n+  While test statistics are only available under pytest, you can use the |observability| interface to view similar information about your tests.\n \n You can see a number of statistics about executed tests by passing the command line argument ``--hypothesis-show-statistics``. This will include some general statistics about the test:\n \n@@ -233,10 +233,10 @@ You would see:\n \n     - during generate phase (0.06 seconds):\n         - Typical runtimes: < 1ms, ~ 47% in data generation\n-        - 100 passing examples, 0 failing examples, 0 invalid examples\n+        - 100 passing, 0 failing, and 0 invalid test cases\n     - Stopped because settings.max_examples=100\n \n-The final \"Stopped because\" line tells you why Hypothesis stopped generating new examples. This is typically because we hit |max_examples|, but occasionally because we exhausted the search space or because shrinking was taking a very long time. This can be useful for understanding the behaviour of your tests.\n+The final \"Stopped because\" line tells you why Hypothesis stopped generating new test cases. This is typically because we hit |max_examples|, but occasionally because we exhausted the search space or because shrinking was taking a very long time. This can be useful for understanding the behaviour of your tests.\n \n In some cases (such as filtered and recursive strategies) you will see events mentioned which describe some aspect of the data generation:\n \n@@ -256,7 +256,7 @@ You would see something like:\n \n     - during generate phase (0.08 seconds):\n         - Typical runtimes: < 1ms, ~ 57% in data generation\n-        - 100 passing examples, 0 failing examples, 12 invalid examples\n+        - 100 passing test cases, 0 failing test cases, 12 invalid test cases\n         - Events:\n           * 51.79%, Retried draw from integers().filter(lambda x: x % 2 == 0) to satisfy filter\n           * 10.71%, Aborted test because unable to satisfy integers().filter(lambda x: x % 2 == 0)",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/stateful.rst",
+      "patch": "@@ -117,7 +117,7 @@ You can control the detailed behaviour with a settings object on the TestCase (t\n       max_examples=50, stateful_step_count=100\n   )\n \n-Which doubles the number of steps each program runs and halves the number of test cases that will be run.\n+Which doubles the number of steps each program runs and halves the number of |test cases| that will be run.\n \n Rules\n -----",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/docs/tutorial/adapting-strategies.rst",
+      "patch": "@@ -13,7 +13,7 @@ Sometimes you want to apply a simple transformation to a strategy. For instance,\n     >>> lists(integers()).map(sorted).example()\n     [-25527, -24245, -93, -70, -7, 0, 39, 65, 112, 6189, 19469, 32526, 1566924430]\n \n-In general, ``strategy.map(f)`` returns a new strategy which transforms all the examples generated by ``strategy`` by calling ``f`` on them.\n+In general, ``strategy.map(f)`` returns a new strategy which transforms all the values generated by ``strategy`` by calling ``f`` on them.\n \n Filtering strategy inputs\n -------------------------\n@@ -54,7 +54,7 @@ Calling |.filter| on a strategy creates a new strategy with that filter applied\n Assuming away test cases\n ------------------------\n \n-|.filter| lets you filter test inputs from a single strategy. Hypothesis also provides an |assume| function for when you need to filter an entire test case, based on an arbitrary condition.\n+|.filter| lets you filter test inputs from a single strategy. Hypothesis also provides an |assume| function for when you need to filter an entire |test case|, based on an arbitrary condition.\n \n The |assume| function skips test cases where some condition evaluates to ``False``. You can use it anywhere in your test. We could have expressed our |.filter| example above using |assume| as well:\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/docs/tutorial/adding-notes.rst",
+      "patch": "@@ -5,7 +5,7 @@ When a test fails, Hypothesis will normally print output that looks like this:\n \n .. code::\n \n-    Falsifying example: test_a_thing(x=1, y=\"foo\")\n+    Failing test case: test_a_thing(x=1, y=\"foo\")\n \n Sometimes you want to add some additional information to a failure, such as the output of some intermediate step in your test. The |note| function lets you do this:\n \n@@ -24,12 +24,12 @@ Sometimes you want to add some additional information to a failure, such as the\n     ... except AssertionError:\n     ...     print(\"ls != ls2\")\n     ...\n-    Falsifying example: test_shuffle_is_noop(ls=[0, 1], r=RandomWithSeed(1))\n+    Failing test case: test_shuffle_is_noop(ls=[0, 1], r=RandomWithSeed(1))\n     Shuffle: [1, 0]\n     ls != ls2\n \n-|note| is like a print statement that gets attached to the falsifying example reported by Hypothesis. It's also reported by :ref:`observability <observability>`, and shown for all examples (if |settings.verbosity| is set to |Verbosity.verbose| or higher).\n+|note| is like a print statement that gets attached to the |minimal failing test case| reported by Hypothesis. It's also reported by |observability|, and shown for all test cases (if |settings.verbosity| is set to |Verbosity.verbose| or higher).\n \n .. note::\n \n-    |event| is a similar function which tells Hypothesis to count the number of test cases which reported each distinct value you pass, for inclusion in :ref:`test statistics <statistics>` and :ref:`observability reports <observability>`.\n+    |event| is a similar function which tells Hypothesis to count the number of |test cases| which reported each distinct value you pass, for inclusion in :ref:`test statistics <statistics>` and :ref:`observability reports <observability>`.",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/docs/tutorial/custom-strategies.rst",
+      "patch": "@@ -132,7 +132,7 @@ When using |st.composite|, you have to finish generating the entire input before\n \n .. note::\n \n-    The downside of this power is that |st.data| is incompatible |@example|, and that Hypothesis cannot print a nice representation of values generated from |st.data| when reporting failing examples, because the draws are spread out. Where possible, prefer |st.composite| to |st.data|.\n+    The downside of this power is that |st.data| is incompatible |@example|, and that Hypothesis cannot print a nice representation of values generated from |st.data| when reporting |failing test cases|, because the draws are spread out. Where possible, prefer |st.composite| to |st.data|.\n \n For instance, here's how we would write our earlier |st.composite| example using |st.data|:\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/docs/tutorial/flaky.rst",
+      "patch": "@@ -60,8 +60,8 @@ As a result, running ``test_fails_flakily()`` will raise |FlakyFailure|. |FlakyF\n .. code-block:: none\n \n   + Exception Group Traceback (most recent call last):\n-  | hypothesis.errors.FlakyFailure: Hypothesis test_fails_flakily(n=0) produces unreliable results: Falsified on the first call but did not on a subsequent one (1 sub-exception)\n-  | Falsifying example: test_fails_flakily(\n+  | hypothesis.errors.FlakyFailure: Hypothesis test_fails_flakily(n=0) produces unreliable results: Failed on the first call but did not on a subsequent one (1 sub-exception)\n+  | Failing test case: test_fails_flakily(\n   |     n=0,\n   | )\n   | Failed to reproduce exception. Expected:\n@@ -86,7 +86,7 @@ Flaky strategy definition\n \n Each strategy must 'do the same thing' (again, as seen by Hypothesis) if we replay a previously-seen input.  Failing to do so is a more subtle but equally serious form of flakiness, which leaves us unable to shrink to a minimal failing input, or even reliably report the failure in future runs.\n \n-One easy way for this to occur is if a strategy depends on external state. For example, this strategy filters out previously-generated integers, including those seen in any previous test case:\n+One easy way for this to occur is if a strategy depends on external state. For example, this strategy filters out previously-generated integers, including those seen in any previous |test case|:\n \n .. code-block:: python\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 5,
+      "changes": 10,
+      "deletions": 5,
+      "filename": "hypothesis/docs/tutorial/replaying-failures.rst",
+      "patch": "@@ -38,7 +38,7 @@ You can disable the database by passing ``database=None`` to |@settings|:\n Using |@example| to run a specific input\n ----------------------------------------\n \n-If you want Hypothesis to always run a specific input, you can use |@example|. |@example| adds an explicit input which Hypothesis will run every time, in addition to the randomly generated examples. You can think of |@example| as combining unit-testing with property-based testing.\n+If you want Hypothesis to always run a specific input, you can use |@example|. |@example| adds an explicit input which Hypothesis will run every time, in addition to the randomly generated |test cases|. You can think of |@example| as combining unit-testing with property-based testing.\n \n For instance, suppose we write a test using |st.integers|, but want to make sure we try a few special prime numbers every time we run the test. We can add these inputs with |@example|:\n \n@@ -53,7 +53,7 @@ For instance, suppose we write a test using |st.integers|, but want to make sure\n \n     test_integers()\n \n-Hypothesis runs all explicit examples first, in the |Phase.explicit| phase, before generating additional random examples in the |Phase.generate| phase.\n+Hypothesis runs all |explicit examples| first, in the |Phase.explicit| phase, before generating additional random test cases in the |Phase.generate| phase.\n \n Inputs from |@example| do not shrink\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n@@ -67,7 +67,7 @@ Note that unlike examples generated by Hypothesis, examples provided using |@exa\n     def test_something_with_integers(n):\n         assert n < 100\n \n-Hypothesis will print ``Falsifying explicit example: test_something_with_integers(n=131071)``, instead of shrinking to ``n=100``.\n+Hypothesis will print ``Failing explicit example: test_something_with_integers(n=131071)``, instead of shrinking to ``n=100``.\n \n Prefer |@example| over the database for correctness\n ---------------------------------------------------\n@@ -93,10 +93,10 @@ If |settings.print_blob| is set to ``True`` (the default in the ``ci`` settings\n     >>> test()\n \n     ...\n-    Falsifying example: test(\n+    Failing test case: test(\n         f=nan,\n     )\n-    You can reproduce this example by temporarily adding @reproduce_failure('6.131.23', b'ACh/+AAAAAAAAA==') as a decorator on your test case\n+    You can reproduce this test case by temporarily adding @reproduce_failure('6.131.23', b'ACh/+AAAAAAAAA==') as a decorator on your test function\n \n \n You can add this decorator to your test to reproduce the failure. This can be useful for locally replaying failures found by CI. Note that the binary blob is not stable across Hypothesis versions, so you should not leave this decorator on your tests permanently. Use |@example| with an explicit input instead.",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 10,
+      "changes": 20,
+      "deletions": 10,
+      "filename": "hypothesis/docs/tutorial/settings.rst",
+      "patch": "@@ -6,7 +6,7 @@ This page discusses how to configure the behavior of a single Hypothesis test, o\n Configuring a single test\n -------------------------\n \n-Hypothesis lets you configure the default behavior of a test using the |@settings| decorator. You can use settings to configure how many examples Hypothesis generates, how Hypothesis replays failing examples, and the verbosity level of the test, among others.\n+Hypothesis lets you configure the default behavior of a test using the |@settings| decorator. You can use settings to configure how many |test cases| Hypothesis generates, how Hypothesis replays |failing test cases|, and the verbosity level of the test, among others.\n \n Using |@settings| on a single test looks like this:\n \n@@ -21,10 +21,10 @@ Using |@settings| on a single test looks like this:\n \n You can put |@settings| either before or after |@given|. Both are equivalent.\n \n-Changing the number of examples\n-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n+Changing the number of test cases\n+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n \n-If you have a test which is very expensive or very cheap to run, you can change the number of examples (inputs) Hypothesis generates with the |max_examples| setting:\n+If you have a test which is very expensive or very cheap to run, you can change the number of test cases (inputs) Hypothesis generates with the |max_examples| setting:\n \n .. code-block:: python\n \n@@ -35,11 +35,11 @@ If you have a test which is very expensive or very cheap to run, you can change\n     def test(n):\n         print(\"prints five times\")\n \n-The default is 100 examples.\n+By default, Hypothesis will stop after generating 100 test cases.\n \n .. note::\n \n-    See :doc:`../explanation/example-count` for details on how |max_examples| interacts with other parts of Hypothesis.\n+    See :doc:`../explanation/test-case-count` for details on how |max_examples| interacts with other parts of Hypothesis.\n \n \n Other settings options\n@@ -48,7 +48,7 @@ Other settings options\n Here are a few of the more commonly used setting values:\n \n * |settings.phases| controls which phases of Hypothesis run, like replaying from the database or generating new inputs.\n-* |settings.database| controls how and if Hypothesis replays failing examples.\n+* |settings.database| controls how and if Hypothesis replays failing test cases.\n * |settings.verbosity| can print debug information.\n * |settings.derandomize| makes Hypothesis deterministic. (`Two kinds of testing <https://blog.nelhage.com/post/two-kinds-of-testing/>`__ discusses when and why you might want that).\n \n@@ -60,7 +60,7 @@ Here are a few of the more commonly used setting values:\n Changing settings across your test suite\n ----------------------------------------\n \n-In addition to configuring individual test functions with |@settings|, you can configure test behavior across your test suite using a settings profile. This might be useful for creating a development settings profile which runs fewer examples, or a settings profile in CI which connects to a separate database.\n+In addition to configuring individual test functions with |@settings|, you can configure test behavior across your test suite using a settings profile. This might be useful for creating a development settings profile which runs fewer test cases, or a settings profile in CI which connects to a separate database.\n \n To create a settings profile, use |settings.register_profile|:\n \n@@ -81,12 +81,12 @@ Note that registering a new profile will not affect tests until it is loaded wit\n     settings.register_profile(\"fast\", max_examples=10)\n \n     # any tests executed before loading this profile will still use the\n-    # default active profile of 100 examples.\n+    # default active profile of 100 test cases.\n \n     settings.load_profile(\"fast\")\n \n     # any tests executed after this point will use the active fast\n-    # profile of 10 examples.\n+    # profile of 10 test cases.\n \n There is no limit to the number of settings profiles you can create. Hypothesis creates a profile called ``\"default\"``, which is active by default. You can also explicitly make it active at any time using ``settings.load_profile(\"default\")``, if for instance you wanted to revert a custom profile you had previously loaded.\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/pyproject.toml",
+      "patch": "@@ -70,7 +70,7 @@ def test_matches_builtin(ls):\n     assert sorted(ls) == my_sort(ls)\n ```\n \n-This randomized testing can catch bugs and edge cases that you didn't think of and wouldn't have found. In addition, when Hypothesis does find a bug, it doesn't just report any failing example \u2014 it reports the simplest possible one. This makes property-based tests a powerful tool for debugging, as well as testing.\n+This randomized testing can catch bugs and edge cases that you didn't think of and wouldn't have found. In addition, when Hypothesis does find a bug, it doesn't just report any failing test case \u2014 it reports the simplest possible one. This makes property-based tests a powerful tool for debugging, as well as testing.\n \n For instance,\n \n@@ -79,10 +79,10 @@ def my_sort(ls):\n     return sorted(set(ls))\n ```\n \n-fails with the simplest possible failing example:\n+fails with the simplest possible failing test case:\n \n ```\n-Falsifying example: test_matches_builtin(ls=[0, 0])\n+Failing test case: test_matches_builtin(ls=[0, 0])\n ```\n \n ### Installation",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/src/_hypothesis_pytestplugin.py",
+      "patch": "@@ -405,7 +405,7 @@ def pytest_terminal_summary(terminalreporter):\n                 terminalreporter.write_line(f\"observations written to {fname}\")\n \n         if failing_examples:\n-            # This must have been imported already to write the failing examples\n+            # This must have been imported already to write the failing test cases\n             from hypothesis.extra._patching import gc_patches, make_patch, save_patch\n \n             patch = make_patch(failing_examples)\n@@ -418,7 +418,7 @@ def pytest_terminal_summary(terminalreporter):\n             if not _WROTE_TO:\n                 terminalreporter.section(\"Hypothesis\")\n             terminalreporter.write_line(\n-                f\"`git apply {fname}` to add failing examples to your code.\"\n+                f\"`git apply {fname}` to add failing test cases to your code.\"\n             )\n \n     def pytest_collection_modifyitems(items):",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/src/hypothesis/__init__.py",
+      "patch": "@@ -12,7 +12,7 @@\n some source of data.\n \n It verifies your code against a wide range of input and minimizes any\n-failing examples it finds.\n+failing test cases it finds.\n \"\"\"\n \n import _hypothesis_globals",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 60,
+      "changes": 105,
+      "deletions": 45,
+      "filename": "hypothesis/src/hypothesis/_settings.py",
+      "patch": "@@ -67,21 +67,21 @@ class Verbosity(Enum):\n \n     quiet = \"quiet\"\n     \"\"\"\n-    Hypothesis will not print any output, not even the final falsifying example.\n+    Hypothesis will not print any output, not even the |minimal failing test case|.\n     \"\"\"\n \n     normal = \"normal\"\n     \"\"\"\n-    Standard verbosity. Hypothesis will print the falsifying example, alongside\n-    any notes made with |note| (only for the falsfying example).\n+    Standard verbosity. Hypothesis will print the |minimal failing test case|, alongside\n+    any notes made with |note| (only for the minimal failing test case).\n     \"\"\"\n \n     verbose = \"verbose\"\n     \"\"\"\n     Increased verbosity. In addition to everything in |Verbosity.normal|, Hypothesis\n     will:\n \n-    * Print each test case as it tries it\n+    * Print each |test case| as it tries it\n     * Print any notes made with |note| for each test case\n     * Print each shrinking attempt\n     * Print all explicit failing examples when using |@example|, instead of only\n@@ -144,35 +144,35 @@ class Phase(Enum):\n \n     explicit = \"explicit\"\n     \"\"\"\n-    Controls whether explicit examples are run.\n+    Controls whether |explicit examples| are run.\n     \"\"\"\n \n     reuse = \"reuse\"\n     \"\"\"\n-    Controls whether previous examples will be reused.\n+    Controls whether previous test cases will be reused.\n     \"\"\"\n \n     generate = \"generate\"\n     \"\"\"\n-    Controls whether new examples will be generated.\n+    Controls whether new test cases will be generated.\n     \"\"\"\n \n     target = \"target\"\n     \"\"\"\n-    Controls whether examples will be mutated for targeting.\n+    Controls whether test cases will be mutated for targeting.\n     \"\"\"\n \n     shrink = \"shrink\"\n     \"\"\"\n-    Controls whether examples will be shrunk.\n+    Controls whether failing test cases will be shrunk.\n     \"\"\"\n \n     explain = \"explain\"\n     \"\"\"\n     Controls whether Hypothesis attempts to explain test failures.\n \n     The explain phase has two parts, each of which is best-effort - if Hypothesis\n-    can't find a useful explanation, we'll just print the minimal failing example.\n+    can't find a useful explanation, we'll just print the |minimal failing test case|.\n     \"\"\"\n \n     @classmethod\n@@ -296,7 +296,7 @@ def all(cls) -> list[\"HealthCheck\"]:\n         return list(HealthCheck)\n \n     data_too_large = \"data_too_large\"\n-    \"\"\"Checks if too many examples are aborted for being too large.\n+    \"\"\"Checks if too many test cases are aborted for being too large.\n \n     This is measured by the number of random choices that Hypothesis makes\n     in order to generate something, not the size of the generated object.\n@@ -306,7 +306,7 @@ def all(cls) -> list[\"HealthCheck\"]:\n     \"\"\"\n \n     filter_too_much = \"filter_too_much\"\n-    \"\"\"Check for when the test is filtering out too many examples, either\n+    \"\"\"Check for when the test is filtering out too many test cases, either\n     through use of |assume| or |.filter|, or occasionally for Hypothesis\n     internal reasons.\"\"\"\n \n@@ -334,16 +334,16 @@ def all(cls) -> list[\"HealthCheck\"]:\n     function_scoped_fixture = \"function_scoped_fixture\"\n     \"\"\"Checks if |@given| has been applied to a test\n     with a pytest function-scoped fixture. Function-scoped fixtures run once\n-    for the whole function, not once per example, and this is usually not what\n+    for the whole function, not once per test case, and this is usually not what\n     you want.\n \n     Because of this limitation, tests that need to set up or reset\n-    state for every example need to do so manually within the test itself,\n+    state for every test case need to do so manually within the test itself,\n     typically using an appropriate context manager.\n \n     Suppress this health check only in the rare case that you are using a\n     function-scoped fixture that does not need to be reset between individual\n-    examples, but for some reason you cannot use a wider fixture scope\n+    test cases, but for some reason you cannot use a wider fixture scope\n     (e.g. session scope, module scope, class scope).\n \n     This check requires the :ref:`Hypothesis pytest plugin<pytest-plugin>`,\n@@ -754,35 +754,50 @@ def __init__(\n     @property\n     def max_examples(self):\n         \"\"\"\n-        Once this many satisfying examples have been considered without finding any\n-        counter-example, Hypothesis will stop looking.\n+        Once this many satisfying |test cases| have been considered without finding\n+        any failing test case, Hypothesis will stop looking.\n+\n+        .. note::\n+\n+            Historically, Hypothesis referred to test cases as \"examples\", including in\n+            this setting name. We now refer to them as test cases throughout our\n+            documentation and codebase.\n+\n+            This setting is an exception: to avoid ecosystem churn, this setting will\n+            continue to be called ``max_examples``. Conceptually, it is better thought of\n+            as \"max test cases\".\n \n         Note that we might call your test function fewer times if we find a bug early\n         or can tell that we've exhausted the search space; or more if we discard some\n-        examples due to use of .filter(), assume(), or a few other things that can\n+        test cases due to use of .filter(), assume(), or a few other things that can\n         prevent the test case from completing successfully.\n \n         The default value is chosen to suit a workflow where the test will be part of\n         a suite that is regularly executed locally or on a CI server, balancing total\n         running time against the chance of missing a bug.\n \n-        If you are writing one-off tests, running tens of thousands of examples is\n+        If you are writing one-off tests, running tens of thousands of test cases is\n         quite reasonable as Hypothesis may miss uncommon bugs with default settings.\n         For very complex code, we have observed Hypothesis finding novel bugs after\n-        *several million* examples while testing :pypi:`SymPy <sympy>`.\n-        If you are running more than 100k examples for a test, consider using our\n+        *several million* test cases while testing :pypi:`SymPy <sympy>`.\n+        If you are running more than 100k test cases for a test, consider using our\n         :ref:`integration for coverage-guided fuzzing <fuzz_one_input>` - it really\n         shines when given minutes or hours to run.\n \n         The default max examples is ``100``.\n+\n+        .. note::\n+\n+            See :doc:`../explanation/test-case-count` for details on how |max_examples|\n+            interacts with other parts of Hypothesis.\n         \"\"\"\n         return self._max_examples\n \n     @property\n     def derandomize(self):\n         \"\"\"\n         If True, seed Hypothesis' random number generator using a hash of the test\n-        function, so that every run will test the same set of examples until you\n+        function, so that every run will test the same set of test cases until you\n         update Hypothesis, Python, or the test function.\n \n         This allows you to `check for regressions and look for bugs\n@@ -798,8 +813,8 @@ def derandomize(self):\n     @property\n     def database(self):\n         \"\"\"\n-        An instance of |ExampleDatabase| that will be used to save examples to\n-        and load previous examples from.\n+        An instance of |ExampleDatabase| in which we will save failing |test cases|,\n+        and from which we will load previous failing test cases.\n \n         If not set, a |DirectoryBasedExampleDatabase| is created in the current\n         working directory under ``.hypothesis/examples``. If this location is\n@@ -850,18 +865,18 @@ def verbosity(self):\n             ... def f(x):\n             ...     assert not any(x)\n             ... f()\n-            Trying example: []\n-            Falsifying example: [-1198601713, -67, 116, -29578]\n-            Shrunk example to [-1198601713]\n-            Shrunk example to [-128]\n-            Shrunk example to [32]\n-            Shrunk example to [1]\n+            Test case: []\n+            Failing test case:  [-1198601713, -67, 116, -29578]\n+            Shrunk test case to [-1198601713]\n+            Shrunk test case to [-128]\n+            Shrunk test case to [32]\n+            Shrunk test case to [1]\n             [1]\n \n         The four levels are |Verbosity.quiet|, |Verbosity.normal|,\n         |Verbosity.verbose|, and |Verbosity.debug|. |Verbosity.normal| is the\n         default. For |Verbosity.quiet|, Hypothesis will not print anything out,\n-        not even the final falsifying example. |Verbosity.debug| is basically\n+        not even the |minimal failing test case|. |Verbosity.debug| is basically\n         |Verbosity.verbose| but a bit more so. You probably don't want it.\n \n         Verbosity can be passed either as a |Verbosity| enum value, or as the\n@@ -887,17 +902,17 @@ def phases(self):\n \n         Hypothesis divides tests into logically distinct phases.\n \n-        - |Phase.explicit|: Running explicit examples from |@example|.\n-        - |Phase.reuse|: Running examples from the database which previously failed.\n-        - |Phase.generate|: Generating new random examples.\n-        - |Phase.target|: Mutating examples for :ref:`targeted property-based\n+        - |Phase.explicit|: Running |explicit examples| from |@example|.\n+        - |Phase.reuse|: Running |test cases| from the database which previously failed.\n+        - |Phase.generate|: Generating new random test cases.\n+        - |Phase.target|: Mutating test cases for :ref:`targeted property-based\n           testing <targeted>`. Requires |Phase.generate|.\n-        - |Phase.shrink|: Shrinking failing examples.\n+        - |Phase.shrink|: Shrinking |failing test cases|.\n         - |Phase.explain|: Attempting to explain why a failure occurred.\n           Requires |Phase.shrink|.\n \n         The phases argument accepts a collection with any subset of these. E.g.\n-        ``settings(phases=[Phase.generate, Phase.shrink])`` will generate new examples\n+        ``settings(phases=[Phase.generate, Phase.shrink])`` will generate new test cases\n         and shrink them, but will not run explicit examples or reuse previous failures,\n         while ``settings(phases=[Phase.explicit])`` will only run explicit examples\n         from |@example|.\n@@ -920,10 +935,10 @@ def phases(self):\n         there are no clearly suspicious lines of code, :pep:`we refuse the\n         temptation to guess <20>`.\n \n-        After shrinking to a minimal failing example, Hypothesis will try to find\n-        parts of the example -- e.g. separate args to |@given|\n+        After shrinking to a minimal failing test case, Hypothesis will try to find\n+        parts of the test case -- e.g. separate args to |@given|\n         -- which can vary freely without changing the result\n-        of that minimal failing example. If the automated experiments run without\n+        of that minimal failing test case. If the automated experiments run without\n         finding a passing variation, we leave a comment in the final report:\n \n         .. code-block:: python\n@@ -935,7 +950,7 @@ def phases(self):\n \n         Just remember that the *lack* of an explanation sometimes just means that\n         Hypothesis couldn't efficiently find one, not that no explanation (or\n-        simpler failing example) exists.\n+        simpler failing test case) exists.\n         \"\"\"\n \n         return self._phases\n@@ -947,7 +962,7 @@ def stateful_step_count(self):\n         :ref:`stateful testing <stateful>` before we give up on finding a bug.\n \n         Note that this setting is effectively multiplicative with max_examples,\n-        as each example will run for a maximum of ``stateful_step_count`` steps.\n+        as each test case will run for a maximum of ``stateful_step_count`` steps.\n \n         The default stateful step count is ``50``.\n         \"\"\"\n@@ -995,7 +1010,7 @@ def suppress_health_check(self):\n     @property\n     def deadline(self):\n         \"\"\"\n-        The maximum allowed duration of an individual test case, in milliseconds.\n+        The maximum allowed duration of an individual |test case|, in milliseconds.\n         You can pass an integer, float, or timedelta. If ``None``, the deadline\n         is disabled entirely.\n \n@@ -1010,8 +1025,8 @@ def deadline(self):\n     @property\n     def print_blob(self):\n         \"\"\"\n-        If set to ``True``, Hypothesis will print code for failing examples that\n-        can be used with |@reproduce_failure| to reproduce the failing example.\n+        If set to ``True``, Hypothesis will print code for |failing test cases| that\n+        can be used with |@reproduce_failure| to reproduce the failing test case.\n \n         The default value is ``False``. If running on CI, the default is ``True`` instead.\n         \"\"\"",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 13,
+      "changes": 20,
+      "deletions": 7,
+      "filename": "hypothesis/src/hypothesis/control.py",
+      "patch": "@@ -61,10 +61,10 @@ def assume(condition: object) -> Literal[True]: ...\n \n def assume(condition: object) -> Literal[True]:\n     \"\"\"Calling ``assume`` is like an :ref:`assert <python:assert>` that marks\n-    the example as bad, rather than failing the test.\n+    the |test case| as bad, rather than failing the test.\n \n     This allows you to specify properties that you *assume* will be\n-    true, and let Hypothesis try to avoid similar examples in future.\n+    true, and let Hypothesis try to avoid similar test cases in future.\n     \"\"\"\n     if _current_build_context.value is None:\n         note_deprecation(\n@@ -269,7 +269,13 @@ def should_note() -> bool:\n \n \n def note(value: object) -> None:\n-    \"\"\"Report this value for the minimal failing example.\"\"\"\n+    \"\"\"\n+    Record a note on this |test case|. Non-string values will be automatically converted\n+    to a string.\n+\n+    This value is reported for the |minimal failing test case|, and on |Verbosity.verbose|\n+    or lower.\n+    \"\"\"\n     if should_note():\n         if not isinstance(value, str):\n             value = pretty(value)\n@@ -329,7 +335,7 @@ def target(observation: int | float, *, label: str = \"\") -> int | float:\n     with which to guide our search for inputs that will cause an error, in\n     addition to all the usual heuristics.  Observations must always be finite.\n \n-    Hypothesis will try to maximize the observed value over several examples;\n+    Hypothesis will try to maximize the observed value over several |test cases|;\n     almost any metric will work so long as it makes sense to increase it.\n     For example, ``-abs(error)`` is a metric that increases as ``error``\n     approaches zero.\n@@ -347,17 +353,17 @@ def target(observation: int | float, *, label: str = \"\") -> int | float:\n     ``target()`` with any label more than once per test case.\n \n     .. note::\n-        The more examples you run, the better this technique works.\n+        The more test cases you run, the better this technique works.\n \n         As a rule of thumb, the targeting effect is noticeable above\n         :obj:`max_examples=1000 <hypothesis.settings.max_examples>`,\n-        and immediately obvious by around ten thousand examples\n+        and immediately obvious by around ten thousand test cases\n         *per label* used by your test.\n \n     :ref:`statistics` include the best score seen for each label,\n     which can help avoid `the threshold problem\n     <https://hypothesis.works/articles/threshold-problem/>`__ when the minimal\n-    example shrinks right down to the threshold of failure (:issue:`2180`).\n+    test case shrinks right down to the threshold of failure (:issue:`2180`).\n     \"\"\"\n     check_type((int, float), observation, \"observation\")\n     if not math.isfinite(observation):",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 28,
+      "changes": 56,
+      "deletions": 28,
+      "filename": "hypothesis/src/hypothesis/core.py",
+      "patch": "@@ -197,11 +197,11 @@ def test_strings(s):\n     any random inputs. |@example| may be placed in any order relative to |@given|\n     and |@settings|.\n \n-    Explicit inputs from |@example| are run in the |Phase.explicit| phase.\n-    Explicit inputs do not count towards |settings.max_examples|. Note that\n-    explicit inputs added by |@example| do not shrink. If an explicit input\n-    fails, Hypothesis will stop and report the failure without generating any\n-    random inputs.\n+    |Explicit examples| from |@example| are run in the\n+    |Phase.explicit| phase. Explicit examples do not count towards\n+    |settings.max_examples|. Note that explicit examples added by |@example| do\n+    not shrink. If an explicit example fails, Hypothesis will stop and report\n+    the failure without generating any random inputs.\n \n     |@example| can also be used to easily reproduce a failure. For instance, if\n     Hypothesis reports that ``f(n=[0, math.nan])`` fails, you can add\n@@ -341,11 +341,11 @@ def seed(seed: Hashable) -> Callable[[TestFunc], TestFunc]:\n \n     ``seed`` may be any hashable object. No exact meaning for ``seed`` is provided\n     other than that for a fixed seed value Hypothesis will produce the same\n-    examples (assuming that there are no other sources of nondeterminisim, such\n+    |test cases| (assuming that there are no other sources of nondeterminisim, such\n     as timing, hash randomization, or external state).\n \n     For example, the following test function and |RuleBasedStateMachine| will\n-    each generate the same series of examples each time they are executed:\n+    each generate the same series of test cases each time they are executed:\n \n     .. code-block:: python\n \n@@ -382,11 +382,11 @@ def accept(test):\n \n def reproduce_failure(version: str, blob: bytes) -> Callable[[TestFunc], TestFunc]:\n     \"\"\"\n-    Run the example corresponding to the binary ``blob`` in order to reproduce a\n+    Run the |test case| corresponding to the binary ``blob`` in order to reproduce a\n     failure. ``blob`` is a serialized version of the internal input representation\n     of Hypothesis.\n \n-    A test decorated with |@reproduce_failure| always runs exactly one example,\n+    A test decorated with |@reproduce_failure| always runs exactly one test case,\n     which is expected to cause a failure. If the provided ``blob`` does not\n     cause a failure, Hypothesis will raise |DidNotReproduce|.\n \n@@ -527,7 +527,7 @@ def is_invalid_test(test, original_sig, given_arguments, given_kwargs):\n     if empty:\n         strats = \"strategies\" if len(empty) > 1 else \"strategy\"\n         return invalid(\n-            f\"Cannot generate examples from empty {strats}: \" + \", \".join(empty),\n+            f\"Cannot generate test cases from empty {strats}: \" + \", \".join(empty),\n             exc=Unsatisfiable,\n         )\n \n@@ -647,7 +647,7 @@ def execute_explicit_examples(state, wrapped_test, arguments, kwargs, original_s\n                 with contextlib.suppress(StopTest):\n                     empty_data.conclude_test(Status.INVALID)\n             except BaseException as err:\n-                # In order to support reporting of multiple failing examples, we yield\n+                # In order to support reporting of multiple failing test cases, we yield\n                 # each of the (report text, error) pairs we find back to the top-level\n                 # runner.  This also ensures that user-facing stack traces have as few\n                 # frames of Hypothesis internals as possible.\n@@ -682,9 +682,9 @@ def execute_explicit_examples(state, wrapped_test, arguments, kwargs, original_s\n                 break\n             finally:\n                 if fragments_reported:\n-                    assert fragments_reported[0].startswith(\"Falsifying example\")\n+                    assert fragments_reported[0].startswith(\"Failing test case\")\n                     fragments_reported[0] = fragments_reported[0].replace(\n-                        \"Falsifying example\", \"Falsifying explicit example\", 1\n+                        \"Failing test case\", \"Failing explicit example\", 1\n                     )\n \n                 empty_data.freeze()\n@@ -700,7 +700,7 @@ def execute_explicit_examples(state, wrapped_test, arguments, kwargs, original_s\n                     deliver_observation(tc)\n \n             if fragments_reported:\n-                verbose_report(fragments_reported[0].replace(\"Falsifying\", \"Trying\", 1))\n+                verbose_report(fragments_reported[0].replace(\"Failing\", \"Trying\", 1))\n                 for f in fragments_reported[1:]:\n                     verbose_report(f)\n \n@@ -1070,9 +1070,9 @@ def run(data: ConjectureData) -> None:\n             if print_example or current_verbosity() >= Verbosity.verbose:\n                 printer = RepresentationPrinter(context=context)\n                 if print_example:\n-                    printer.text(\"Falsifying example:\")\n+                    printer.text(\"Failing test case:\")\n                 else:\n-                    printer.text(\"Trying example:\")\n+                    printer.text(\"Test case:\")\n \n                 if self.print_given_args:\n                     printer.text(\" \")\n@@ -1181,7 +1181,7 @@ def run(data: ConjectureData) -> None:\n                 report(\"Failed to reproduce exception. Expected: \\n\" + traceback)\n             raise FlakyFailure(\n                 f\"Hypothesis {text_repr} produces unreliable results: \"\n-                \"Falsified on the first call but did not on a subsequent one\",\n+                \"Failed on the first call but did not on a subsequent one\",\n                 [exception],\n             )\n         return result\n@@ -1562,12 +1562,12 @@ def run_engine(self):\n             finally:\n                 ran_example.freeze()\n                 if observability_enabled():\n-                    # log our observability line for the final failing example\n+                    # log our observability line for the final failing test case\n                     tc = make_testcase(\n                         run_start=self._start_timestamp,\n                         property=self.test_identifier,\n                         data=ran_example,\n-                        how_generated=\"minimal failing example\",\n+                        how_generated=\"minimal failing test case\",\n                         representation=self._string_repr,\n                         arguments=ran_example._observability_args,\n                         timing=self._timing_features,\n@@ -1579,12 +1579,12 @@ def run_engine(self):\n                     deliver_observation(tc)\n \n                 # Whether or not replay actually raised the exception again, we want\n-                # to print the reproduce_failure decorator for the failing example.\n+                # to print the reproduce_failure decorator for the failing test case.\n                 if self.settings.print_blob:\n                     fragments.append(\n-                        \"\\nYou can reproduce this example by temporarily adding \"\n+                        \"\\nYou can reproduce this test case by temporarily adding \"\n                         f\"{reproduction_decorator(falsifying_example.choices)} \"\n-                        \"as a decorator on your test case\"\n+                        \"as a decorator on your test function\"\n                     )\n \n         _raise_to_user(\n@@ -1640,7 +1640,7 @@ def _raise_to_user(\n     errors_to_report, settings, target_lines, trailer=\"\", *, unsound_backend=None\n ):\n     \"\"\"Helper function for attaching notes and grouping multiple errors.\"\"\"\n-    failing_prefix = \"Falsifying example: \"\n+    failing_prefix = \"Failing test case: \"\n     ls = []\n     for error in errors_to_report:\n         for note in error.fragments:\n@@ -1677,14 +1677,14 @@ def _raise_to_user(\n def fake_subTest(self, msg=None, **__):\n     \"\"\"Monkeypatch for `unittest.TestCase.subTest` during `@given`.\n \n-    If we don't patch this out, each failing example is reported as a\n+    If we don't patch this out, each failing test case is reported as a\n     separate failing test by the unittest test runner, which is\n     obviously incorrect. We therefore replace it for the duration with\n     this version.\n     \"\"\"\n     warnings.warn(\n-        \"subTest per-example reporting interacts badly with Hypothesis \"\n-        \"trying hundreds of examples, so we disable it for the duration of \"\n+        \"subTest per-test-case reporting interacts badly with Hypothesis \"\n+        \"trying hundreds of test cases, so we disable it for the duration of \"\n         \"any test that uses `@given`.\",\n         HypothesisWarning,\n         stacklevel=2,\n@@ -1724,7 +1724,7 @@ def fuzz_one_input(\n         * If the bytestring was invalid, for example because it was too short or was\n           filtered out by |assume| or |.filter|, |fuzz_one_input| returns ``None``.\n         * If the bytestring was valid and the test passed, |fuzz_one_input| returns\n-          a canonicalised and pruned bytestring which will replay that test case.\n+          a canonicalised and pruned bytestring which will replay that |test case|.\n           This is provided as an option to improve the performance of mutating\n           fuzzers, but can safely be ignored.\n         * If the test *failed*, i.e. raised an exception, |fuzz_one_input| will\n@@ -2208,7 +2208,7 @@ def wrapped_test(*arguments, **kwargs):\n                     and getattr(wrapped_test, \"hypothesis_explicit_examples\", ())\n                 )\n                 SKIP_BECAUSE_NO_EXAMPLES = unittest.SkipTest(\n-                    \"Hypothesis has been told to run no examples for this test.\"\n+                    \"Hypothesis has been told to run no test cases for this test.\"\n                 )\n                 if not (\n                     Phase.reuse in settings.phases or Phase.generate in settings.phases",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/src/hypothesis/database.py",
+      "patch": "@@ -820,7 +820,7 @@ class GitHubArtifactDatabase(ExampleDatabase):\n     You can use this for sharing example databases between CI runs and developers, allowing\n     the latter to get read-only access to the former. This is particularly useful for\n     continuous fuzzing (i.e. with `HypoFuzz <https://hypofuzz.com/>`_),\n-    where the CI system can help find new failing examples through fuzzing,\n+    where the CI system can help find new failing test cases through fuzzing,\n     and developers can reproduce them locally without any manual effort.\n \n     .. note::",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/src/hypothesis/errors.py",
+      "patch": "@@ -50,7 +50,7 @@ def __init__(self, condition_string: str, extra: str = \"\") -> None:\n \n \n class Unsatisfiable(_Trimmable):\n-    \"\"\"We ran out of time or examples before we could find enough examples\n+    \"\"\"We ran out of time or test cases before we could find enough test cases\n     which satisfy the assumptions of this hypothesis.\n \n     This could be because the function is too slow. If so, try upping\n@@ -153,7 +153,7 @@ class _WrappedBaseException(Exception):\n class FlakyFailure(ExceptionGroup, Flaky):\n     \"\"\"\n     This function appears to fail non-deterministically: We have seen it\n-    fail when passed this example at least once, but a subsequent invocation\n+    fail when passed this value at least once, but a subsequent invocation\n     did not fail, or caused a distinct error.\n \n     Common causes for this problem are:\n@@ -348,7 +348,7 @@ class BackendCannotProceed(HypothesisException):\n     The optional ``scope`` argument can enable smarter integration:\n \n         verified:\n-            Do not request further test cases from this backend.  We *may*\n+            Do not request further |test cases| from this backend.  We *may*\n             generate more test cases with other backends; if one fails then\n             Hypothesis will report unsound verification in the backend too.\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/src/hypothesis/extra/_patching.py",
+      "patch": "@@ -13,8 +13,8 @@\n \n Requires `hypothesis[codemods,ghostwriter]` installed, i.e. black and libcst.\n \n-This module is used by Hypothesis' builtin pytest plugin for failing examples\n-discovered during testing, and by HypoFuzz for _covering_ examples discovered\n+This module is used by Hypothesis' builtin pytest plugin for failing test cases\n+discovered during testing, and by HypoFuzz for _covering_ test cases discovered\n during fuzzing.\n \"\"\"\n \n@@ -98,7 +98,7 @@ def __init__(\n             [m.Arg(m.SimpleString() & value_in_strip_via)],\n         )\n \n-        # Codemod the failing examples to Call nodes usable as decorators\n+        # Codemod the failing test cases to Call nodes usable as decorators\n         self.fn_examples = {\n             k: tuple(\n                 d",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 8,
+      "changes": 16,
+      "deletions": 8,
+      "filename": "hypothesis/src/hypothesis/internal/conjecture/engine.py",
+      "patch": "@@ -84,7 +84,7 @@\n # If the shrinking phase takes more than five minutes, abort it early and print\n # a warning.   Many CI systems will kill a build after around ten minutes with\n # no output, and appearing to hang isn't great for interactive use either -\n-# showing partially-shrunk examples is better than quitting with no examples!\n+# showing partially-shrunk test cases is better than quitting with no test cases!\n # (but make it monkeypatchable, for the rare users who need to keep on shrinking)\n \n #: The maximum total time in seconds that the shrinker will try to shrink a failure\n@@ -171,9 +171,9 @@ class ExitReason(Enum):\n     max_examples = \"settings.max_examples={s.max_examples}\"\n     max_iterations = (\n         \"settings.max_examples={s.max_examples}, \"\n-        \"but < 1% of examples satisfied assumptions\"\n+        \"but < 1% of test cases satisfied assumptions\"\n     )\n-    max_shrinks = f\"shrunk example {MAX_SHRINKS} times\"\n+    max_shrinks = f\"shrunk test case {MAX_SHRINKS} times\"\n     finished = \"nothing left to do\"\n     flaky = \"test was flaky\"\n     very_slow_shrinking = \"shrinking was very slow\"\n@@ -748,7 +748,7 @@ def _backend_cannot_proceed(\n             # See https://github.com/HypothesisWorks/hypothesis/issues/2340\n             report(\n                 \"WARNING: Hypothesis has spent more than five minutes working to shrink\"\n-                \" a failing example, and stopped because it is making very slow\"\n+                \" a failing test case, and stopped because it is making very slow\"\n                 \" progress.  When you re-run your tests, shrinking will resume and may\"\n                 \" take this long before aborting again.\\n\\nPLEASE REPORT THIS if you can\"\n                 \" provide a reproducing example, so that we can improve shrinking\"\n@@ -1022,7 +1022,7 @@ def reuse_existing_examples(self) -> None:\n         examples that are no longer interesting are cleared out.\n         \"\"\"\n         if self.has_existing_examples():\n-            self.debug(\"Reusing examples from database\")\n+            self.debug(\"Reusing test cases from database\")\n             # We have to do some careful juggling here. We have two database\n             # corpora: The primary and secondary. The primary corpus is a\n             # small set of minimized examples each of which has at one point\n@@ -1162,12 +1162,12 @@ def generate_new_examples(self) -> None:\n         if Phase.generate not in self.settings.phases:\n             return\n         if self.interesting_examples:\n-            # The example database has failing examples from a previous run,\n+            # The example database has failing test cases from a previous run,\n             # so we'd rather report that they're still failing ASAP than take\n             # the time to look for additional failures.\n             return\n \n-        self.debug(\"Generating new examples\")\n+        self.debug(\"Generating new test cases\")\n \n         assert self.should_generate_more()\n         self._switch_to_hypothesis_provider = True\n@@ -1609,7 +1609,7 @@ def shrink_interesting_examples(self) -> None:\n         if Phase.shrink not in self.settings.phases or not self.interesting_examples:\n             return\n \n-        self.debug(\"Shrinking interesting examples\")\n+        self.debug(\"Shrinking failing test cases\")\n         self.finish_shrinking_deadline = time.perf_counter() + MAX_SHRINKING_SECONDS\n \n         for prev_data in sorted(",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 10,
+      "changes": 20,
+      "deletions": 10,
+      "filename": "hypothesis/src/hypothesis/internal/conjecture/providers.py",
+      "patch": "@@ -582,7 +582,7 @@ def draw_bytes(\n     def per_test_case_context_manager(self) -> AbstractContextManager:\n         \"\"\"\n         Returns a context manager which will be entered each time Hypothesis\n-        starts generating and executing one test case, and exited when that test\n+        starts generating and executing one |test case|, and exited when that test\n         case finishes generating and executing, including if any exception is\n         thrown.\n \n@@ -606,20 +606,20 @@ def realize(self, value: T, *, for_failure: bool = False) -> T:\n         The returned value should be non-symbolic.  If you cannot provide a value,\n         raise |BackendCannotProceed| with a value of ``\"discard_test_case\"``.\n \n-        If ``for_failure`` is ``True``, the value is associated with a failing example.\n+        If ``for_failure`` is ``True``, the value is associated with a |failing test case|.\n         In this case, the backend should spend substantially more effort when\n         attempting to realize the value, since it is important to avoid discarding\n-        failing examples. Backends may still raise |BackendCannotProceed| when\n+        failing test cases. Backends may still raise |BackendCannotProceed| when\n         ``for_failure`` is ``True``, if realization is truly impossible or if\n         realization takes significantly longer than expected (say, 5 minutes).\n         \"\"\"\n         return value\n \n     def replay_choices(self, choices: tuple[ChoiceT, ...]) -> None:\n         \"\"\"\n-        Called when Hypothesis has discovered a choice sequence which the provider\n+        Called when Hypothesis has discovered a |choice sequence| which the provider\n         may wish to enqueue to replay under its own instrumentation when we next\n-        ask to generate a test case, rather than generating one from scratch.\n+        ask to generate a |test case|, rather than generating one from scratch.\n \n         This is used to e.g. warm-start :pypi:`hypothesis-crosshair` with a corpus\n         of high-code-coverage inputs discovered by\n@@ -628,7 +628,7 @@ def replay_choices(self, choices: tuple[ChoiceT, ...]) -> None:\n         return None\n \n     def observe_test_case(self) -> dict[str, Any]:\n-        \"\"\"Called at the end of the test case when :ref:`observability\n+        \"\"\"Called at the end of the |test case| when :ref:`observability\n         <observability>` is enabled.\n \n         The return value should be a non-symbolic json-encodable dictionary,\n@@ -639,7 +639,7 @@ def observe_test_case(self) -> dict[str, Any]:\n     def observe_information_messages(\n         self, *, lifetime: LifetimeT\n     ) -> Iterable[_BackendInfoMsg]:\n-        \"\"\"Called at the end of each test case and again at end of the test function.\n+        \"\"\"Called at the end of each |test case| and again at end of the test function.\n \n         Return an iterable of ``{type: info/alert/error, title: str, content: str | dict}``\n         dictionaries to be delivered as individual information messages. Hypothesis\n@@ -650,7 +650,7 @@ def observe_information_messages(\n \n     def on_observation(self, observation: TestCaseObservation) -> None:  # noqa: B027\n         \"\"\"\n-        Called at the end of each test case which uses this provider, with the same\n+        Called at the end of each |test case| which uses this provider, with the same\n         ``observation[\"type\"] == \"test_case\"`` observation that is passed to\n         other callbacks added via |add_observability_callback|. This method is not\n         called with ``observation[\"type\"] in {\"info\", \"alert\", \"error\"}``\n@@ -723,10 +723,10 @@ def span_start(self, label: int, /) -> None:  # noqa: B027  # non-abstract noop\n \n         Providers can track calls to |PrimitiveProvider.span_start| and\n         |PrimitiveProvider.span_end| to learn something about the semantics of\n-        the test's choice sequence. For instance, a provider could track the depth\n+        the test's |choice sequence|. For instance, a provider could track the depth\n         of the span tree, or the number of unique labels, which says something about\n         the complexity of the choices being generated. Or a provider could track\n-        the span tree across test cases in order to determine what strategies are\n+        the span tree across |test cases| in order to determine what strategies are\n         being used in what contexts.\n \n         It is possible for Hypothesis to start and immediately stop a span,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/src/hypothesis/internal/conjecture/shrinker.py",
+      "patch": "@@ -514,12 +514,12 @@ def _explain(self) -> None:\n \n         # Before we start running experiments, let's check for known inputs which would\n         # make them redundant.  The shrinking process means that we've already tried many\n-        # variations on the minimal example, so this can save a lot of time.\n+        # variations on the minimal test case, so this can save a lot of time.\n         seen_passing_seq = self.engine.passing_choice_sequences(\n             prefix=self.nodes[: min(start for start, _ in arg_ranges.values())]\n         )\n \n-        # Now that we've shrunk to a minimal failing example, it's time to try\n+        # Now that we've shrunk to a minimal failing test case, it's time to try\n         # varying each part that we've noted will go in the final report.  Consider\n         # spans in largest-first order\n         for span_index, (start, end) in sorted(\n@@ -531,7 +531,7 @@ def _explain(self) -> None:\n             if all(nodes[i].was_forced for i in range(start, end)):\n                 continue\n \n-            # Check for any previous examples that match the prefix and suffix,\n+            # Check for any previous test cases that match the prefix and suffix,\n             # so we can skip if we found a passing example while shrinking.\n             if any(\n                 startswith(seen, nodes[:start]) and endswith(seen, nodes[end:])\n@@ -1735,7 +1735,7 @@ def minimize_individual_choices(self, chooser):\n         x = data.draw(integers())\n         assert x < 10\n \n-        then in our shrunk example, x = 10 rather than say 97.\n+        then in our shrunk test case, x = 10 rather than say 97.\n \n         If we are unsuccessful at minimizing a choice of interest we then\n         check if that's because it's changing the size of the test case and,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/src/hypothesis/internal/observability.py",
+      "patch": "@@ -259,7 +259,7 @@ class TestCaseObservation(BaseObservation):\n \n def add_observability_callback(f: CallbackT, /, *, all_threads: bool = False) -> None:\n     \"\"\"\n-    Adds ``f`` as a callback for :ref:`observability <observability>`. ``f``\n+    Adds ``f`` as a callback for |observability|. ``f``\n     should accept one argument, which is an observation. Whenever Hypothesis\n     produces a new observation, it calls each callback with that observation.\n \n@@ -291,7 +291,7 @@ def add_observability_callback(f: CallbackT, /, *, all_threads: bool = False) ->\n \n def remove_observability_callback(f: CallbackT, /) -> None:\n     \"\"\"\n-    Removes ``f`` from the :ref:`observability <observability>` callbacks.\n+    Removes ``f`` from the |observability| callbacks.\n \n     If ``f`` is not in the list of observability callbacks, silently do nothing.\n \n@@ -315,7 +315,7 @@ def remove_observability_callback(f: CallbackT, /) -> None:\n \n def observability_enabled() -> bool:\n     \"\"\"\n-    Returns whether or not Hypothesis considers :ref:`observability <observability>`\n+    Returns whether or not Hypothesis considers |observability|\n     to be enabled. Observability is enabled if there is at least one observability\n     callback present.\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/src/hypothesis/internal/scrutineer.py",
+      "patch": "@@ -250,7 +250,7 @@ def get_explaining_locations(traces):\n \n EXPLANATION_STUB = (\n     \"Explanation:\",\n-    \"    These lines were always and only run by failing examples:\",\n+    \"    These lines were always and only run by failing test cases:\",\n )\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 7,
+      "deletions": 3,
+      "filename": "hypothesis/src/hypothesis/statistics.py",
+      "patch": "@@ -31,7 +31,7 @@ def note_statistics(stats_dict: \"StatisticsDict\") -> None:\n def describe_targets(best_targets: dict[str, float]) -> list[str]:\n     \"\"\"Return a list of lines describing the results of `target`, if any.\"\"\"\n     # These lines are included in the general statistics description below,\n-    # but also printed immediately below failing examples to alleviate the\n+    # but also printed immediately below failing test cases to alleviate the\n     # \"threshold problem\" where shrinking can make severe bug look trivial.\n     # See https://github.com/HypothesisWorks/hypothesis/issues/2180\n     if not best_targets:\n@@ -92,8 +92,9 @@ def describe_statistics(stats_dict: \"StatisticsDict\") -> str:\n         lines.append(\n             f\"  - during {phase} phase ({d['duration-seconds']:.2f} seconds):\\n\"\n             f\"    - Typical runtimes: {runtime_ms}, of which {drawtime_ms} in data generation\\n\"\n-            f\"    - {statuses['valid']} passing examples, {statuses['interesting']} \"\n-            f\"failing examples, {statuses['invalid'] + statuses['overrun']} invalid examples\"\n+            f\"    - {statuses['valid']} passing, {statuses['interesting']} \"\n+            f\"failing, and {statuses['invalid'] + statuses['overrun']} \"\n+            \"invalid test cases\"\n         )\n         # If we've found new distinct failures in this phase, report them\n         distinct_failures = d[\"distinct-failures\"] - prev_failures",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 5,
+      "changes": 10,
+      "deletions": 5,
+      "filename": "hypothesis/src/hypothesis/strategies/_internal/core.py",
+      "patch": "@@ -1006,7 +1006,7 @@ def randoms(\n     are of a special HypothesisRandom subclass.\n \n     - If ``note_method_calls`` is set to ``True``, Hypothesis will print the\n-      randomly drawn values in any falsifying test case. This can be helpful\n+      randomly drawn values in the |minimal failing test case|. This can be helpful\n       for debugging the behaviour of randomized algorithms.\n     - If ``use_true_random`` is set to ``True`` then values will be drawn from\n       their usual distribution, otherwise they will actually be Hypothesis\n@@ -2454,18 +2454,18 @@ def test_values(data):\n             n2 = data.draw(st.integers(min_value=n1))\n             assert n1 + 1 <= n2\n \n-    If the test fails, each draw will be printed with the falsifying example.\n+    If the test fails, each draw will be printed with the |minimal failing test case|.\n     e.g. the above is wrong (it has a boundary condition error), so will print:\n \n     .. code-block:: pycon\n \n-        Falsifying example: test_values(data=data(...))\n+        Failing test case: test_values(data=data(...))\n         Draw 1: 0\n         Draw 2: 0\n \n     Optionally, you can provide a label to identify values generated by each call\n     to ``data.draw()``.  These labels can be used to identify values in the\n-    output of a falsifying example.\n+    output of a failing test case.\n \n     For instance:\n \n@@ -2481,7 +2481,7 @@ def test_draw_sequentially(data):\n \n     .. code-block:: pycon\n \n-        Falsifying example: test_draw_sequentially(data=data(...))\n+        Failing test case: test_draw_sequentially(data=data(...))\n         Draw 1 (First number): 0\n         Draw 2 (Second number): 0\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/src/hypothesis/vendor/pretty.py",
+      "patch": "@@ -239,7 +239,7 @@ def __init__(\n \n         We use the context to represent objects constructed by strategies by showing\n         *how* they were constructed, and add annotations showing which parts of the\n-        minimal failing example can vary without changing the test result.\n+        minimal failing test case can vary without changing the test result.\n         \"\"\"\n         self.broken: bool = False\n         self.output: TextIOBase = StringIO() if output is None else output\n@@ -270,7 +270,7 @@ def __init__(\n         self.deferred_pprinters.update(_deferred_type_pprinters)\n \n         # for which-parts-matter, we track comments keyed by the index of the\n-        # span each argument's draw created in the minimal failing example;\n+        # span each argument's draw created in the minimal failing test case;\n         # this is per-interesting_origin but we report each separately so\n         # that's someone else's problem here. Invocations of self.repr_call()\n         # can report the span for each argument, which will then be used to",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 8,
+      "changes": 12,
+      "deletions": 4,
+      "filename": "hypothesis/tests/common/utils.py",
+      "patch": "@@ -174,8 +174,12 @@ def assert_output_contains_failure(output, test, **kwargs):\n         assert f\"{k}={v!r}\" in output, (f\"{k}={v!r}\", output)\n \n \n-def assert_falsifying_output(\n-    test, example_type=\"Falsifying\", expected_exception=AssertionError, **kwargs\n+def assert_failing_output(\n+    test,\n+    prefix=\"Failing test case\",\n+    *,\n+    expected_exception=AssertionError,\n+    **kwargs,\n ):\n     with capture_out() as out:\n         if expected_exception is None:\n@@ -189,7 +193,7 @@ def assert_falsifying_output(\n             msg = str(exc_info.value) + \"\\n\" + notes\n \n     output = out.getvalue() + msg\n-    assert f\"{example_type} example:\" in output\n+    assert f\"{prefix}:\" in output, (prefix, output)\n     assert_output_contains_failure(output, test, **kwargs)\n \n \n@@ -335,7 +339,7 @@ def wait_for(condition, *, timeout=1, interval=0.01):\n     )\n \n \n-def run_test_for_falsifying_example(test_fn):\n+def run_test_for_failing_test_case(test_fn):\n     with pytest.raises(AssertionError) as err:\n         test_fn()\n     return \"\\n\".join(err.value.__notes__).strip()",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 14,
+      "changes": 28,
+      "deletions": 14,
+      "filename": "hypothesis/tests/conjecture/test_inquisitor.py",
+      "patch": "@@ -40,7 +40,7 @@ def _new():\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_comments_basic_fail_if_either(\n+Failing test case: test_inquisitor_comments_basic_fail_if_either(\n     # The test always failed when commented parts were varied together.\n     a=False,  # or any other generated value\n     b=True,\n@@ -56,7 +56,7 @@ def test_inquisitor_comments_basic_fail_if_either(a, b, c, d, e):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_comments_basic_fail_if_not_all(\n+Failing test case: test_inquisitor_comments_basic_fail_if_not_all(\n     # The test sometimes passed when commented parts were varied together.\n     a='',  # or any other generated value\n     b='',  # or any other generated value\n@@ -71,7 +71,7 @@ def test_inquisitor_comments_basic_fail_if_not_all(a, b, c):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_no_together_comment_if_single_argument(\n+Failing test case: test_inquisitor_no_together_comment_if_single_argument(\n     a='',\n     b='',  # or any other generated value\n )\n@@ -83,7 +83,7 @@ def test_inquisitor_no_together_comment_if_single_argument(a, b):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_skips_arguments_that_cannot_vary(\n+Failing test case: test_inquisitor_skips_arguments_that_cannot_vary(\n     a='fixed',\n     b=100,\n )\n@@ -105,7 +105,7 @@ def ints_with_forced_draw(draw):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_doesnt_break_on_varying_forced_nodes(\n+Failing test case: test_inquisitor_doesnt_break_on_varying_forced_nodes(\n     n1=100,\n     n2=0,  # or any other generated value\n )\n@@ -125,7 +125,7 @@ def test_issue_3755_regression(start_date, data):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_no_misleading_comment_for_eq_args(\n+Failing test case: test_inquisitor_no_misleading_comment_for_eq_args(\n     n1=0,\n     n2=1,\n )\n@@ -149,7 +149,7 @@ def __init__(self, x, y):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_builds_subargs(\n+Failing test case: test_inquisitor_builds_subargs(\n     obj=MyClass(\n         0,  # or any other generated value\n         True,\n@@ -163,7 +163,7 @@ def test_inquisitor_builds_subargs(obj):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_builds_kwargs_subargs(\n+Failing test case: test_inquisitor_builds_kwargs_subargs(\n     obj=MyClass(\n         x=0,  # or any other generated value\n         y=True,\n@@ -177,7 +177,7 @@ def test_inquisitor_builds_kwargs_subargs(obj):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_tuple_subargs(\n+Failing test case: test_inquisitor_tuple_subargs(\n     t=(\n         0,  # or any other generated value\n         True,\n@@ -191,7 +191,7 @@ def test_inquisitor_tuple_subargs(t):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_fixeddict_subargs(\n+Failing test case: test_inquisitor_fixeddict_subargs(\n     d={\n         'x': 0,  # or any other generated value\n         'y': True,\n@@ -205,7 +205,7 @@ def test_inquisitor_fixeddict_subargs(d):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_tuple_multiple_varying(\n+Failing test case: test_inquisitor_tuple_multiple_varying(\n     t=(\n         0,  # or any other generated value\n         '',  # or any other generated value\n@@ -222,7 +222,7 @@ def test_inquisitor_tuple_multiple_varying(t):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_skip_subset_slices(\n+Failing test case: test_inquisitor_skip_subset_slices(\n     obj=MyClass(\n         (0, False),  # or any other generated value\n         y=False,\n@@ -239,7 +239,7 @@ def test_inquisitor_skip_subset_slices(obj):\n \n # Test for duplicate param names at different nesting levels\n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_duplicate_param_names(\n+Failing test case: test_inquisitor_duplicate_param_names(\n     kw=0,  # or any other generated value\n     b={\n         'kw': '',  # or any other generated value\n@@ -269,7 +269,7 @@ def __init__(self, x):\n \n \n @fails_with_output(\"\"\"\n-Falsifying example: test_inquisitor_multi_level_nesting(\n+Failing test case: test_inquisitor_multi_level_nesting(\n     bare=0,  # or any other generated value\n     outer=Outer(\n         inner=Inner(x=0),  # or any other generated value",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 6,
+      "deletions": 4,
+      "filename": "hypothesis/tests/conjecture/test_provider.py",
+      "patch": "@@ -464,7 +464,7 @@ def test_function(f):\n \n         with capture_out() as out:\n             test_function()\n-        assert \"Trying example: test_function(\\n    f=<symbolic>,\\n)\" in out.getvalue()\n+        assert \"Test case: test_function(\\n    f=<symbolic>,\\n)\" in out.getvalue()\n \n \n @pytest.mark.parametrize(\"verbosity\", [Verbosity.verbose, Verbosity.debug])\n@@ -478,9 +478,7 @@ def test_function(data):\n \n         with capture_out() as out:\n             test_function()\n-        assert (\n-            \"Trying example: test_function(\\n    data=data(...),\\n)\" in out.getvalue()\n-        )\n+        assert \"Test case: test_function(\\n    data=data(...),\\n)\" in out.getvalue()\n         assert \"Draw 1: <symbolic>\" in out.getvalue()\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 6,
+      "changes": 12,
+      "deletions": 6,
+      "filename": "hypothesis/tests/cover/__snapshots__/test_custom_reprs.ambr",
+      "patch": "@@ -1,28 +1,28 @@\n # serializer version: 1\n # name: test_invalid_call_syntax_falls_back_to_repr\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       x='hello world',\n   )\n   '''\n # ---\n # name: test_map_to_bytes_prints_as_repr\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       b=hashlib.sha256(b'').digest(),\n   )\n   '''\n # ---\n # name: test_map_to_str_prints_as_repr\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       s='0',\n   )\n   '''\n # ---\n # name: test_reprs_as_created\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       foo=Foo(x=1),\n       bar=Bar(x=-1),\n       baz=Foo(None),\n@@ -31,7 +31,7 @@\n # ---\n # name: test_reprs_as_created_consistent_calls_despite_indentation\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       a=some_foo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),\n       b=Bar(\n           some_foo(\n@@ -43,7 +43,7 @@\n # ---\n # name: test_reprs_as_created_interactive\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       data=data(...),\n   )\n   Draw 1: Bar(10)",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_custom_reprs.py",
+      "patch": "@@ -123,7 +123,7 @@ def inner(a, b):\n     with pytest.raises(AssertionError) as err:\n         inner()\n     expected_re = r\"\"\"\n-Falsifying example: inner\\(\n+Failing test case: inner\\(\n     a=<.*Foo object at 0x[0-9A-Fa-f]+>,\n     b=<.*Foo object at 0x[0-9A-Fa-f]+>,\n \\)",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/tests/cover/test_deadline.py",
+      "patch": "@@ -17,7 +17,7 @@\n from hypothesis import given, settings, strategies as st\n from hypothesis.errors import DeadlineExceeded, FlakyFailure, InvalidArgument\n \n-from tests.common.utils import assert_falsifying_output, fails_with\n+from tests.common.utils import assert_failing_output, fails_with\n \n pytestmark = pytest.mark.skipif(\n     settings.get_current_profile_name() == \"threading\",\n@@ -78,7 +78,7 @@ def slow_if_large(i):\n         if i >= 1000:\n             time.sleep(1)\n \n-    assert_falsifying_output(\n+    assert_failing_output(\n         slow_if_large,\n         expected_exception=DeadlineExceeded,\n         i=1000,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 0,
+      "changes": 0,
+      "deletions": 0,
+      "filename": "hypothesis/tests/cover/test_draw_values.py",
+      "patch": null,
+      "previous_filename": "hypothesis/tests/cover/test_draw_example.py",
+      "status": "renamed"
+    },
+    {
+      "additions": 6,
+      "changes": 12,
+      "deletions": 6,
+      "filename": "hypothesis/tests/cover/test_explicit_examples.py",
+      "patch": "@@ -28,7 +28,7 @@\n from hypothesis.strategies import floats, integers, text\n \n from tests.common.utils import (\n-    assert_falsifying_output,\n+    assert_failing_output,\n     capture_out,\n     fails_with,\n     skipif_threading,\n@@ -152,7 +152,7 @@ def test_positive(x):\n     ):\n         test_positive()\n     out = out.getvalue()\n-    assert \"Falsifying example: test_positive(1)\" not in out\n+    assert \"Failing test case: test_positive(1)\" not in out\n \n \n def test_prints_output_for_explicit_examples():\n@@ -161,7 +161,7 @@ def test_prints_output_for_explicit_examples():\n     def test_positive(x):\n         assert x > 0\n \n-    assert_falsifying_output(test_positive, \"Falsifying explicit\", x=-1)\n+    assert_failing_output(test_positive, \"Failing explicit example\", x=-1)\n \n \n def test_prints_verbose_output_for_explicit_examples():\n@@ -171,10 +171,10 @@ def test_prints_verbose_output_for_explicit_examples():\n     def test_always_passes(x):\n         pass\n \n-    assert_falsifying_output(\n+    assert_failing_output(\n         test_always_passes,\n         expected_exception=None,\n-        example_type=\"Trying explicit\",\n+        prefix=\"Trying explicit example\",\n         x=\"NOT AN INTEGER\",\n     )\n \n@@ -186,7 +186,7 @@ def test_mutation(x):\n         x.append(1)\n         assert not x\n \n-    assert_falsifying_output(test_mutation, \"Falsifying explicit\", x=[])\n+    assert_failing_output(test_mutation, \"Failing explicit example\", x=[])\n \n \n def test_examples_are_tried_in_order():",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_failing_test_case_output.py",
+      "patch": "@@ -13,7 +13,7 @@\n from hypothesis import Phase, example, given, settings, strategies as st\n \n OUTPUT_WITH_BREAK = \"\"\"\n-Falsifying explicit example: test(\n+Failing explicit example: test(\n     x={0!r},\n     y={0!r},\n )",
+      "previous_filename": "hypothesis/tests/cover/test_falsifying_example_output.py",
+      "status": "renamed"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/tests/cover/test_flakiness.py",
+      "patch": "@@ -67,7 +67,7 @@ def rude(x):\n             first_call = False\n             raise Nope\n \n-    with pytest.raises(FlakyFailure, match=\"Falsified on the first call but\") as e:\n+    with pytest.raises(FlakyFailure, match=\"Failed on the first call but\") as e:\n         rude()\n     exceptions = e.value.exceptions\n     assert len(exceptions) == 1\n@@ -117,7 +117,7 @@ def rude_fn(x):\n     exec(rude_def, globals())\n     rude = given(integers())(rude_fn)  # noqa: F821 # defined by exec()\n \n-    with pytest.raises(FlakyFailure, match=\"Falsified on the first call but\") as e:\n+    with pytest.raises(FlakyFailure, match=\"Failed on the first call but\") as e:\n         rude()\n     exceptions = e.value.exceptions\n     assert list(map(type, exceptions)) == [ExceptionGroup]",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/tests/cover/test_fuzz_one_input.py",
+      "patch": "@@ -33,7 +33,7 @@ def test_fuzz_one_input(buffer_type):\n \n     # This is a standard `@given` test, which we can also use as a fuzz target.\n     # Note that we specify the DB so we can make more precise assertions,\n-    # and tighten the phases so we can be sure the failing examples come from fuzzing.\n+    # and tighten the phases so we can be sure the failing test cases come from fuzzing.\n     @given(st.text())\n     @settings(database=db, phases=[Phase.reuse, Phase.shrink])\n     def test(s):\n@@ -47,7 +47,7 @@ def test(s):\n     assert len(seen) == 0\n \n     # If we run a lot of random bytestrings through fuzz_one_input, we'll eventually\n-    # find a failing example.\n+    # find a failing test case.\n     with pytest.raises(AssertionError):\n         for _ in range(1000):\n             buf = randbytes(1000)\n@@ -57,7 +57,7 @@ def test(s):\n     # fuzz_one_input returns False for invalid bytestrings, due to e.g. assume(False)\n     assert len(seen) <= len(seeds)\n \n-    # `db` contains exactly one failing example, which is either the most\n+    # `db` contains exactly one failing test case, which is either the most\n     # recent seed that we tried or the pruned-and-canonicalised form of it.\n     (saved_examples,) = db.data.values()\n     assert len(saved_examples) == 1",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_given_error_conditions.py",
+      "patch": "@@ -39,7 +39,7 @@ def test_never_runs(x):\n \n     with pytest.raises(\n         Unsatisfiable,\n-        match=r\"Cannot generate examples from empty strategy: x=nothing\\(\\)\",\n+        match=r\"Cannot generate test cases from empty strategy: x=nothing\\(\\)\",\n     ):\n         test_never_runs()\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_observability.py",
+      "patch": "@@ -264,7 +264,7 @@ def test_fails(x, y):\n     }\n     assert observation.coverage is None\n     assert observation.features == {}\n-    assert observation.how_generated == \"minimal failing example\"\n+    assert observation.how_generated == \"minimal failing test case\"\n     assert \"AssertionError\" in observation.metadata.traceback\n     assert \"test_fails\" in observation.metadata.traceback\n     assert observation.metadata.reproduction_decorator.startswith(\"@reproduce_failure\")",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_pretty.py",
+      "patch": "@@ -722,7 +722,7 @@ def __repr__(self):\n \n @given(st.data())\n def test_pprint_with_call_or_repr_as_call(data):\n-    # mapped pprint repr only triggers for failing examples - which makes an\n+    # mapped pprint repr only triggers for failing test cases - which makes an\n     # end to end test given hypothesis difficult. fake our way around it.\n     current_build_context().is_final = True\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_regex.py",
+      "patch": "@@ -516,7 +516,7 @@ def test(s):\n     explain_line = \"  # or any other generated value\" if explain else \"\"\n \n     expected = f\"\"\"\n-Falsifying example: test(\n+Failing test case: test(\n     s='00',{explain_line}\n )\n \"\"\"",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/cover/test_reporting.py",
+      "patch": "@@ -28,7 +28,7 @@ def test_int(x):\n \n     with pytest.raises(AssertionError) as err:\n         test_int()\n-    assert \"Falsifying example\" in \"\\n\".join(err.value.__notes__)\n+    assert \"Failing test case\" in \"\\n\".join(err.value.__notes__)\n \n \n def test_does_not_print_debug_in_verbose():",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "hypothesis/tests/cover/test_slippage.py",
+      "patch": "@@ -348,12 +348,12 @@ def test(x):\n         seen.add(x)\n         assert x\n \n-    # On the first run, we look for up to ten examples:\n+    # On the first run, we look for up to ten test cases:\n     with pytest.raises(AssertionError):\n         test()\n     assert 1 < len(seen) <= MIN_TEST_CALLS\n \n-    # With failing examples in the database, we stop at one.\n+    # With failing test cases in the database, we stop at one.\n     seen.clear()\n     with pytest.raises(AssertionError):\n         test()",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 11,
+      "changes": 22,
+      "deletions": 11,
+      "filename": "hypothesis/tests/cover/test_stateful.py",
+      "patch": "@@ -295,7 +295,7 @@ def fail_fast(self):\n         run_state_machine_as_test(ProducesMultiple)\n \n     # This is tightly coupled to the output format of the step printing.\n-    # The first line is \"Falsifying Example:...\" the second is creating\n+    # The first line is \"Failing test case:...\" the second is creating\n     # the state machine, the third is calling the \"initialize\" method.\n     assignment_line = err.value.__notes__[2]\n     # 'populate_bundle()' returns 2 values, so should be\n@@ -352,7 +352,7 @@ def fail_fast(self):\n         run_state_machine_as_test(ProducesNoVariables)\n \n     # This is tightly coupled to the output format of the step printing.\n-    # The first line is \"Falsifying Example:...\" the second is creating\n+    # The first line is \"Failing test case:...\" the second is creating\n     # the state machine, the third is calling the \"initialize\" method.\n     assignment_line = err.value.__notes__[2]\n     # 'populate_bundle()' returns 0 values, so there should be no\n@@ -732,7 +732,7 @@ def rule_1(self):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = BadInvariant()\n state.initialize_1()\n state.invariant_1()\n@@ -774,7 +774,7 @@ def rule_1(self):\n         run_state_machine_as_test(BadRuleWithGoodInvariants)\n \n     expected = \"\"\"\n-Falsifying example:\n+Failing test case:\n state = BadRuleWithGoodInvariants()\n state.invariant_1()\n state.initialize_1()\n@@ -943,7 +943,7 @@ def fail_fast(self, param):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = WithInitializeBundleRules()\n a_0 = state.initialize_a(dep='dep')\n state.fail_fast(param=a_0)\n@@ -1071,7 +1071,7 @@ def fail_eventually(self):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = StateMachine()\n state.initialize()\n state.fail_eventually()\n@@ -1091,7 +1091,7 @@ def oops(self):\n     with pytest.raises(Failed) as err:\n         run_state_machine_as_test(RaisesProblem)\n     assert \"\\n\".join(err.value.__notes__).strip() == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = RaisesProblem()\n state.oops()\n state.teardown()\"\"\".strip()\n@@ -1305,7 +1305,7 @@ def fail_fast(self, param):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = Machine()\n a_0, a_1, a_2 = state.initialize()\n state.fail_fast(param=a_2)\n@@ -1354,7 +1354,7 @@ def fail_fast(self):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == f\"\"\"\n-Falsifying example:\n+Failing test case:\n state = Machine()\n {repr_}\n state.fail_fast()\n@@ -1388,7 +1388,7 @@ def fail_fast(self, a1, a2, a3, b1, b2, b3):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = Machine()\n a_0, a_1, a_2 = state.initialize()\n b_0, b_1, b_2 = a_0, a_1, a_2\n@@ -1426,7 +1426,7 @@ def fail_fast(self, a1, a2, a3, a4, a5, a6, b1, b2, b3):\n \n     result = \"\\n\".join(err.value.__notes__)\n     assert result == \"\"\"\n-Falsifying example:\n+Failing test case:\n state = Machine()\n a_0, a_1, a_2 = state.initialize()\n b_0, b_1, b_2 = a_0, a_1, a_2",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/cover/test_statistical_events.py",
+      "patch": "@@ -213,7 +213,7 @@ def test(n):\n         assert n < 10\n \n     stats = call_for_statistics(test)\n-    assert \"shrunk example\" in stats[\"stopped-because\"]\n+    assert \"shrunk test case\" in stats[\"stopped-because\"]\n \n \n def test_stateful_states_are_deduped():\n@@ -264,12 +264,12 @@ def test_statistics_for_threshold_problem():\n     def threshold(error):\n         target(error, label=\"error\")\n         assert error <= 10\n-        target(0.0, label=\"never in failing example\")\n+        target(0.0, label=\"never in failing test case\")\n \n     stats = call_for_statistics(threshold)\n     assert \"  - Highest target scores:\" in describe_statistics(stats)\n-    assert \"never in failing example\" in describe_statistics(stats)\n-    # Check that we report far-from-threshold failing examples\n+    assert \"never in failing test case\" in describe_statistics(stats)\n+    # Check that we report far-from-threshold failing test cases\n     assert stats[\"targets\"][\"error\"] > 10\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/cover/test_testdecorators.py",
+      "patch": "@@ -44,7 +44,7 @@\n \n from tests.common.utils import (\n     Why,\n-    assert_falsifying_output,\n+    assert_failing_output,\n     capture_out,\n     fails,\n     fails_with,\n@@ -231,7 +231,7 @@ def test_ints_are_sorted(balthazar, evans):\n         assume(evans >= 0)\n         assert balthazar <= evans\n \n-    assert_falsifying_output(test_ints_are_sorted, balthazar=1, evans=0)\n+    assert_failing_output(test_ints_are_sorted, balthazar=1, evans=0)\n \n \n def test_does_not_print_on_success():\n@@ -406,7 +406,7 @@ def test_mixed_text(x):\n     assert set(x).issubset(set(\"abcdefg\"))\n \n \n-@xfail_on_crosshair(Why.other, strict=False)  # runs ~five failing examples\n+@xfail_on_crosshair(Why.other, strict=False)  # runs ~five failing test cases\n def test_when_set_to_no_simplifies_runs_failing_example_twice():\n     failing = []\n \n@@ -427,7 +427,7 @@ def foo(x):\n         foo()\n     assert len(failing) == 2\n     assert len(set(failing)) == 1\n-    assert \"Falsifying example\" in \"\\n\".join(err.value.__notes__)\n+    assert \"Failing test case\" in \"\\n\".join(err.value.__notes__)\n     assert \"Lo\" in err.value.__notes__\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/cover/test_verbosity.py",
+      "patch": "@@ -34,7 +34,7 @@ def test_works(x):\n             pass\n \n         test_works()\n-    assert \"Trying example\" in o.getvalue()\n+    assert \"Test case:\" in o.getvalue()\n \n \n def test_does_not_log_in_quiet_mode():\n@@ -59,7 +59,7 @@ def test_includes_progress_in_verbose_mode():\n         )\n     out = o.getvalue()\n     assert out\n-    assert \"Trying example: \" in out\n+    assert \"Test case: \" in out\n \n \n @xfail_on_crosshair(Why.symbolic_outside_context, strict=False)\n@@ -83,7 +83,7 @@ def not_first(x):\n \n         foo()\n \n-    assert \"Trying example\" in o.getvalue()\n+    assert \"Test case:\" in o.getvalue()\n \n \n def test_includes_intermediate_results_in_verbose_mode():\n@@ -102,7 +102,7 @@ def test_foo(x):\n \n         test_foo()\n     lines = o.getvalue().splitlines()\n-    assert len([l for l in lines if \"example\" in l]) > 2\n+    assert len([l for l in lines if \"Test case:\" in l]) > 2\n     assert [l for l in lines if \"AssertionError\" in l]\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 0,
+      "changes": 0,
+      "deletions": 0,
+      "filename": "hypothesis/tests/nocover/test_large_values.py",
+      "patch": null,
+      "previous_filename": "hypothesis/tests/nocover/test_large_examples.py",
+      "status": "renamed"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/tests/nocover/test_skipping.py",
+      "patch": "@@ -22,10 +22,10 @@\n \n \n @pytest.mark.parametrize(\"skip_exception\", skip_exceptions_to_reraise())\n-def test_no_falsifying_example_if_unittest_skip(skip_exception):\n+def test_no_failing_test_case_if_unittest_skip(skip_exception):\n     \"\"\"If a ``SkipTest`` exception is raised during a test, Hypothesis should\n     not continue running the test and shrink process, nor should it print\n-    anything about falsifying examples.\"\"\"\n+    anything about failing test cases.\"\"\"\n \n     class DemoTest(unittest.TestCase):\n         @given(xs=integers())\n@@ -39,7 +39,7 @@ def test_to_be_skipped(self, xs):\n         suite = unittest.defaultTestLoader.loadTestsFromTestCase(DemoTest)\n         unittest.TextTestRunner().run(suite)\n \n-    assert \"Falsifying example\" not in o.getvalue()\n+    assert \"Failing test case\" not in o.getvalue()\n \n \n def test_skip_exceptions_save_database_entries():",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/nocover/test_targeting.py",
+      "patch": "@@ -33,7 +33,7 @@ def test_reports_target_results(testdir, multiple):\n     script = testdir.makepyfile(TESTSUITE.format(\"\" if multiple else \"# \"))\n     result = testdir.runpytest(script, \"--tb=native\", \"-rN\")\n     out = \"\\n\".join(result.stdout.lines)\n-    assert \"Falsifying example\" in out\n+    assert \"Failing test case\" in out\n     assert \"x=101\" in out, out\n     assert out.count(\"Highest target score\") == 1\n     assert result.ret != 0",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/patching/test_patching.py",
+      "patch": "@@ -288,7 +288,7 @@ def test_pytest_reports_patch_file_location(pytester):\n     result.assert_outcomes(failed=1)\n \n     fname_pat = r\"\\.hypothesis/patches/\\d{4}-\\d\\d-\\d\\d--[0-9a-f]{8}.patch\"\n-    pattern = f\"`git apply ({fname_pat})` to add failing examples to your code\\\\.\"\n+    pattern = f\"`git apply ({fname_pat})` to add failing test cases to your code\\\\.\"\n     print(f\"{pattern=}\")\n     print(f\"result.stdout=\\n{indent(str(result.stdout), '    ')}\")\n     fname = re.search(pattern, str(result.stdout)).group(1)",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/pytest/test_capture.py",
+      "patch": "@@ -33,7 +33,7 @@ def test_output_without_capture(testdir, capture, expected):\n     result = testdir.runpytest(script, \"--verbose\", \"--capture\", capture)\n     out = \"\\n\".join(result.stdout.lines)\n     assert \"test_should_be_verbose\" in out\n-    assert (\"Trying example\" in out) == expected\n+    assert (\"Test case:\" in out) == expected\n     assert result.ret == 0\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "hypothesis/tests/pytest/test_reporting.py",
+      "patch": "@@ -33,7 +33,7 @@ def test_runs_reporting_hook(testdir):\n     out = \"\\n\".join(result.stdout.lines)\n     assert \"test_this_one_is_ok\" in out\n     assert \"Captured stdout call\" not in out\n-    assert \"Falsifying example\" in out\n+    assert \"Failing test case\" in out\n     assert result.ret != 0\n \n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/pytest/test_skipping.py",
+      "patch": "@@ -29,22 +29,22 @@ def test_to_be_skipped(xs):\n \"\"\"\n \n \n-def test_no_falsifying_example_if_pytest_skip(testdir):\n+def test_no_failing_test_case_if_pytest_skip(testdir):\n     \"\"\"If ``pytest.skip() is called during a test, Hypothesis should not\n     continue running the test and shrink process, nor should it print anything\n-    about falsifying examples.\"\"\"\n+    about failing test cases.\"\"\"\n     script = testdir.makepyfile(PYTEST_TESTSUITE)\n     result = testdir.runpytest(\n         script, \"--verbose\", \"--strict-markers\", \"-m\", \"hypothesis\"\n     )\n     out = \"\\n\".join(result.stdout.lines)\n-    assert \"Falsifying example\" not in out\n+    assert \"Failing test case\" not in out\n \n \n def test_issue_3453_regression(testdir):\n     \"\"\"If ``pytest.skip() is called during a test, Hypothesis should not\n     continue running the test and shrink process, nor should it print anything\n-    about falsifying examples.\"\"\"\n+    about failing test cases.\"\"\"\n     script = testdir.makepyfile(\"\"\"\n from hypothesis import example, given, strategies as st\n import pytest",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/pytest/test_statistics.py",
+      "patch": "@@ -53,21 +53,21 @@ def test_prints_statistics_given_option(testdir):\n     out = get_output(testdir, TESTSUITE, PRINT_STATISTICS_OPTION)\n     assert \"Hypothesis Statistics\" in out\n     assert \"max_examples=100\" in out\n-    assert \"< 1% of examples satisfied assumptions\" in out\n+    assert \"< 1% of test cases satisfied assumptions\" in out\n \n \n def test_prints_statistics_given_option_under_xdist(testdir):\n     out = get_output(testdir, TESTSUITE, PRINT_STATISTICS_OPTION, \"-n\", \"2\")\n     assert \"Hypothesis Statistics\" in out\n     assert \"max_examples=100\" in out\n-    assert \"< 1% of examples satisfied assumptions\" in out\n+    assert \"< 1% of test cases satisfied assumptions\" in out\n \n \n def test_prints_statistics_given_option_with_junitxml(testdir):\n     out = get_output(testdir, TESTSUITE, PRINT_STATISTICS_OPTION, \"--junit-xml=out.xml\")\n     assert \"Hypothesis Statistics\" in out\n     assert \"max_examples=100\" in out\n-    assert \"< 1% of examples satisfied assumptions\" in out\n+    assert \"< 1% of test cases satisfied assumptions\" in out\n \n \n @skipif_threading\n@@ -80,7 +80,7 @@ def test_prints_statistics_given_option_under_xdist_with_junitxml(testdir):\n     )\n     assert \"Hypothesis Statistics\" in out\n     assert \"max_examples=100\" in out\n-    assert \"< 1% of examples satisfied assumptions\" in out\n+    assert \"< 1% of test cases satisfied assumptions\" in out\n \n \n UNITTEST_TESTSUITE = \"\"\"",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 57,
+      "changes": 114,
+      "deletions": 57,
+      "filename": "hypothesis/tests/snapshots/__snapshots__/test_always_failing.ambr",
+      "patch": "@@ -1,238 +1,238 @@\n # serializer version: 1\n # name: test_always_failing[binary]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=b'',\n   )\n   '''\n # ---\n # name: test_always_failing[booleans]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=False,\n   )\n   '''\n # ---\n # name: test_always_failing[builds]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Pair(x=0, y=''),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_from_type]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=[],\n   )\n   '''\n # ---\n # name: test_always_failing[builds_lambda_mixed_args]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_lambda_positional_args]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_lambda_returning_object]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Pair(0, ''),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_lambda_with_defaults]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_multi_arg_lambda]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_no_arg_lambda]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[builds_single_arg_lambda]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[characters]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='0',\n   )\n   '''\n # ---\n # name: test_always_failing[complex_numbers]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0j,\n   )\n   '''\n # ---\n # name: test_always_failing[dates]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=datetime.date(2000, 1, 1),\n   )\n   '''\n # ---\n # name: test_always_failing[datetimes]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=datetime.datetime(2000, 1, 1, 0, 0),\n   )\n   '''\n # ---\n # name: test_always_failing[decimals]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Decimal('Infinity'),\n   )\n   '''\n # ---\n # name: test_always_failing[deferred]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[dictionaries]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0={},\n   )\n   '''\n # ---\n # name: test_always_failing[emails]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='0@A.AC',\n   )\n   '''\n # ---\n # name: test_always_failing[filter]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[fixed_dictionaries]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0={'name': '', 'age': 0},\n   )\n   '''\n # ---\n # name: test_always_failing[flatmap_lambda]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='',\n   )\n   '''\n # ---\n # name: test_always_failing[floats]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0.0,\n   )\n   '''\n # ---\n # name: test_always_failing[fractions]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Fraction(0, 1),\n   )\n   '''\n # ---\n # name: test_always_failing[from_regex]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='aaa',\n   )\n   '''\n # ---\n # name: test_always_failing[from_type]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=IPv4Address('0.0.0.0'),\n   )\n   '''\n # ---\n # name: test_always_failing[frozensets]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=frozenset(),\n   )\n   '''\n # ---\n # name: test_always_failing[functions]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=lambda x: x,\n   )\n   '''\n # ---\n # name: test_always_failing[integers]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[ip_addresses]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=IPv4Address('0.0.0.0'),\n   )\n   '''\n # ---\n # name: test_always_failing[iterables]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=iter([]),\n   )\n   '''\n # ---\n # name: test_always_failing[just]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=42,\n   )\n   '''\n # ---\n # name: test_always_failing[lists]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=[],\n   )\n   '''\n # ---\n # name: test_always_failing[many_args]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n       v1=0.0,\n       v2='',\n@@ -243,35 +243,35 @@\n # ---\n # name: test_always_failing[map_chained_lambdas_opaque]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[map_lambda_opaque_result]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=Opaque(),\n   )\n   '''\n # ---\n # name: test_always_failing[map_to_bytes]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=hashlib.sha256(b'').digest(),\n   )\n   '''\n # ---\n # name: test_always_failing[map_to_str]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='0',\n   )\n   '''\n # ---\n # name: test_always_failing[mixed_strategies]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=[],\n       v1={},\n       v2=10,\n@@ -280,127 +280,127 @@\n # ---\n # name: test_always_failing[none]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=None,\n   )\n   '''\n # ---\n # name: test_always_failing[one_of]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[permutations]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=[0, 1, 2, 3, 4],\n   )\n   '''\n # ---\n # name: test_always_failing[randoms]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=HypothesisRandom(generated data),\n   )\n   '''\n # ---\n # name: test_always_failing[recursive]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[sampled_from]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='alice',\n   )\n   '''\n # ---\n # name: test_always_failing[sets]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=set(),\n   )\n   '''\n # ---\n # name: test_always_failing[shared]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n   )\n   '''\n # ---\n # name: test_always_failing[slices]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=slice(None, None, None),\n   )\n   '''\n # ---\n # name: test_always_failing[text]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='',\n   )\n   '''\n # ---\n # name: test_always_failing[timedeltas]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=datetime.timedelta(0),\n   )\n   '''\n # ---\n # name: test_always_failing[times]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=datetime.time(0, 0),\n   )\n   '''\n # ---\n # name: test_always_failing[tuples]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=(0, '', False),\n   )\n   '''\n # ---\n # name: test_always_failing[two_args]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=0,\n       v1='',\n   )\n   '''\n # ---\n # name: test_always_failing[uuids]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=UUID('e3e70682-c209-4cac-629f-6fbed82c07cd'),\n   )\n   '''\n # ---\n # name: test_always_failing_explain[explain_from_regex]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='00',  # or any other generated value\n   )\n   '''\n # ---\n # name: test_always_failing_explain[explain_map_to_str]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0='0',  # or any other generated value\n   )\n   '''\n # ---\n # name: test_always_failing_explain[map_lambda_explain_forces_call_style]\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       v0=1,  # or any other generated value\n   )\n   '''",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/tests/snapshots/__snapshots__/test_combinators.ambr",
+      "patch": "@@ -1,7 +1,7 @@\n # serializer version: 1\n # name: test_data_draw\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       data=data(...),\n   )\n   Draw 1: 0\n@@ -10,14 +10,14 @@\n # ---\n # name: test_sampled_from_enum_flag\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       c=test_sampled_from_enum_flag.<locals>.Color.RED,\n   )\n   '''\n # ---\n # name: test_sampled_from_module_level_enum_flag\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       d=Direction.NORTH,\n   )\n   '''",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 12,
+      "changes": 24,
+      "deletions": 12,
+      "filename": "hypothesis/tests/snapshots/__snapshots__/test_explain.ambr",
+      "patch": "@@ -1,7 +1,7 @@\n # serializer version: 1\n # name: test_explain_builds_kwargs_subargs\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       obj=MyClass(\n           x=0,  # or any other generated value\n           y=True,\n@@ -11,7 +11,7 @@\n # ---\n # name: test_explain_builds_subargs\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       obj=MyClass(\n           0,  # or any other generated value\n           True,\n@@ -21,7 +21,7 @@\n # ---\n # name: test_explain_comments_basic_fail_if_either\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       # The test always failed when commented parts were varied together.\n       a=False,  # or any other generated value\n       b=True,\n@@ -33,7 +33,7 @@\n # ---\n # name: test_explain_comments_basic_fail_if_not_all\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       # The test sometimes passed when commented parts were varied together.\n       a='',  # or any other generated value\n       b='',  # or any other generated value\n@@ -43,7 +43,7 @@\n # ---\n # name: test_explain_duplicate_param_names\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       kw=0,  # or any other generated value\n       b={\n           'kw': '',  # or any other generated value\n@@ -54,7 +54,7 @@\n # ---\n # name: test_explain_fixeddict_subargs\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       d={\n           'x': 0,  # or any other generated value\n           'y': True,\n@@ -64,7 +64,7 @@\n # ---\n # name: test_explain_multi_level_nesting\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       bare=0,  # or any other generated value\n       outer=Outer(\n           inner=Inner(x=0),  # or any other generated value\n@@ -75,15 +75,15 @@\n # ---\n # name: test_explain_no_together_comment_if_single_argument\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       a='',\n       b='',  # or any other generated value\n   )\n   '''\n # ---\n # name: test_explain_skip_subset_slices\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       obj=MyClass(\n           (0, False),  # or any other generated value\n           y=False,\n@@ -93,7 +93,7 @@\n # ---\n # name: test_explain_tuple_multiple_varying\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       t=(\n           0,  # or any other generated value\n           '',  # or any other generated value\n@@ -104,7 +104,7 @@\n # ---\n # name: test_explain_tuple_subargs\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       t=(\n           0,  # or any other generated value\n           True,\n@@ -114,7 +114,7 @@\n # ---\n # name: test_explain_unstable_one_of_labels\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       w=W([(\n                0,  # or any other generated value\n                0,",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/tests/snapshots/__snapshots__/test_shrinking.ambr",
+      "patch": "@@ -1,21 +1,21 @@\n # serializer version: 1\n # name: test_shrunk_float\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       x=1.0,\n   )\n   '''\n # ---\n # name: test_shrunk_list\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       xs=[1001],\n   )\n   '''\n # ---\n # name: test_shrunk_string\n   '''\n-  Falsifying example: inner(\n+  Failing test case: inner(\n       s='A',\n   )\n   '''",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 3,
+      "changes": 6,
+      "deletions": 3,
+      "filename": "hypothesis/tests/snapshots/test_always_failing.py",
+      "patch": "@@ -16,7 +16,7 @@\n \n from hypothesis import given, strategies as st\n \n-from tests.common.utils import run_test_for_falsifying_example\n+from tests.common.utils import run_test_for_failing_test_case\n from tests.snapshots.conftest import EXPLAIN_SETTINGS, SNAPSHOT_SETTINGS\n \n \n@@ -161,7 +161,7 @@ def test_always_failing(given_args, snapshot):\n     def inner(**kwargs):\n         raise AssertionError\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n @pytest.mark.parametrize(\n@@ -183,4 +183,4 @@ def test_always_failing_explain(given_args, snapshot):\n     def inner(**kwargs):\n         raise AssertionError\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/snapshots/test_combinators.py",
+      "patch": "@@ -12,7 +12,7 @@\n \n from hypothesis import given, strategies as st\n \n-from tests.common.utils import run_test_for_falsifying_example\n+from tests.common.utils import run_test_for_failing_test_case\n from tests.snapshots.conftest import SNAPSHOT_SETTINGS\n \n \n@@ -31,7 +31,7 @@ def inner(data):\n         data.draw(st.text(max_size=3))\n         raise AssertionError\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_sampled_from_enum_flag(snapshot):\n@@ -45,7 +45,7 @@ class Color(Flag):\n     def inner(c):\n         assert not (c & Color.RED)\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_sampled_from_module_level_enum_flag(snapshot):\n@@ -54,4 +54,4 @@ def test_sampled_from_module_level_enum_flag(snapshot):\n     def inner(d):\n         assert not (d & Direction.NORTH)\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 13,
+      "changes": 26,
+      "deletions": 13,
+      "filename": "hypothesis/tests/snapshots/test_explain.py",
+      "patch": "@@ -10,7 +10,7 @@\n \n from hypothesis import given, strategies as st\n \n-from tests.common.utils import run_test_for_falsifying_example\n+from tests.common.utils import run_test_for_failing_test_case\n from tests.snapshots.conftest import EXPLAIN_SETTINGS\n \n \n@@ -26,7 +26,7 @@ def test_explain_comments_basic_fail_if_either(snapshot):\n     def inner(a, b, c, d, e):\n         assert not (b and d)\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_comments_basic_fail_if_not_all(snapshot):\n@@ -36,7 +36,7 @@ def inner(a, b, c):\n         condition = a and b and c\n         assert condition\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_no_together_comment_if_single_argument(snapshot):\n@@ -45,7 +45,7 @@ def test_explain_no_together_comment_if_single_argument(snapshot):\n     def inner(a, b):\n         assert a\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n class MyClass:\n@@ -60,7 +60,7 @@ def test_explain_builds_subargs(snapshot):\n     def inner(obj):\n         assert not obj.y\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_builds_kwargs_subargs(snapshot):\n@@ -69,7 +69,7 @@ def test_explain_builds_kwargs_subargs(snapshot):\n     def inner(obj):\n         assert not obj.y\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_tuple_subargs(snapshot):\n@@ -78,7 +78,7 @@ def test_explain_tuple_subargs(snapshot):\n     def inner(t):\n         assert not t[1]\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_fixeddict_subargs(snapshot):\n@@ -87,7 +87,7 @@ def test_explain_fixeddict_subargs(snapshot):\n     def inner(d):\n         assert not d[\"y\"]\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_tuple_multiple_varying(snapshot):\n@@ -96,7 +96,7 @@ def test_explain_tuple_multiple_varying(snapshot):\n     def inner(t):\n         assert not t[2]\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_skip_subset_slices(snapshot):\n@@ -105,7 +105,7 @@ def test_explain_skip_subset_slices(snapshot):\n     def inner(obj):\n         assert obj.y\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_explain_duplicate_param_names(snapshot):\n@@ -117,7 +117,7 @@ def test_explain_duplicate_param_names(snapshot):\n     def inner(kw, b):\n         assert not b[\"c\"]\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n class Outer:\n@@ -142,7 +142,7 @@ def test_explain_multi_level_nesting(snapshot):\n     def inner(bare, outer):\n         assert not outer.value\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n # Regression for https://github.com/HypothesisWorks/hypothesis/issues/4708.\n@@ -168,4 +168,4 @@ def test_explain_unstable_one_of_labels(snapshot):\n     def inner(w):\n         assert not isinstance(w.a, list)\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "hypothesis/tests/snapshots/test_shrinking.py",
+      "patch": "@@ -10,7 +10,7 @@\n \n from hypothesis import given, strategies as st\n \n-from tests.common.utils import run_test_for_falsifying_example\n+from tests.common.utils import run_test_for_failing_test_case\n from tests.snapshots.conftest import SNAPSHOT_SETTINGS\n \n \n@@ -20,7 +20,7 @@ def test_shrunk_list(snapshot):\n     def inner(xs):\n         assert sum(xs) <= 1000\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_shrunk_string(snapshot):\n@@ -29,7 +29,7 @@ def test_shrunk_string(snapshot):\n     def inner(s):\n         assert s == s.lower()\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot\n \n \n def test_shrunk_float(snapshot):\n@@ -38,4 +38,4 @@ def test_shrunk_float(snapshot):\n     def inner(x):\n         assert x <= 0.5\n \n-    assert run_test_for_falsifying_example(inner) == snapshot\n+    assert run_test_for_failing_test_case(inner) == snapshot",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 11,
+      "changes": 21,
+      "deletions": 10,
+      "filename": "tooling/src/hypothesistooling/__main__.py",
+      "patch": "@@ -55,6 +55,7 @@\n     create_github_release,\n     get_autoupdate_message,\n     has_release,\n+    install_hypothesis_editable,\n     tag_name,\n     update_changelog_and_version,\n     upload_distribution_to_pypi,\n@@ -663,10 +664,17 @@ def documentation():\n     try:\n         if has_release():\n             update_changelog_and_version()\n+        install_hypothesis_editable()\n         build_docs()\n     finally:\n         subprocess.check_call(\n-            [\"git\", \"checkout\", \"docs/changelog.rst\", \"src/hypothesis/version.py\"],\n+            [\n+                \"git\",\n+                \"checkout\",\n+                \"docs/changelog.rst\",\n+                \"rust/Cargo.toml\",\n+                \"rust/Cargo.lock\",\n+            ],\n             cwd=HYPOTHESIS,\n         )\n \n@@ -686,6 +694,7 @@ def live_website():\n \n @task()\n def live_docs():\n+    install_hypothesis_editable()\n     pip_tool(\n         \"sphinx-autobuild\",\n         \"docs\",\n@@ -988,15 +997,7 @@ def check_whole_repo_tests(*args):\n @task()\n def check_documentation(*args):\n     install.ensure_shellcheck()\n-    install.ensure_rustc(ci_version_rust)\n-    # Here is why -e is necessary: our docs build prepends src/ onto sys.path so the local\n-    # source code is consulted first. Without -e, any rust code is compiled into site-packages,\n-    # which the src/ prepending will not reference. -e causes rust code to be compiled\n-    # into src/, which lets our sys.path edit pick it up.\n-    subprocess.check_call(\n-        [sys.executable, \"-m\", \"pip\", \"install\", \"--upgrade\", \"-e\", HYPOTHESIS],\n-        env={**os.environ, **rust_build_env()},\n-    )\n+    install_hypothesis_editable()\n \n     if not args:\n         args = [\"-n\", \"auto\", REPO_TESTS / \"documentation\"]",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 13,
+      "changes": 20,
+      "deletions": 7,
+      "filename": "tooling/src/hypothesistooling/release.py",
+      "patch": "@@ -126,6 +126,18 @@ def has_source_changes():\n     return has_changes([PYTHON_SRC])\n \n \n+def install_hypothesis_editable():\n+    # Here is why -e is necessary: our docs build prepends src/ onto sys.path so the local\n+    # source code is consulted first. Without -e, any rust code is compiled into site-packages,\n+    # which the src/ prepending will not reference. -e causes rust code to be compiled\n+    # into src/, which lets our sys.path edit pick it up.\n+    install.ensure_rustc(ci_version_rust)\n+    subprocess.check_call(\n+        [sys.executable, \"-m\", \"pip\", \"install\", \"--upgrade\", \"-e\", HYPOTHESIS],\n+        env={**os.environ, **rust_build_env()},\n+    )\n+\n+\n def build_docs(*, builder=\"html\", only=(), to=None):\n     # See https://www.sphinx-doc.org/en/stable/man/sphinx-build.html\n     pip_tool(\n@@ -289,13 +301,7 @@ def upload_distribution_to_pypi(*, expected_version):\n \n \n def create_github_release():\n-    # Building the docs requires hypothesis installed editably. See check_documentation\n-    # comment for details of why.\n-    install.ensure_rustc(ci_version_rust)\n-    subprocess.check_call(\n-        [sys.executable, \"-m\", \"pip\", \"install\", \"--upgrade\", \"-e\", HYPOTHESIS],\n-        env={**os.environ, **rust_build_env()},\n-    )\n+    install_hypothesis_editable()\n     # Construct plain-text + markdown version of this changelog entry,\n     # with link to canonical source.\n     build_docs(builder=\"text\", only=[\"docs/changelog.rst\"])",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 35,
+      "changes": 70,
+      "deletions": 35,
+      "filename": "website/content/2016-04-16-anatomy-of-a-test.md",
+      "patch": "@@ -41,7 +41,7 @@ E       assert (0.0 + nan) == (nan + 0.0)\n \n test_floats.py:7: AssertionError\n \n-Falsifying example: test_floats_are_commutative(x=0.0, y=nan)\n+Failing test case: test_floats_are_commutative(x=0.0, y=nan)\n ```\n \n The test fails, because [nan](https://en.wikipedia.org/wiki/NaN) is a valid floating\n@@ -78,40 +78,40 @@ Whichever one we choose, running it we'll see output something like the followin\n \n ```\n \n-Trying example: test_floats_are_commutative(x=-0.05851890381391768, y=-6.060045836901702e+300)\n-Trying example: test_floats_are_commutative(x=-0.06323690311413645, y=2.0324087421708266e-308)\n-Trying example: test_floats_are_commutative(x=-0.05738038380011458, y=-1.5993500302384265e-308)\n-Trying example: test_floats_are_commutative(x=-0.06598754758697359, y=-1.1412902232349034e-308)\n-Trying example: test_floats_are_commutative(x=-0.06472919559855002, y=1.7429441378277974e+35)\n-Trying example: test_floats_are_commutative(x=-0.06537123121982172, y=-8.136220566134233e-156)\n-Trying example: test_floats_are_commutative(x=-0.06016703321602157, y=1.9718842567475311e-215)\n-Trying example: test_floats_are_commutative(x=-0.055257588875432875, y=1.578407827448836e-308)\n-Trying example: test_floats_are_commutative(x=-0.06313031758042666, y=1.6749023021600297e-175)\n-Trying example: test_floats_are_commutative(x=-0.05886897920547916, y=1.213699633272585e+292)\n-Trying example: test_floats_are_commutative(x=-12.0, y=-0.0)\n-Trying example: test_floats_are_commutative(x=4.0, y=1.7976931348623157e+308)\n-Trying example: test_floats_are_commutative(x=-9.0, y=0.0)\n-Trying example: test_floats_are_commutative(x=-38.0, y=1.7976931348623157e+308)\n-Trying example: test_floats_are_commutative(x=-24.0, y=1.5686642754811104e+289)\n-Trying example: test_floats_are_commutative(x=-10.0, y=nan)\n+Test case: test_floats_are_commutative(x=-0.05851890381391768, y=-6.060045836901702e+300)\n+Test case: test_floats_are_commutative(x=-0.06323690311413645, y=2.0324087421708266e-308)\n+Test case: test_floats_are_commutative(x=-0.05738038380011458, y=-1.5993500302384265e-308)\n+Test case: test_floats_are_commutative(x=-0.06598754758697359, y=-1.1412902232349034e-308)\n+Test case: test_floats_are_commutative(x=-0.06472919559855002, y=1.7429441378277974e+35)\n+Test case: test_floats_are_commutative(x=-0.06537123121982172, y=-8.136220566134233e-156)\n+Test case: test_floats_are_commutative(x=-0.06016703321602157, y=1.9718842567475311e-215)\n+Test case: test_floats_are_commutative(x=-0.055257588875432875, y=1.578407827448836e-308)\n+Test case: test_floats_are_commutative(x=-0.06313031758042666, y=1.6749023021600297e-175)\n+Test case: test_floats_are_commutative(x=-0.05886897920547916, y=1.213699633272585e+292)\n+Test case: test_floats_are_commutative(x=-12.0, y=-0.0)\n+Test case: test_floats_are_commutative(x=4.0, y=1.7976931348623157e+308)\n+Test case: test_floats_are_commutative(x=-9.0, y=0.0)\n+Test case: test_floats_are_commutative(x=-38.0, y=1.7976931348623157e+308)\n+Test case: test_floats_are_commutative(x=-24.0, y=1.5686642754811104e+289)\n+Test case: test_floats_are_commutative(x=-10.0, y=nan)\n Traceback (most recent call last):\n   ...\n AssertionError: assert (-10.0 + nan) == (nan + -10.0)\n \n-Trying example: test_floats_are_commutative(x=10.0, y=nan)\n+Test case: test_floats_are_commutative(x=10.0, y=nan)\n Traceback (most recent call last):\n   ...\n AssertionError: assert (10.0 + nan) == (nan + 10.0)\n \n-Trying example: test_floats_are_commutative(x=0.0, y=nan)\n+Test case: test_floats_are_commutative(x=0.0, y=nan)\n Traceback (most recent call last):\n   ...\n AssertionError: assert (0.0 + nan) == (nan + 0.0)\n \n-Trying example: test_floats_are_commutative(x=0.0, y=0.0)\n-Trying example: test_floats_are_commutative(x=0.0, y=inf)\n-Trying example: test_floats_are_commutative(x=0.0, y=-inf)\n-Falsifying example: test_floats_are_commutative(x=0.0, y=nan)\n+Test case: test_floats_are_commutative(x=0.0, y=0.0)\n+Test case: test_floats_are_commutative(x=0.0, y=inf)\n+Test case: test_floats_are_commutative(x=0.0, y=-inf)\n+Failing test case: test_floats_are_commutative(x=0.0, y=nan)\n ```\n \n Notice how the first failing example we got was -10.0, nan but Hypothesis was able\n@@ -121,30 +121,30 @@ Hypothesis's output easy to understand.\n \n \n ```\n-Trying example: test_floats_are_commutative(x=nan, y=0.0)\n+Test case: test_floats_are_commutative(x=nan, y=0.0)\n Traceback (most recent call last):\n   ...\n AssertionError: assert (nan + 0.0) == (0.0 + nan)\n \n-Trying example: test_floats_are_commutative(x=0.0, y=0.0)\n-Trying example: test_floats_are_commutative(x=inf, y=0.0)\n-Trying example: test_floats_are_commutative(x=-inf, y=0.0)\n-Falsifying example: test_floats_are_commutative(x=nan, y=0.0)\n+Test case: test_floats_are_commutative(x=0.0, y=0.0)\n+Test case: test_floats_are_commutative(x=inf, y=0.0)\n+Test case: test_floats_are_commutative(x=-inf, y=0.0)\n+Failing test case: test_floats_are_commutative(x=nan, y=0.0)\n ```\n \n Now lets see what happens when we rerun the test:\n \n \n ```\n-Trying example: test_floats_are_commutative(x=0.0, y=nan)\n+Test case: test_floats_are_commutative(x=0.0, y=nan)\n Traceback (most recent call last):\n   ...\n AssertionError: assert (0.0 + nan) == (nan + 0.0)\n \n-Trying example: test_floats_are_commutative(x=0.0, y=0.0)\n-Trying example: test_floats_are_commutative(x=0.0, y=inf)\n-Trying example: test_floats_are_commutative(x=0.0, y=-inf)\n-Falsifying example: test_floats_are_commutative(x=0.0, y=nan)\n+Test case: test_floats_are_commutative(x=0.0, y=0.0)\n+Test case: test_floats_are_commutative(x=0.0, y=inf)\n+Test case: test_floats_are_commutative(x=0.0, y=-inf)\n+Failing test case: test_floats_are_commutative(x=0.0, y=nan)\n ```\n \n Notice how the first example it tried was the failing example we had last time? That's\n@@ -171,11 +171,11 @@ def test_floats_are_commutative(x, y):\n ```\n \n ```\n-Falsifying example: test_floats_are_commutative(x=0.0, y=nan)\n+Failing test case: test_floats_are_commutative(x=0.0, y=nan)\n ```\n \n If you run this in verbose mode it will print out\n-Falsifying example: test\\_floats\\_are\\_commutative(x=0.0, y=nan) immediately and\n+Failing test case: test\\_floats\\_are\\_commutative(x=0.0, y=nan) immediately and\n not try to do any shrinks. Values you pass in via example will not be shrunk.\n This is partly a technical limitation but it can often be useful as well.\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "website/content/2016-04-16-encode-decode-invariant.md",
+      "patch": "@@ -70,7 +70,7 @@ fuzzing: The code does not correctly handle the empty string.\n \n \n ```\n-Falsifying example: test_decode_inverts_encode(s='')\n+Failing test case: test_decode_inverts_encode(s='')\n \n UnboundLocalError: local variable 'character' referenced before assignment\n ```\n@@ -125,7 +125,7 @@ E         + 110\n \n test_encoding.py:35: AssertionError\n ------------------------------------ Hypothesis ------------------------------------\n-Falsifying example: test_decode_inverts_encode(s='110')\n+Failing test case: test_decode_inverts_encode(s='110')\n \n ```\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "website/content/2016-04-19-rule-based-stateful-testing.md",
+      "patch": "@@ -86,7 +86,7 @@ E         Use -v to get the full diff\n \n binheap.py:74: AssertionError\n ----- Hypothesis -----\n-Falsifying example: test_pop_in_sorted_order(ls=[0, 1, 0])\n+Failing test case: test_pop_in_sorted_order(ls=[0, 1, 0])\n ```\n \n So we replace heappop with a correct implementation which rebalances the heap:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "website/content/2016-04-29-testing-performance-optimizations.md",
+      "patch": "@@ -95,7 +95,7 @@ E         Use -v to get the full diff\n \n foo.py:43: AssertionError\n ----- Hypothesis -----\n-Falsifying example: test_bubble_sorting_is_same_as_merge_sorting(ls=[0, 0])\n+Failing test case: test_bubble_sorting_is_same_as_merge_sorting(ls=[0, 0])\n ```\n \n What's happened is that we messed up our implementation of merge\\_sorted\\_lists, because we forgot",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "website/content/2016-05-29-testing-optimizers-with-hypothesis.md",
+      "patch": "@@ -123,7 +123,7 @@ In fact, both of these tests fail:\n \n ```\n \n-Falsifying example: test_cloning_an_item(items=[(1, 1), (1, 1), (2, 5)], capacity=7, data=data(...))\n+Failing test case: test_cloning_an_item(items=[(1, 1), (1, 1), (2, 5)], capacity=7, data=data(...))\n Draw 1: (1, 1)\n \n ```\n@@ -135,7 +135,7 @@ items that are small enough to fit in it.\n \n ```\n \n-Falsifying example: test_removing_a_chosen_item(items=[(1, 1), (2, 4), (1, 2)], capacity=6, data=data(...))\n+Failing test case: test_removing_a_chosen_item(items=[(1, 1), (2, 4), (1, 2)], capacity=6, data=data(...))\n Draw 1: (1, 1)\n \n ```",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "website/content/2016-06-13-testing-configuration-parameters.md",
+      "patch": "@@ -126,14 +126,14 @@ In both cases, a password would no longer validate against itself:\n \n \n ```\n-Falsifying example: test_a_password_verifies(\n+Failing test case: test_a_password_verifies(\n     password='', time_cost=1, parallelism=1, memory_cost=8, hash_len=4,\n     salt_len=8,\n )\n ```\n \n ```\n-Falsifying example: test_a_password_verifies(\n+Failing test case: test_a_password_verifies(\n     password='', time_cost=1, parallelism=1, memory_cost=8,\n     hash_len=513, salt_len=8\n )",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "website/content/2016-06-30-tests-as-complete-specifications.md",
+      "patch": "@@ -103,7 +103,7 @@ And sure enough, if you run the test enough times it eventually *does*\n fail:\n \n ```\n-Falsifying example: test_inserting_at_smaller_index_gives_unsorted(\n+Failing test case: test_inserting_at_smaller_index_gives_unsorted(\n     ls=[0, 1, 1, 1, 1], v=1\n  )\n ```",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 4,
+      "changes": 8,
+      "deletions": 4,
+      "filename": "website/content/2016-07-04-calculating-the-mean.md",
+      "patch": "@@ -51,7 +51,7 @@ assert inf <= 8.98846567431158e+307\n  +  where inf = mean([8.988465674311579e+307, 8.98846567431158e+307])\n  +  and   8.98846567431158e+307 = max([8.988465674311579e+307, 8.98846567431158e+307])\n \n-Falsifying example: test_mean_is_within_reasonable_bounds(\n+Failing test case: test_mean_is_within_reasonable_bounds(\n     ls=[8.988465674311579e+307, 8.98846567431158e+307]\n )\n ```\n@@ -74,7 +74,7 @@ assert 1.390671161567e-309 <= 1.390671161566996e-309\n where 1.390671161567e-309 = min([1.390671161567e-309, 1.390671161567e-309, 1.390671161567e-309])\n and   1.390671161566996e-309 = mean([1.390671161567e-309, 1.390671161567e-309, 1.390671161567e-309])\n \n-Falsifying example: test_mean_is_within_reasonable_bounds(\n+Failing test case: test_mean_is_within_reasonable_bounds(\n     ls=[1.390671161567e-309, 1.390671161567e-309, 1.390671161567e-309]\n )\n ```\n@@ -107,7 +107,7 @@ assert inf <= 8.98846567431158e+307\n where inf = mean([8.988465674311579e+307, 8.98846567431158e+307])\n and   8.98846567431158e+307 = max([8.988465674311579e+307, 8.98846567431158e+307])\n \n-Falsifying example: test_mean_is_within_reasonable_bounds(\n+Failing test case: test_mean_is_within_reasonable_bounds(\n     ls=[8.988465674311579e+307, 8.98846567431158e+307]\n )\n ```\n@@ -119,7 +119,7 @@ this is broken too\n ```\n OverflowError: integer division result too large for a float\n \n-Falsifying example: test_mean_is_within_reasonable_bounds(\n+Failing test case: test_mean_is_within_reasonable_bounds(\n     ls=[8.988465674311579e+307, 8.98846567431158e+307]\n )\n ```",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "website/content/2016-07-23-what-is-hypothesis.md",
+      "patch": "@@ -90,7 +90,7 @@ When this is first run, you will see an error that looks something\n like this:\n \n ```\n-Falsifying example: test_decode_inverts_encode(s='\\xc2\\xc2\\x80')\n+Failing test case: test_decode_inverts_encode(s='\\xc2\\xc2\\x80')\n \n Traceback (most recent call last):\n   File \"/home/david/.pyenv/versions/2.7/lib/python2.7/site-packages/hypothesis/core.py\", line 443, in evaluate_test_data",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "website/content/2017-03-09-hypothesis-for-researchers.md",
+      "patch": "@@ -99,7 +99,7 @@ Then on running we would see the following output:\n \n   ---- Hypothesis ----\n \n-  Falsifying example: test_sort_is_idempotent(ls=[0, 1])\n+  Failing test case: test_sort_is_idempotent(ls=[0, 1])\n ```\n \n Hypothesis probably started with a much more complicated example (the test fails for essentially any list with more\n@@ -135,7 +135,7 @@ This fails because we've forgotten than `i` may be zero, and also about Python's\n \n   ---- Hypothesis ----\n \n-  Falsifying example: test_sort_is_idempotent(ls=[0, 1], data=data(...))\n+  Failing test case: test_sort_is_idempotent(ls=[0, 1], data=data(...))\n   Draw 1: 0\n ```\n ",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 2,
+      "changes": 4,
+      "deletions": 2,
+      "filename": "website/content/2017-09-14-multi-bug-discovery.md",
+      "patch": "@@ -63,7 +63,7 @@ Well, as of Hypothesis 3.29.0, released a few weeks ago, now it does!\n If you run the above test now, you'll get the following:\n \n ```\n-Falsifying example: test(ls=[nan])\n+Failing test case: test(ls=[nan])\n Traceback (most recent call last):\n   File \"/home/david/hypothesis-python/src/hypothesis/core.py\", line 671, in run\n     print_example=True, is_final=True\n@@ -79,7 +79,7 @@ Traceback (most recent call last):\n     assert min(ls) <= mean(ls) <= max(ls)\n AssertionError\n \n-Falsifying example: test(ls=[])\n+Failing test case: test(ls=[])\n Traceback (most recent call last):\n   File \"/home/david/hypothesis-python/src/hypothesis/core.py\", line 671, in run\n     print_example=True, is_final=True",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 2,
+      "deletions": 1,
+      "filename": "website/content/2018-01-08-smarkets.md",
+      "patch": "@@ -121,7 +121,7 @@ Over all I'm much happier with the new health check system and think it does a m\n Historically output from Hypothesis has looked something like this:\n \n ```\n-Falsifying example: test_is_minimal(ls=[0], v=1)\n+Failing test case: test_is_minimal(ls=[0], v=1)\n ```\n \n Or, if you had a failed health check, like the following:",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Liam-DeVoe",
+    "base_sha": "878d8d44cf88a3df4b97dcd540755ad9616bf61c",
+    "head_sha": "07bfda4102486e11b955f35fb868b332a4e280b8",
+    "html_url": "https://github.com/HypothesisWorks/hypothesis/pull/4631",
+    "number": 4631,
+    "repo": "HypothesisWorks/hypothesis",
+    "state": "closed",
+    "title": "Rename `example` to `test case` in many places"
+  },
+  "review_comments": [
+    {
+      "body": "note about historical example terminology",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3582287329,
+      "in_reply_to_id": null,
+      "line": 768,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 768,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "new glossary page",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3582289051,
+      "in_reply_to_id": null,
+      "line": 1,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 1,
+      "path": "hypothesis/docs/glossary.rst",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "combining our css files into one. The new content here is what I've highlighted here: removing blue links and adding underlines to glossary terms, for a more low-key look.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3582293816,
+      "in_reply_to_id": null,
+      "line": 71,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 71,
+      "path": "hypothesis/docs/_static/styles.css",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "this is a nice before/after comparison for your review",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3582298213,
+      "in_reply_to_id": null,
+      "line": 875,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 870,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\nFor performance reasons, Hypothesis places an internal limit on the number of choices required to generate any single test case. If a test case overruns this size limit, we will retry generating it and will not count it towards the |max_examples| limit. (And if we see too many of these large test cases, we will raise |HealthCheck.data_too_large|, unless suppressed with |settings.suppress_health_check|).\n```",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621655653,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 67,
+      "path": "hypothesis/docs/explanation/example-count.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "note to self: spend a while trying to think of a better name for this setting\n\n(if I had one, we could make it the default while also supporting `max_examples` as an alias indefinitely)",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3621659628,
+      "in_reply_to_id": null,
+      "line": 4,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 4,
+      "path": "hypothesis/docs/explanation/test-case-count.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n|SearchStrategy| is the type of a strategy. It is [generic](https://typing.python.org/en/latest/spec/generics.html) in the type of the values it generates. You can use it to write type hints for your functions which return a strategy:\n```\n\nWe could also say that `SearchStrategy[int]` is treated as a subtype of `SearchStrategy[object]` (ie it's covariant) because this usually helps with typechecking, even though it's not always strictly true at runtime.  Probably not worth it in a howto guide though...",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621711928,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 16,
+      "path": "hypothesis/docs/how-to/type-strategies.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\nBy default, Hypothesis will stop searching after it sees 100 passing test cases.\n```",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621754030,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 38,
+      "path": "hypothesis/docs/tutorial/settings.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n            as \"max passing test cases\" before Hypothesis stops searching for a failing test case.\n```\n(or similar)",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3621789427,
+      "in_reply_to_id": null,
+      "line": 768,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 768,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n        An instance of |ExampleDatabase| in which we will save failing |test cases|,\n        and from which we will load previous failing test cases.\n```",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621797323,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 812,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "Let's add an extra space in `Failing test case:  [-119`, so that it's vertically aligned with the shrinking lines.  I don't think it's worth changing the `Test case:` line though; that would be a lot of indent for a pretty rare misalignment.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3621805091,
+      "in_reply_to_id": null,
+      "line": 870,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 865,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "actually maybe we report it for non-minimal test cases under verbose or debug mode?  I'm pretty sure it's also included in observability output, so we should probably expand this docstring.",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621845216,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 276,
+      "path": "hypothesis/src/hypothesis/control.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "hmm, seems like it would be a better UX if we were clear on which of these possibilities it was?\n\nNot an issue for this PR, which is already large, but could be a nice followup.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3621864345,
+      "in_reply_to_id": null,
+      "line": 54,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 54,
+      "path": "hypothesis/src/hypothesis/errors.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n            f\"    - {statuses['valid']} passing, {statuses['interesting']} failing, \"\n            f\"and {statuses['invalid'] + statuses['overrun']} invalid test cases\"\n```",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621877508,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 97,
+      "path": "hypothesis/src/hypothesis/statistics.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "also changes the contents of the observability json output, which people might consume programmatically!   Which is an ambiguous case...",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3621915165,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 7,
+      "path": "hypothesis/RELEASE.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "hopefully this will rebase away?",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3621931374,
+      "in_reply_to_id": null,
+      "line": 1,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 1,
+      "path": "tooling/src/hypothesistooling/__main__.py",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "hegel uses `test_cases`. I think I prefer this over `max_test_cases`, though not strongly, and I prefer both over the single-word `testcases`.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3624926158,
+      "in_reply_to_id": 3621659628,
+      "line": 4,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 4,
+      "path": "hypothesis/docs/explanation/test-case-count.rst",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "Actually not: I discovered in this PR that `./build.sh documentation` needs an editable install as well, and at that point I refactored that logic into a shared helper.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3624957068,
+      "in_reply_to_id": 3621931374,
+      "line": 1,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 1,
+      "path": "tooling/src/hypothesistooling/__main__.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "I prefer this:\r\n\r\n> By default, Hypothesis will stop after generating 100 test cases.\r\n\r\nI don't want to confuse a user in the tutorial with the distinction between \"passing\" and the implied other categories of [failing/overrun/invalid]. If we think this white lie is sufficiently misleading, I'd prefer saying it anyway but linking to the `explanations/example-count` page in a `.. note::`. [e: oh, we actually do link to that page anyway just below! In that case I think this is certainly fine]\r\n\r\nI also prefer making Hypothesis the actor here, generating (active) the test cases, rather than Hypothesis being the one seeing (passive) the test cases. ",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3625018508,
+      "in_reply_to_id": 3621754030,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 38,
+      "path": "hypothesis/docs/tutorial/settings.rst",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "I don't love editing from the actual print when this code runs, but I think this small edit is net positive",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3625043570,
+      "in_reply_to_id": 3621805091,
+      "line": 870,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 865,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "The semantic change I want to call out in this paragraph is the user should mentally replace `examples` with `test cases`. I don't want to confuse that by adding additional (correct!) clarifications. That's better served by a link to `explanations/example-count` at the bottom of this setting docs.\r\n\r\nWhich...I will add now.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3625250583,
+      "in_reply_to_id": 3621789427,
+      "line": 768,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 768,
+      "path": "hypothesis/src/hypothesis/_settings.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "yeah this is why I made this a minor release instead of a patch release.\r\n\r\nI'll call it out in the release notes. I don't consider changing unstructured observability information to be breaking.",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3625258779,
+      "in_reply_to_id": 3621915165,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 7,
+      "path": "hypothesis/RELEASE.rst",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "we need a documentation section or page somewhere dedicated to \"what gets printed when and under what verbosity settings\"...I'll figure out the right way to clarify this for now",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3625268381,
+      "in_reply_to_id": 3621845216,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 276,
+      "path": "hypothesis/src/hypothesis/control.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "wow, according to fable `note` is *not* in observations. We should fix that!\r\n\r\n>  \"I'm pretty sure it's also included in observability output\" \u2014 no, it isn't. Three lines of evidence:\r\n>\r\n>  - Code path: note() just calls report(), which writes to the current reporter. Observability's features dict is built exclusively from data.target_observations\r\n>  and data.events (internal/observability.py:450), and nothing else in make_testcase touches reported fragments.\r\n>  - Empirical: I registered an add_observability_callback and ran a passing test and a failing test (with shrinking) calling note(\"NOTEMARKER-...\"), then searched\r\n>  the full JSON of every observation. 25 observations, zero contained the marker \u2014 including the final how_generated=\"minimal failing test case\" one. Same result\r\n>  with verbosity=Verbosity.verbose.\r\n>  - The documented schema agrees: schema_observations.json describes features as \"|target| scores, tags from |event|, and so on\" with no mention of notes.\r\n>\r\n>  My guess is Zac was thinking of event(), which does land in observability features \u2014 an easy adjacent-API conflation.\r\n>     docs/reference/schema_observations.json\r\n>     docs/reference/schema_metadata.json\r\n>     docs/reference/integrations.rst",
+      "commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "id": 3625318066,
+      "in_reply_to_id": 3621845216,
+      "line": null,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 276,
+      "path": "hypothesis/src/hypothesis/control.py",
+      "side": "RIGHT",
+      "user": "Liam-DeVoe",
+      "user_type": "User"
+    },
+    {
+      "body": "hmm, I do like that.  let's give the new docs a few months to bake, and normalize the \"test case\" terminology, and then we can look at adding an alias late this year.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3628550630,
+      "in_reply_to_id": 3621659628,
+      "line": 4,
+      "original_commit_id": "df1acfd8c1c2701710bb4c39ddd57ffc78f97f86",
+      "original_line": 4,
+      "path": "hypothesis/docs/explanation/test-case-count.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n        - 100 passing, 0 failing, and 32 invalid test cases\n```",
+      "commit_id": "20115e8640b17bcd3a447d733359884064595877",
+      "id": 3628594074,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "20115e8640b17bcd3a447d733359884064595877",
+      "original_line": 124,
+      "path": "hypothesis/docs/reference/api.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n        - 100 passing, 0 failing, and 0 invalid test cases\n```",
+      "commit_id": "20115e8640b17bcd3a447d733359884064595877",
+      "id": 3628596554,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "20115e8640b17bcd3a447d733359884064595877",
+      "original_line": 236,
+      "path": "hypothesis/docs/reference/integrations.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    },
+    {
+      "body": "Okay, strictly speaking this is not true (we've never included notes in observability output, oops!) but the docs already said this and I'll have a PR up for it later this morning, so let's not delay.",
+      "commit_id": "07bfda4102486e11b955f35fb868b332a4e280b8",
+      "id": 3628662014,
+      "in_reply_to_id": null,
+      "line": 31,
+      "original_commit_id": "20115e8640b17bcd3a447d733359884064595877",
+      "original_line": 31,
+      "path": "hypothesis/docs/tutorial/adding-notes.rst",
+      "side": "RIGHT",
+      "user": "Zac-HD",
+      "user_type": "User"
+    }
+  ]
+}

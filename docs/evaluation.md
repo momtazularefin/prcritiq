@@ -18,15 +18,15 @@ Benchmark v2 enforces the missing foundations:
 
 Mechanical matching remains only a triage aid: same file, a line within five, and at least 18 percent shared distinctive vocabulary. The reported “label-overlap precision” is a proxy, not adjudicated correctness. Full finding retention now makes a proper manual pass possible.
 
-Export the stable, provenance-rich adjudication queue, edit each verdict to `confirmed_defect` or `excluded`, then build a candidate certified dataset:
+Export the stable, provenance-rich adjudication queue, read the primary comment and any captured thread replies, edit each verdict to `confirmed_defect` or `excluded`, then build a candidate certified dataset:
 
 ```powershell
 uv run python eval/adjudicate_dataset.py --export eval/adjudications.jsonl
-uv run python eval/adjudicate_dataset.py --apply eval/adjudications.jsonl --output eval/dataset-certified.jsonl
+uv run python eval/adjudicate_dataset.py --apply eval/adjudications.jsonl --confirmed-only --output eval/dataset-certified.jsonl
 uv run prcritiq eval --fixture-mode --dataset eval/dataset-certified.jsonl
 ```
 
-The apply step fails on duplicate, missing, unknown, or still-unreviewed decisions. The fixture evaluation remains the final check for revision-invalid targets and minimum corpus size.
+The exported queue identifies the PR author and carries direct replies from each frozen review thread. Replies matter because a suggestion may be corrected, narrowed, or rejected after the primary comment. The apply step fails on duplicate, missing, unknown, still-unreviewed, or unexplained decisions. Before a live evaluation, PRCritiq verifies the selected cases against their frozen fixtures: every scored label must be human-confirmed, carry v2 reviewer and source-comment provenance, target the exact head revision, and land on an added line. If any check fails, the CLI exits before constructing or calling a provider. Fixture mode remains available for validating an uncertified candidate corpus offline.
 
 ## Legacy Diagnostic Runs
 
@@ -38,13 +38,28 @@ These values are not benchmark claims because the dataset-certification gate fai
 
 ## Model Bake-off
 
-Repair and adjudicate the dataset before running the paid matrix. Start on a small smoke set and expand only finalists:
+The first certified-preflight diagnostic ran on 2026-09-02 across Opus 5 low,
+Terra low/medium, and Sol low. All four live provider calls completed on the
+same one-case set for an estimated $0.1374 total, but none matched the retained
+label. No model was selected.
+
+That run exposed missing adjudication context: the sole confirmed comment has a
+direct author reply disputing its premise, and the final Python sentinel
+specification supports the reply. Ten of the 18 candidates have captured thread
+replies which the original decision queue did not show. The queue now includes
+those replies and author attribution. See the
+[one-case bake-off diagnostic](../eval/runs/model-bakeoff.md) for exact usage,
+latency, findings, and sources.
+
+Revisit the contextual adjudications before any paid expansion. Once a
+multi-case certified smoke set exists, repeat the same matrix on exactly that
+set:
 
 ```powershell
-uv run prcritiq eval --provider anthropic --model claude-opus-5 --effort low --limit 6 --out eval/runs/opus-low
-uv run prcritiq eval --provider openai --model gpt-5.6-terra --effort low --limit 6 --out eval/runs/terra-low
-uv run prcritiq eval --provider openai --model gpt-5.6-terra --effort medium --limit 6 --out eval/runs/terra-medium
-uv run prcritiq eval --provider openai --model gpt-5.6-sol --effort low --limit 6 --out eval/runs/sol-low
+uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider anthropic --model claude-opus-5 --effort low --out eval/runs/opus-5-low
+uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low --out eval/runs/terra-low
+uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort medium --out eval/runs/terra-medium
+uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-sol --effort low --out eval/runs/sol-low
 ```
 
 GPT-5.6 Luna should be evaluated as a high-recall candidate generator after generation and verification are split into separate stages. Comparing it as the sole reviewer would test a different, weaker architecture than the intended production cascade.
