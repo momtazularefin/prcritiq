@@ -288,7 +288,7 @@ def score_case(
     invalid_label_targets: list[str] = []
     for original_index, label in enumerate(case.labels):
         target = f"{label.file_path}:{label.line}"
-        if label.adjudication == "excluded":
+        if label.excluded:
             excluded_labels.append(target)
         elif valid_targets is not None and (label.file_path, label.line) not in valid_targets:
             invalid_label_targets.append(target)
@@ -535,8 +535,8 @@ def build_report(
         "dataset_certified": metrics.dataset_certified,
         "cases": [outcome.__dict__ for outcome in outcomes],
         "limitations": [
-            "Legacy or newly harvested labels remain unreviewed until a human marks "
-            "them confirmed_defect; unreviewed labels force the dataset-certification "
+            "A label remains provisional until a named human records a final verdict "
+            "and explicit approval; provisional labels force the dataset-certification "
             "gate to fail.",
             "Finding-to-label matching is mechanical: same file, a line within "
             f"{LINE_WINDOW}, and at least {TOKEN_OVERLAP:.0%} shared distinctive "
@@ -595,7 +595,7 @@ def certify_dataset(cases: Sequence[BenchmarkCase], root: Any) -> DatasetCertifi
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             case_issues.append(f"{prefix}: fixture cannot be validated: {exc}")
 
-        scored = [label for label in case.labels if label.adjudication != "excluded"]
+        scored = [label for label in case.labels if not label.excluded]
         if not scored:
             case_issues.append(f"{prefix}: no confirmed defect labels remain after exclusions")
 
@@ -612,9 +612,22 @@ def certify_dataset(cases: Sequence[BenchmarkCase], root: Any) -> DatasetCertifi
 
         for label in case.labels:
             label_prefix = f"{prefix}/{label.label_id or '<missing-label-id>'}"
-            if label.adjudication == "excluded":
-                if not label.adjudication_notes.strip():
-                    case_issues.append(f"{label_prefix}: excluded label needs adjudication notes")
+            if not isinstance(label.human_approved, bool):
+                case_issues.append(f"{label_prefix}: human_approved must be a boolean")
+                continue
+            if not isinstance(label.adjudicator, str):
+                case_issues.append(f"{label_prefix}: adjudicator must be a string")
+                continue
+            if label.adjudication != "unreviewed" and not label.human_approved:
+                case_issues.append(f"{label_prefix}: decision is not human-approved")
+                continue
+            if label.human_approved and not label.adjudicator.strip():
+                case_issues.append(f"{label_prefix}: human adjudicator is missing")
+                continue
+            if label.adjudication != "unreviewed" and not label.adjudication_notes.strip():
+                case_issues.append(f"{label_prefix}: adjudication notes are missing")
+                continue
+            if label.excluded:
                 continue
             if not label.confirmed:
                 case_issues.append(f"{label_prefix}: label is not human-confirmed")

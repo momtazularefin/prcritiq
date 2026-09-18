@@ -28,9 +28,14 @@ from prcritiq.dataset import (
     Label,
     adjudication_queue,
     apply_adjudications,
+    case_is_certified,
     classify_comment,
+    is_likely_defect_comment,
     is_meaningful_comment,
+    is_resolution_reply,
+    is_reviewable_source_path,
     labels_from_comments,
+    labels_from_review_revision,
     read_dataset,
     select_confirmed_cases,
     write_dataset,
@@ -50,6 +55,9 @@ def label(**overrides) -> Label:
         "human_comment": "This divides by n without checking for a zero argument first.",
         "expected_issue": "zero division",
         "adjudication": "confirmed_defect",
+        "adjudication_notes": "Verified against the changed behavior.",
+        "human_approved": True,
+        "adjudicator": "test-human",
     }
     defaults.update(overrides)
     return Label(**defaults)
@@ -182,6 +190,210 @@ class TestCommentFiltering:
         assert [item.source_comment_id for item in labels] == [5]
         assert labels[0].reviewer_login == "reviewer"
         assert labels[0].adjudication == "unreviewed"
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "Thanks, fixed in the next commit.",
+            "added tests for both branches",
+            "Good catch — this is updated now.",
+            "Good point! Reverted the change.",
+            "I've made all the requested changes.",
+            "thanks removed now :) ",
+        ],
+    )
+    def test_completed_author_replies_are_high_signal(self, body: str) -> None:
+        assert is_resolution_reply(body)
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "I will add tests later.",
+            "This is not fixed because the current behavior is intentional.",
+            "I don't think we should change this.",
+            "You're right, but let's address this in another pull request.",
+        ],
+    )
+    def test_future_or_rejected_changes_are_not_resolution_evidence(self, body: str) -> None:
+        assert not is_resolution_reply(body)
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "This will crash when the optional value is None at runtime.",
+            "The old trees retain the prior encoding, silently corrupting predictions.",
+            "This returns 500 instead of hiding the stale asset node.",
+        ],
+    )
+    def test_concrete_failures_are_defect_candidates(self, body: str) -> None:
+        assert is_likely_defect_comment(body)
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "Nitpick, can we keep this concise and use a tuple?",
+            "Can you add a docstring explaining this wrapper?",
+            "Please remove the stale comment here.",
+            "I could be wrong, but this looks weird and may fail.",
+            "I may be wrong, but wouldn't this make the decoder simpler?",
+            "Can't this be handled by a page-level redirect?",
+            "```suggestion\nraise BetterError()\n```",
+            "We should add a scenario to the integration tests for this.",
+            "What do you think about adding a deserialization hook here?",
+            "Not a blocker; I would approve this PR as is.",
+            "Code LGTM but not sure if it should error or return empty.",
+        ],
+    )
+    def test_style_and_documentation_requests_are_not_defect_candidates(self, body: str) -> None:
+        assert not is_likely_defect_comment(body)
+
+    @pytest.mark.parametrize(
+        "path, expected",
+        [
+            ("src/app.py", True),
+            ("package/runtime.py", True),
+            ("tests/test_runtime.py", False),
+            ("docs/conf.py", False),
+            ("examples/demo.py", False),
+            ("src/native.pyx", False),
+        ],
+    )
+    def test_ground_truth_candidates_target_product_python(self, path: str, expected: bool) -> None:
+        assert is_reviewable_source_path(path) is expected
+
+    def test_review_revision_uses_original_commit_line_and_author_resolution(self) -> None:
+        comments = [
+            {
+                "id": 7,
+                "pull_request_review_id": 99,
+                "body": "This duplicates mode in the constructor docstring and misstates the API.",
+                "path": "src/app.py",
+                "line": None,
+                "original_line": 12,
+                "commit_id": "final",
+                "original_commit_id": "reviewed",
+                "user": {"login": "reviewer", "type": "User"},
+            },
+            {
+                "id": 8,
+                "in_reply_to_id": 7,
+                "body": "Thanks, fixed in the next commit.",
+                "commit_id": "final",
+                "user": {"login": "author", "type": "User"},
+            },
+        ]
+
+        labels = labels_from_review_revision(
+            comments,
+            reviews={99: "CHANGES_REQUESTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+        )
+
+        assert len(labels) == 1
+        assert labels[0].line == 12
+        assert labels[0].review_commit_sha == "reviewed"
+        assert labels[0].review_state == "CHANGES_REQUESTED"
+        assert labels[0].author_resolution_comment_id == 8
+        assert labels[0].author_resolution_commit_sha == "final"
+        assert labels[0].author_resolution.startswith("Thanks, fixed")
+
+    def test_requested_changes_signal_does_not_require_an_author_reply(self) -> None:
+        comments = [
+            {
+                "id": 7,
+                "pull_request_review_id": 99,
+                "body": "This will crash when the optional value is None at runtime.",
+                "path": "src/app.py",
+                "original_line": 12,
+                "original_commit_id": "reviewed",
+                "user": {"login": "reviewer", "type": "User"},
+            }
+        ]
+
+        accepted = labels_from_review_revision(
+            comments,
+            reviews={99: "CHANGES_REQUESTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+            signal="accepted",
+        )
+        requested = labels_from_review_revision(
+            comments,
+            reviews={99: "CHANGES_REQUESTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+            signal="requested_changes",
+        )
+        defect = labels_from_review_revision(
+            comments,
+            reviews={99: "CHANGES_REQUESTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+            signal="defect",
+        )
+
+        assert accepted == []
+        assert len(requested) == 1
+        assert len(defect) == 1
+
+    def test_deferred_issue_is_not_a_defect_candidate_for_the_current_pr(self) -> None:
+        comments = [
+            {
+                "id": 7,
+                "pull_request_review_id": 99,
+                "body": "This leaks memory whenever a new client is created.",
+                "path": "src/app.py",
+                "original_line": 12,
+                "original_commit_id": "reviewed",
+                "user": {"login": "reviewer", "type": "User"},
+            },
+            {
+                "id": 8,
+                "in_reply_to_id": 7,
+                "body": "This is non-blocking; let's handle it in a follow-up PR.",
+                "user": {"login": "reviewer", "type": "User"},
+            },
+        ]
+
+        labels = labels_from_review_revision(
+            comments,
+            reviews={99: "COMMENTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+            signal="defect",
+        )
+
+        assert labels == []
+
+    def test_author_rejection_is_not_a_defect_candidate(self) -> None:
+        comments = [
+            {
+                "id": 7,
+                "pull_request_review_id": 99,
+                "body": "This branch will fail whenever the queue is empty.",
+                "path": "src/app.py",
+                "original_line": 12,
+                "original_commit_id": "reviewed",
+                "user": {"login": "reviewer", "type": "User"},
+            },
+            {
+                "id": 8,
+                "in_reply_to_id": 7,
+                "body": "This is impossible because the earlier result call raises first.",
+                "user": {"login": "author", "type": "User"},
+            },
+        ]
+
+        labels = labels_from_review_revision(
+            comments,
+            reviews={99: "COMMENTED"},
+            pr_author_login="author",
+            revision_sha="reviewed",
+            signal="defect",
+        )
+
+        assert labels == []
 
 
 class TestMatching:
@@ -450,12 +662,20 @@ class TestDatasetRoundTrip:
                     "label_id": label_id,
                     "adjudication": "excluded",
                     "adjudication_notes": "author reply",
+                    "human_approved": True,
+                    "adjudicator": "project-owner",
+                    "category": "error_handling",
+                    "severity": "medium",
                 }
             ],
         )
 
         assert updated[0].labels[0].adjudication == "excluded"
         assert updated[0].labels[0].adjudication_notes == "author reply"
+        assert updated[0].labels[0].human_approved is True
+        assert updated[0].labels[0].adjudicator == "project-owner"
+        assert updated[0].labels[0].category == "error_handling"
+        assert updated[0].labels[0].severity == "medium"
 
     def test_missing_adjudications_fail_closed(self) -> None:
         restored = read_after_write(self_case())
@@ -477,6 +697,80 @@ class TestDatasetRoundTrip:
                 ],
             )
 
+    def test_provisional_final_decision_is_not_treated_as_human_ground_truth(self) -> None:
+        restored = read_after_write(self_case())
+
+        updated = apply_adjudications(
+            [restored],
+            [
+                {
+                    "label_id": restored.labels[0].label_id,
+                    "adjudication": "confirmed_defect",
+                    "adjudication_notes": "Agent evidence review; human sign-off pending.",
+                }
+            ],
+        )
+
+        decision = updated[0].labels[0]
+        assert decision.adjudication == "confirmed_defect"
+        assert decision.human_approved is False
+        assert decision.adjudicator == ""
+        assert not decision.confirmed
+        assert not decision.excluded
+
+    def test_provisional_exclusion_is_not_treated_as_a_human_exclusion(self) -> None:
+        restored = read_after_write(self_case())
+
+        updated = apply_adjudications(
+            [restored],
+            [
+                {
+                    "label_id": restored.labels[0].label_id,
+                    "adjudication": "excluded",
+                    "adjudication_notes": "Agent evidence review; human sign-off pending.",
+                }
+            ],
+        )
+
+        decision = updated[0].labels[0]
+        assert decision.adjudication == "excluded"
+        assert decision.human_approved is False
+        assert not decision.confirmed
+        assert not decision.excluded
+
+    def test_human_approval_requires_an_identified_adjudicator(self) -> None:
+        restored = read_after_write(self_case())
+
+        with pytest.raises(ValueError, match="needs an adjudicator"):
+            apply_adjudications(
+                [restored],
+                [
+                    {
+                        "label_id": restored.labels[0].label_id,
+                        "adjudication": "confirmed_defect",
+                        "adjudication_notes": "Verified against the changed behavior.",
+                        "human_approved": True,
+                    }
+                ],
+            )
+
+    def test_adjudicator_must_be_a_string(self) -> None:
+        restored = read_after_write(self_case())
+
+        with pytest.raises(ValueError, match="non-string adjudicator"):
+            apply_adjudications(
+                [restored],
+                [
+                    {
+                        "label_id": restored.labels[0].label_id,
+                        "adjudication": "confirmed_defect",
+                        "adjudication_notes": "Verified against the changed behavior.",
+                        "human_approved": True,
+                        "adjudicator": 42,
+                    }
+                ],
+            )
+
     def test_queue_contains_provenance_and_decision_fields(self) -> None:
         restored = read_after_write(self_case())
 
@@ -485,6 +779,10 @@ class TestDatasetRoundTrip:
         assert row["label_id"] == "legacy:c:001"
         assert row["case_id"] == "c"
         assert row["adjudication"] == "confirmed_defect"
+        assert row["category"] == "bug"
+        assert row["severity"] == "high"
+        assert row["human_approved"] is True
+        assert row["adjudicator"] == "test-human"
 
     def test_queue_includes_replies_and_marks_the_pr_author(self, tmp_path: Path) -> None:
         fixture = {
@@ -550,6 +848,22 @@ class TestDatasetRoundTrip:
 
         assert [case.id for case in selected] == [confirmed.id]
 
+    @pytest.mark.parametrize("adjudicator", ["", "   ", 42])
+    def test_approval_without_a_valid_human_identity_never_certifies(
+        self, adjudicator: object
+    ) -> None:
+        case = self_case()
+        invalid = label(adjudicator=adjudicator)
+        case = BenchmarkCase(**{**case.to_json(), "labels": [invalid]})
+
+        outcome = score_case(case, [finding()])
+
+        assert not invalid.confirmed
+        assert not case_is_certified(case)
+        assert outcome.confirmed_labels == 0
+        assert outcome.unadjudicated_labels == 1
+        assert not aggregate([outcome]).dataset_certified
+
 
 def read_after_write(case: BenchmarkCase) -> BenchmarkCase:
     """Round-trip through a real temporary-shaped JSONL payload without I/O fixtures."""
@@ -598,12 +912,71 @@ class TestShippedCorpus:
                 assert item.file_path in changed, f"{case.id}: {item.file_path}"
 
 
+class TestHumanAdjudicationArtifacts:
+    @staticmethod
+    def _decisions(path: Path) -> list[dict[str, object]]:
+        return [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    @pytest.mark.parametrize(
+        "filename",
+        ["adjudications.jsonl", "adjudications-with-context.jsonl"],
+    )
+    def test_historical_human_queues_have_explicit_approval(self, filename: str) -> None:
+        source = read_dataset(REPO_ROOT / "eval" / "candidates" / "dataset.jsonl")
+        decisions = self._decisions(REPO_ROOT / "eval" / "candidates" / filename)
+        expected_ids = {label.label_id for case in source for label in case.labels}
+
+        assert len(decisions) == 18
+        assert {str(row["label_id"]) for row in decisions} == expected_ids
+        assert all(row["adjudication"] == "excluded" for row in decisions)
+        assert all(str(row["adjudication_notes"]).strip() for row in decisions)
+        assert all(row["human_approved"] is True for row in decisions)
+        assert all(row["adjudicator"] == "project-owner" for row in decisions)
+
+        once = apply_adjudications(source, decisions)
+        twice = apply_adjudications(once, decisions)
+        assert [case.to_json() for case in twice] == [case.to_json() for case in once]
+
+    @pytest.mark.parametrize(
+        "relative_path",
+        [
+            "eval/candidates/dataset-adjudicated.jsonl",
+            "eval/dataset-certified.jsonl",
+        ],
+    )
+    def test_historical_derived_datasets_preserve_human_approval(self, relative_path: str) -> None:
+        labels = [
+            label for case in read_dataset(REPO_ROOT / relative_path) for label in case.labels
+        ]
+
+        assert len(labels) == 18
+        assert all(label.excluded for label in labels)
+        assert all(label.adjudicator == "project-owner" for label in labels)
+
+    def test_recovery_queue_is_explicitly_provisional(self) -> None:
+        decisions = self._decisions(
+            REPO_ROOT / "eval" / "ground-truth-candidates" / "adjudications.jsonl"
+        )
+
+        assert len(decisions) == 7
+        assert sum(row["adjudication"] == "confirmed_defect" for row in decisions) == 5
+        assert sum(row["adjudication"] == "excluded" for row in decisions) == 2
+        assert all(row["human_approved"] is False for row in decisions)
+        assert all(row["adjudicator"] == "" for row in decisions)
+
+
 class TestDatasetCertification:
     def _write_case(
         self,
         tmp_path: Path,
         *,
         adjudication: str = "confirmed_defect",
+        human_approved: bool | str | None = None,
+        adjudicator: object | None = None,
         review_commit_sha: str = "head",
         label_id: str = "github-review-comment:7",
         source_comment_id: int | None = 7,
@@ -662,6 +1035,14 @@ class TestDatasetCertification:
                     review_commit_sha=review_commit_sha,
                     adjudication=adjudication,
                     adjudication_notes="Verified against the changed behavior.",
+                    human_approved=(
+                        adjudication != "unreviewed" if human_approved is None else human_approved
+                    ),
+                    adjudicator=(
+                        "project-owner"
+                        if adjudicator is None and adjudication != "unreviewed"
+                        else (adjudicator or "")
+                    ),
                 )
             ],
         )
@@ -679,6 +1060,61 @@ class TestDatasetCertification:
 
         assert not result.certified
         assert any("not human-confirmed" in issue for issue in result.issues)
+
+    @pytest.mark.parametrize("adjudication", ["confirmed_defect", "excluded"])
+    def test_provisional_final_decision_is_not_certified(
+        self, tmp_path: Path, adjudication: str
+    ) -> None:
+        result = certify_dataset(
+            [
+                self._write_case(
+                    tmp_path,
+                    adjudication=adjudication,
+                    human_approved=False,
+                    adjudicator="agent-evidence-review",
+                )
+            ],
+            tmp_path,
+        )
+
+        assert not result.certified
+        assert any("decision is not human-approved" in issue for issue in result.issues)
+
+    def test_non_boolean_human_approval_is_not_certified(self, tmp_path: Path) -> None:
+        result = certify_dataset(
+            [self._write_case(tmp_path, human_approved="yes")],
+            tmp_path,
+        )
+
+        assert not result.certified
+        assert any("human_approved must be a boolean" in issue for issue in result.issues)
+
+    def test_non_string_adjudicator_is_not_certified(self, tmp_path: Path) -> None:
+        result = certify_dataset(
+            [self._write_case(tmp_path, adjudicator=42)],
+            tmp_path,
+        )
+
+        assert not result.certified
+        assert any("adjudicator must be a string" in issue for issue in result.issues)
+
+    def test_provisional_exclusion_cannot_hide_a_confirmed_label(self, tmp_path: Path) -> None:
+        case = self._write_case(tmp_path)
+        provisional_exclusion = label(
+            label_id="github-review-comment:8",
+            source_comment_id=7,
+            reviewer_login="reviewer",
+            review_commit_sha="head",
+            adjudication="excluded",
+            human_approved=False,
+            adjudicator="",
+        )
+        mixed = BenchmarkCase(**{**case.to_json(), "labels": [*case.labels, provisional_exclusion]})
+
+        result = certify_dataset([mixed], tmp_path)
+
+        assert not result.certified
+        assert any("decision is not human-approved" in issue for issue in result.issues)
 
     def test_legacy_or_wrong_revision_provenance_is_not_certified(self, tmp_path: Path) -> None:
         result = certify_dataset(
@@ -725,7 +1161,7 @@ class TestFixtureModeRun:
         assert all(item.error is None for item in outcomes)
         assert metrics.cases == 2
         assert report["passed"] is False  # a two-case corpus cannot pass
-        assert "unreviewed" in report["limitations"][0]
+        assert "explicit approval" in report["limitations"][0]
 
     def test_the_markdown_report_renders(self, tmp_path: Path) -> None:
         report = build_report(

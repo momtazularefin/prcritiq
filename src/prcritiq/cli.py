@@ -189,8 +189,6 @@ def _run_eval(args) -> int:
         return 1
 
     cases = read_dataset(dataset_path)
-    if args.limit:
-        cases = cases[: args.limit]
 
     if not args.fixture_mode:
         certification = certify_dataset(cases, root)
@@ -212,6 +210,9 @@ def _run_eval(args) -> int:
                 )
             )
             return 1
+
+    if args.limit:
+        cases = cases[: args.limit]
 
     settings = load_settings()
     if args.fixture_mode:

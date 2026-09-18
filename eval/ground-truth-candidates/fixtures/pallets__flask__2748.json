@@ -1,0 +1,110 @@
+{
+  "files": [
+    {
+      "additions": 4,
+      "changes": 5,
+      "deletions": 1,
+      "filename": "flask/blueprints.py",
+      "patch": "@@ -66,7 +66,10 @@ def add_url_rule(self, rule, endpoint=None, view_func=None, **options):\n         blueprint's name.\n         \"\"\"\n         if self.url_prefix is not None:\n-            rule = '/'.join((self.url_prefix, rule.lstrip('/')))\n+            if rule:\n+                rule = '/'.join((self.url_prefix, rule.lstrip('/')))\n+            else:\n+                rule = self.url_prefix\n         options.setdefault('subdomain', self.subdomain)\n         if endpoint is None:\n             endpoint = _endpoint_from_view_func(view_func)",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 1,
+      "changes": 1,
+      "deletions": 0,
+      "filename": "tests/test_blueprints.py",
+      "patch": "@@ -116,6 +116,7 @@ def bp_forbidden():\n \n \n @pytest.mark.parametrize(('prefix', 'rule', 'url'), (\n+    ('/foo', '', '/foo'),\n     ('/foo/', '/bar', '/foo/bar'),\n     ('/foo/', 'bar', '/foo/bar'),\n     ('/foo', '/bar', '/foo/bar'),",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "lepture",
+    "base_sha": "3fd7abec3c8c4a32da9579d0824b10d5ba0add83",
+    "candidate_signal": "defect",
+    "final_head_sha": "b21b4d1608f5d83d7d6f503672f7eff46ed28f95",
+    "head_sha": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+    "html_url": "https://github.com/pallets/flask/pull/2748",
+    "number": 2748,
+    "repo": "pallets/flask",
+    "state": "closed",
+    "title": "Fix blueprint route for \"\""
+  },
+  "review_comments": [
+    {
+      "body": "`prefix='/foo/', rule=''` results in `/foo` instead of what people would probably expect, `/foo/`. I think we need to take a different approach to merging, we're trying to cover too many corner cases.",
+      "commit_id": "b21b4d1608f5d83d7d6f503672f7eff46ed28f95",
+      "created_at": "2018-05-01T18:24:48Z",
+      "id": 185295055,
+      "in_reply_to_id": 185170717,
+      "line": null,
+      "original_commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "original_line": 70,
+      "path": "flask/blueprints.py",
+      "pull_request_review_id": 116654256,
+      "side": "RIGHT",
+      "user": "davidism",
+      "user_type": "User"
+    },
+    {
+      "body": "see my test.\r\n\r\n```\r\n'/'.join(['/test', '']) => /tests/\r\n```",
+      "commit_id": "b21b4d1608f5d83d7d6f503672f7eff46ed28f95",
+      "created_at": "2018-05-01T05:56:47Z",
+      "id": 185170872,
+      "in_reply_to_id": 185170717,
+      "line": null,
+      "original_commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "original_line": 70,
+      "path": "flask/blueprints.py",
+      "pull_request_review_id": 116506376,
+      "side": "RIGHT",
+      "user": "lepture",
+      "user_type": "User"
+    },
+    {
+      "body": "I think this makes `@bp.route('/')` with prefix `/test` become `/test` instead of `/test/` now, which is also incorrect.",
+      "commit_id": "b21b4d1608f5d83d7d6f503672f7eff46ed28f95",
+      "created_at": "2018-05-01T05:54:24Z",
+      "id": 185170717,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "original_line": 70,
+      "path": "flask/blueprints.py",
+      "pull_request_review_id": 116506184,
+      "side": "RIGHT",
+      "user": "davidism",
+      "user_type": "User"
+    }
+  ],
+  "reviews": [
+    {
+      "body": "",
+      "commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "id": 116506184,
+      "state": "COMMENTED",
+      "submitted_at": "2018-05-01T05:54:29Z",
+      "user": "davidism",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "id": 116506376,
+      "state": "COMMENTED",
+      "submitted_at": "2018-05-01T05:56:47Z",
+      "user": "lepture",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "f7a3bdc6db7aefeeb974c0b9800bbe64d152f842",
+      "id": 116654256,
+      "state": "COMMENTED",
+      "submitted_at": "2018-05-01T18:24:48Z",
+      "user": "davidism",
+      "user_type": "User"
+    }
+  ]
+}

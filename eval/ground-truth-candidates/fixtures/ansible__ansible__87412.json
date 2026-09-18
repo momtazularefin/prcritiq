@@ -1,0 +1,263 @@
+{
+  "files": [
+    {
+      "additions": 3,
+      "changes": 3,
+      "deletions": 0,
+      "filename": "changelogs/fragments/subelements.yml",
+      "patch": "@@ -0,0 +1,3 @@\n+---\n+bugfixes:\n+    - subelements - raise an error when an empty subelements is provided (https://github.com/ansible/ansible/issues/87398).",
+      "previous_filename": null,
+      "status": "added"
+    },
+    {
+      "additions": 3,
+      "changes": 3,
+      "deletions": 0,
+      "filename": "lib/ansible/plugins/filter/core.py",
+      "patch": "@@ -570,6 +570,9 @@ def subelements(obj, subelements, skip_missing=False):\n     else:\n         raise AnsibleTypeError('subelements must be a list or a string')\n \n+    if not subelement_list:\n+        raise AnsibleFilterError('subelements must not be empty')\n+\n     results = []\n \n     for element in element_list:",
+      "previous_filename": null,
+      "status": "modified"
+    },
+    {
+      "additions": 8,
+      "changes": 9,
+      "deletions": 1,
+      "filename": "test/integration/targets/filter_core/tasks/main.yml",
+      "patch": "@@ -696,6 +696,12 @@\n   ignore_errors: yes\n   register: subelements_5\n \n+- name: Verify subelements throws on empty list\n+  set_fact:\n+    foo: '{{subelements_demo | subelements([])}}'\n+  ignore_errors: yes\n+  register: subelements_6\n+\n - name: Verify subelements\n   assert:\n     that:\n@@ -712,7 +718,8 @@\n       - '\"should point to a dictionary\" in subelements_5.msg'\n       - 'subelements_demo|subelements(\"groups\") == [({\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}, \"wheel\")]'\n       - 'subelements_demo|subelements([\"groups\"]) == [({\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}, \"wheel\")]'\n-\n+      - subelements_6 is failed\n+      - '\"subelements must not be empty\" in subelements_6.msg'\n \n - name: Verify dict2items throws on non-Mapping\n   set_fact:",
+      "previous_filename": null,
+      "status": "modified"
+    }
+  ],
+  "metadata": {
+    "author_login": "Akasurde",
+    "base_sha": "9cf16a4aca7898481c257f1e17ad28d0b67b1f85",
+    "candidate_signal": "defect",
+    "final_head_sha": "fb594e978567b18ce979c3ea8e48d6f9c304e320",
+    "head_sha": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+    "html_url": "https://github.com/ansible/ansible/pull/87412",
+    "number": 87412,
+    "repo": "ansible/ansible",
+    "state": "closed",
+    "title": "subelements: raise an error for empty subelements"
+  },
+  "review_comments": [
+    {
+      "body": "```suggestion\n        raise AnsibleTypeError(f'subelements must be a list or a string, got {type(subelement_obj)}')\n```",
+      "commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "created_at": "2026-08-20T15:20:24Z",
+      "id": 3822907969,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "original_line": 571,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4984431629,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n                raise AnsibleTypeError(f\"Subelements in the object must be a list, got {type(values)}. \"\n```",
+      "commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "created_at": "2026-08-20T15:19:31Z",
+      "id": 3822900093,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "original_line": 591,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4984241409,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n    - subelements - fix error message when an empty subelements is provided (https://github.com/ansible/ansible/issues/87398).\n```\n\n<details><summary>before</summary>\n\n```console\nfatal: [localhost]: FAILED! => {\n    \"changed\": false,\n    \"msg\": \"Task failed: Finalization of task args for 'ansible.builtin.set_fact' failed: Error while resolving value for 'foo': The filter plugin 'ansible.builtin.subelements' failed: cannot access local variable 'subelement' where it is not associated with a value\"\n}\n```\n</details>\n\n<details><summary>after</summary>\n\n```console\nfatal: [localhost]: FAILED! => {\n    \"changed\": false,\n    \"msg\": \"Task failed: Finalization of task args for 'ansible.builtin.set_fact' failed: Error while resolving value for 'foo': The filter plugin 'ansible.builtin.subelements' failed: Subelements in the object must be a list, got <class 'ansible._internal._templating._lazy_containers._AnsibleLazyTemplateDict'>.A list cannot be extracted, because subelements is empty.\"\n}\n```\n</details>",
+      "commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "created_at": "2026-08-20T15:19:20Z",
+      "id": 3822898502,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "original_line": 3,
+      "path": "changelogs/fragments/subelements.yml",
+      "pull_request_review_id": 4984241409,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "```suggestion\n                raise AnsibleTypeError(f\"Subelements in the object must be a list, got {type(values)}. A list cannot be extracted, because subelements is empty.\")\n```",
+      "commit_id": "0d29aa275a25905a2686c364f4bb96688cf6df43",
+      "created_at": "2026-08-18T14:34:46Z",
+      "id": 3805058599,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "0d29aa275a25905a2686c364f4bb96688cf6df43",
+      "original_line": 591,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4962247335,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "If we're modifying these, they might as well be updated to use fstrings. Why only add quotes to this one? Could do the same for the one above and below.",
+      "commit_id": "0d29aa275a25905a2686c364f4bb96688cf6df43",
+      "created_at": "2026-08-18T14:33:39Z",
+      "id": 3805049376,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "0d29aa275a25905a2686c364f4bb96688cf6df43",
+      "original_line": 586,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4962247335,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "I think my original review is still applicable - while this fixes a cornercase with an unhandled traceback, raising an error so early unconditionally breaks scenarios that previously worked. For example, previously no error would occur if obj is empty and subelements is empty, but now it will fail instead of returning an empty list. Similarly, if obj is a list of lists, subelements could previously be empty, this changes it to an error.\n\nI'd be more in favor keeping the error handling in the same place and just fix the use of the undefined variable `subelement`:\n\n```python\n            if subelement_list:  # Gate against UnboundLocalError\n                raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n            # TODO raise error because subelements is empty, and elements is not a list, so the filter cannot proceed\n```\n\n> code lgtm but not sure if it should error or return empty, i would try to get a consensus on this one\n\nThe more I've thought about it, the more I think the error is best. But I disagree with the error 'subelements must not be empty'; that's not the issue, the issue is that the element couldn't be parsed as a list (potentially because subelements is empty).",
+      "commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "created_at": "2026-08-17T17:22:55Z",
+      "id": 3797502916,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "original_line": 568,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4953008999,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "code lgtm but not sure if it should error or return empty, i would try to get a consensus on this one",
+      "commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "created_at": "2026-08-13T21:21:39Z",
+      "id": 3779196693,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "original_line": 567,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4931709620,
+      "side": "RIGHT",
+      "user": "bcoca",
+      "user_type": "User"
+    },
+    {
+      "body": "bring results = [] up here, check for falsy, return results, continue otherwise",
+      "commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "created_at": "2026-08-13T19:25:55Z",
+      "id": 3778455743,
+      "in_reply_to_id": null,
+      "line": 565,
+      "original_commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "original_line": 565,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4930836273,
+      "side": "RIGHT",
+      "user": "bcoca",
+      "user_type": "User"
+    },
+    {
+      "body": "If element_list is empty it passed before, and fails now.",
+      "commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "created_at": "2026-08-13T18:36:42Z",
+      "id": 3778118024,
+      "in_reply_to_id": null,
+      "line": null,
+      "original_commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "original_line": 574,
+      "path": "lib/ansible/plugins/filter/core.py",
+      "pull_request_review_id": 4930442441,
+      "side": "RIGHT",
+      "user": "s-hertel",
+      "user_type": "User"
+    }
+  ],
+  "reviews": [
+    {
+      "body": "",
+      "commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "id": 4930442441,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-13T18:36:42Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "3d0986ba745c847f1c23dbf5e7fdca7a9681def0",
+      "id": 4930836273,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-13T19:25:54Z",
+      "user": "bcoca",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "id": 4931709620,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-13T21:21:39Z",
+      "user": "bcoca",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "ff6ec1ed6805e9bb70efead3078457233c2a0516",
+      "id": 4953008999,
+      "state": "CHANGES_REQUESTED",
+      "submitted_at": "2026-08-17T17:23:01Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "fix lgtm",
+      "commit_id": "0d29aa275a25905a2686c364f4bb96688cf6df43",
+      "id": 4962247335,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-18T14:35:09Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "id": 4984241409,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-20T15:19:51Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "3f3910acc658463621a29ab44b78b1b32512c8eb",
+      "id": 4984431629,
+      "state": "COMMENTED",
+      "submitted_at": "2026-08-20T15:20:24Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "fb594e978567b18ce979c3ea8e48d6f9c304e320",
+      "id": 4984576692,
+      "state": "APPROVED",
+      "submitted_at": "2026-08-20T15:33:23Z",
+      "user": "s-hertel",
+      "user_type": "User"
+    },
+    {
+      "body": "",
+      "commit_id": "fb594e978567b18ce979c3ea8e48d6f9c304e320",
+      "id": 5022060447,
+      "state": "APPROVED",
+      "submitted_at": "2026-08-25T17:44:04Z",
+      "user": "pkingstonxyz",
+      "user_type": "User"
+    }
+  ]
+}

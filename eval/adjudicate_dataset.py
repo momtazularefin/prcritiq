@@ -5,7 +5,8 @@ Export an editable JSONL queue:
     uv run python eval/adjudicate_dataset.py --export eval/adjudications.jsonl
 
 After setting each row's ``adjudication`` to ``confirmed_defect`` or
-``excluded`` and explaining the decision, build a new dataset:
+``excluded``, explaining the decision, and recording explicit human approval,
+build a new dataset:
 
     uv run python eval/adjudicate_dataset.py \
         --apply eval/adjudications.jsonl \
@@ -17,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +56,7 @@ def _write_jsonl(rows: list[dict[str, Any]], path: Path) -> None:
     )
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export or apply benchmark adjudications")
     parser.add_argument("--dataset", default="eval/dataset.jsonl", help="Input dataset JSONL")
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -68,14 +70,22 @@ def main() -> int:
     parser.add_argument(
         "--allow-incomplete",
         action="store_true",
-        help="Allow missing or still-unreviewed decisions in a draft output.",
+        help="Allow missing, unreviewed, or provisional decisions in a draft output.",
     )
     parser.add_argument(
         "--confirmed-only",
         action="store_true",
         help=("With --apply, retain only cases containing at least one confirmed-defect label."),
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.allow_incomplete and args.confirmed_only:
+        print(
+            "adjudication failed: --allow-incomplete cannot be combined with "
+            "--confirmed-only; filtering a draft could hide provisional decisions",
+            file=sys.stderr,
+        )
+        return 1
 
     cases = read_dataset(Path(args.dataset))
     if args.export:
@@ -95,12 +105,12 @@ def main() -> int:
         print(f"adjudication failed: {exc}", file=sys.stderr)
         return 1
 
-    unreviewed = sum(
-        label.adjudication == "unreviewed" for case in updated for label in case.labels
+    pending = sum(
+        not label.confirmed and not label.excluded for case in updated for label in case.labels
     )
-    if unreviewed and not args.allow_incomplete:
+    if pending and not args.allow_incomplete:
         print(
-            f"adjudication failed: {unreviewed} labels are still unreviewed",
+            f"adjudication failed: {pending} labels lack explicit human approval",
             file=sys.stderr,
         )
         return 1
@@ -108,13 +118,17 @@ def main() -> int:
     if args.confirmed_only:
         updated = select_confirmed_cases(updated)
     write_dataset(updated, Path(args.output))
-    confirmed = sum(
-        label.adjudication == "confirmed_defect" for case in updated for label in case.labels
+    confirmed = sum(label.confirmed for case in updated for label in case.labels)
+    excluded = sum(label.excluded for case in updated for label in case.labels)
+    provisional = sum(
+        label.adjudication != "unreviewed" and not label.human_approved
+        for case in updated
+        for label in case.labels
     )
-    excluded = sum(label.adjudication == "excluded" for case in updated for label in case.labels)
     print(
         f"wrote {len(updated)} cases to {args.output}: "
-        f"{confirmed} confirmed, {excluded} excluded, {unreviewed} unreviewed"
+        f"{confirmed} confirmed, {excluded} excluded, {pending} pending"
+        + (f" ({provisional} provisional agent decisions)" if provisional else "")
         + (f"; selected from {input_cases} adjudicated cases" if args.confirmed_only else "")
     )
     return 0

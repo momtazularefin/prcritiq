@@ -10,7 +10,7 @@ Benchmark v2 enforces the missing foundations:
 - PR-author and GitHub Bot comments are excluded;
 - a comment must target the exact frozen head revision and an added line in that fixture;
 - every retained label carries reviewer, comment id, and review-commit provenance;
-- harvested labels start as `unreviewed` and cannot pass the dataset-certification gate until a human marks them `confirmed_defect`;
+- harvested labels start as `unreviewed` and cannot pass the dataset-certification gate until a named human records a final verdict and explicit approval;
 - errored cases do not contribute labels to quality denominators;
 - finding-to-label matching is maximum-cardinality and one-to-one;
 - JSON reports retain complete published and suppressed findings for independent adjudication;
@@ -18,15 +18,32 @@ Benchmark v2 enforces the missing foundations:
 
 Mechanical matching remains only a triage aid: same file, a line within five, and at least 18 percent shared distinctive vocabulary. The reported “label-overlap precision” is a proxy, not adjudicated correctness. Full finding retention now makes a proper manual pass possible.
 
-Export the stable, provenance-rich adjudication queue, read the primary comment and any captured thread replies, edit each verdict to `confirmed_defect` or `excluded`, then build a candidate certified dataset:
+The ground-truth recovery harvester now searches recent human inline reviews in
+production Python files for concrete failure language. It excludes bots, PR
+authors, test/docs/example-only targets, obvious style and feature requests,
+bare suggestion blocks, rejected claims, and issues explicitly deferred to a
+later PR. Each surviving label is reconstructed from its immutable
+`original_commit_id` and `original_line`, checked against an added line in that
+exact cumulative diff, and retains the full review thread plus any explicit
+author resolution. These filters only reduce adjudication noise; they do not
+certify a label.
+
+The current recovery packet contains 5 merged PRs and 7 labels under
+`eval/ground-truth-candidates/`. It was generated without a model call. An AI
+evidence pass provisionally retained 5 defects and excluded 2
+non-defects; every row still requires human sign-off. To approve a row, verify
+its evidence, set `human_approved` to `true`, and identify the approving human
+in `adjudicator`. The compact rationale and scope caveats are in the
+[human sign-off sheet](../eval/ground-truth-candidates/adjudication-review.md).
+Then build the candidate certified dataset:
 
 ```powershell
-uv run python eval/adjudicate_dataset.py --export eval/adjudications.jsonl
-uv run python eval/adjudicate_dataset.py --apply eval/adjudications.jsonl --confirmed-only --output eval/dataset-certified.jsonl
-uv run prcritiq eval --fixture-mode --dataset eval/dataset-certified.jsonl
+uv run python eval/adjudicate_dataset.py --dataset eval/ground-truth-candidates/dataset.jsonl --export eval/ground-truth-candidates/adjudications.jsonl
+uv run python eval/adjudicate_dataset.py --dataset eval/ground-truth-candidates/dataset.jsonl --apply eval/ground-truth-candidates/adjudications.jsonl --confirmed-only --output eval/ground-truth-candidates/dataset-certified.jsonl
+uv run prcritiq eval --fixture-mode --dataset eval/ground-truth-candidates/dataset-certified.jsonl
 ```
 
-The exported queue identifies the PR author and carries direct replies from each frozen review thread. Replies matter because a suggestion may be corrected, narrowed, or rejected after the primary comment. The apply step fails on duplicate, missing, unknown, still-unreviewed, or unexplained decisions. Before a live evaluation, PRCritiq verifies the selected cases against their frozen fixtures: every scored label must be human-confirmed, carry v2 reviewer and source-comment provenance, target the exact head revision, and land on an added line. If any check fails, the CLI exits before constructing or calling a provider. Fixture mode remains available for validating an uncertified candidate corpus offline.
+The exported queue identifies the PR author and carries direct replies from each frozen review thread. Replies matter because a suggestion may be corrected, narrowed, or rejected after the primary comment. The apply step fails on duplicate, missing, unknown, unexplained, or non-human-approved decisions. A provisional AI verdict is preserved for review but cannot become benchmark ground truth merely by using a final-looking `adjudication` value. Before a live evaluation, PRCritiq verifies the selected cases against their frozen fixtures: every decision must carry `human_approved: true`, a nonempty `adjudicator`, explanatory notes, v2 reviewer and source-comment provenance, the exact head revision, and an added-line target. If any check fails, the CLI exits before constructing or calling a provider. `--allow-incomplete` can write a full draft dataset but cannot be combined with `--confirmed-only`, so provisional cases cannot be filtered away before certification. Likewise, live `--limit` is applied only after the complete source dataset passes certification. Fixture mode remains available for validating an uncertified candidate corpus offline; neither draft path authorizes a live provider call.
 
 ## Legacy Diagnostic Runs
 
@@ -56,10 +73,10 @@ multi-case certified smoke set exists, repeat the same matrix on exactly that
 set:
 
 ```powershell
-uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider anthropic --model claude-opus-5 --effort low --out eval/runs/opus-5-low
-uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low --out eval/runs/terra-low
-uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort medium --out eval/runs/terra-medium
-uv run prcritiq eval --dataset eval/candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-sol --effort low --out eval/runs/sol-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider anthropic --model claude-opus-5 --effort low --out eval/runs/opus-5-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low --out eval/runs/terra-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort medium --out eval/runs/terra-medium
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-sol --effort low --out eval/runs/sol-low
 ```
 
 GPT-5.6 Luna should be evaluated as a high-recall candidate generator after generation and verification are split into separate stages. Comparing it as the sole reviewer would test a different, weaker architecture than the intended production cascade.
