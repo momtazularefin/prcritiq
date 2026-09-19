@@ -1,11 +1,11 @@
 # Recovery Packet Human Sign-off
 
-Status: **pending human approval**. These are evidence-backed recommendations,
-not benchmark ground truth. All seven machine-readable rows remain
-`human_approved: false`, and live evaluation is blocked before provider
-construction.
+Status: **approved by project-owner on 2026-09-18** in this task:
+“approved, please continue.” This approves the five-confirm / two-exclude
+split below, including its scope caveats. All seven machine-readable rows
+record `human_approved: true` and `adjudicator: project-owner`.
 
-## Recommended decisions
+## Approved decisions
 
 | Label | Decision | Category | Severity | Evidence summary |
 |---|---|---|---|---|
@@ -29,9 +29,10 @@ construction.
   scope; excluding them under a narrower correctness-only rubric would be an
   undocumented benchmark-policy change.
 
-If this 5-confirm / 2-exclude split is approved, the derived smoke set will
-contain 3 pull requests and 5 labels. Record the approval in
-`adjudications.jsonl` by setting every reviewed row to `human_approved: true`
-and setting `adjudicator` to the stable identity of the approving human. The
-strict apply command will then build the certified set; until that happens it
-must continue to fail closed.
+The derived smoke set contains 3 pull requests and 5 confirmed labels.
+`dataset-adjudicated.jsonl` retains all five source cases and seven decisions;
+`dataset-certified.jsonl` retains only cases with confirmed defects. The
+original `dataset.jsonl` remains unchanged. Dataset certification establishes
+provenance and approval, not statistical sufficiency: three PRs cannot pass
+the publishable benchmark's 20-case minimum. Model findings still require
+their own correctness review; this approval does not approve future outputs.

@@ -1,0 +1,385 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.043344,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 4091,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 36.53100000000268,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "django/db/migrations/serializer.py:198",
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "model": "gpt-5.6-sol",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1349,
+      "pr_number": 21875,
+      "provider": "openai",
+      "published": 3,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 96,
+            "evidence": "The bound-class-method branch immediately returns `f\"{module}.{klass.__qualname__}.{value.__name__}\"`, whereas the general branch rejects any `__qualname__` containing `<`. For `def outer(): class Local: @classmethod def method(cls): ...`, this returns a path containing `outer.<locals>.Local.method` rather than raising `ValueError`; this can make `FunctionTypeSerializer` emit an invalid migration reference.",
+            "file_path": "django/utils/module_loading.py",
+            "finding": "Bound class methods bypass the local-object validation, so `qualname()` returns a non-importable path for a class method on a locally defined class.",
+            "line": 136,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF:django/utils/module_loading.py",
+              "DIFF:django/db/migrations/serializer.py",
+              "DIFF:tests/utils_tests/test_module_loading.py"
+            ],
+            "suggested_fix": "Apply the same `<`/local-object validation to `klass.__qualname__` before returning from the bound-class-method branch, and add a test for a class method belonging to a locally defined class."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 88,
+            "evidence": "Previously `get_view_name()` used a function's `__qualname__` directly, including a local function's `<locals>` path. The new `qualname(view_func)` rejects such functions, and the `except ValueError` fallback produces `<module>.function` from `view_func.__class__.__name__`, causing unrelated local views to receive the same displayed name.",
+            "file_path": "django/contrib/admindocs/utils.py",
+            "finding": "Local function views now lose their actual qualified name and are reported as the generic class name `function`.",
+            "line": 33,
+            "severity": "low",
+            "source_refs": [
+              "DIFF:django/contrib/admindocs/utils.py",
+              "DIFF:django/utils/module_loading.py"
+            ],
+            "suggested_fix": "Only use the class-name fallback for callable objects lacking `__qualname__`; for local functions, preserve the previous `f\"{view_func.__module__}.{view_func.__qualname__}\"` display value even though it is not importable."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 87,
+            "evidence": "The prior return concatenated `callback.__module__` and `callback.__qualname__`. Since the new helper raises `ValueError` when the qualname contains `<locals>`, the fallback returns `callback.__module__ + \".\" + callback.__class__.__name__`; for any local function the class name is simply `function`, making distinct callbacks indistinguishable in resolver introspection.",
+            "file_path": "django/urls/resolvers.py",
+            "finding": "`lookup_str` now collapses every local function callback to `<module>.function` instead of preserving its qualified callback name.",
+            "line": 501,
+            "severity": "low",
+            "source_refs": [
+              "DIFF:django/urls/resolvers.py",
+              "DIFF:django/utils/module_loading.py"
+            ],
+            "suggested_fix": "Retain the prior module-plus-`__qualname__` representation for callbacks that have those attributes, and reserve the callable-class fallback for objects without a function qualname."
+          },
+          "finding_index": 2,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 690,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "django/utils/module_loading.py:136",
+        "django/contrib/admindocs/utils.py:33",
+        "django/urls/resolvers.py:501"
+      ]
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "ansible__ansible__87412",
+      "confirmed_labels": 1,
+      "cost_usd": 0.0036331999999999996,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1279,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 5.110000000000582,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "lib/ansible/plugins/filter/core.py:574"
+      ],
+      "model": "gpt-5.6-sol",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 119,
+      "pr_number": 87412,
+      "provider": "openai",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 102,
+      "repo": "ansible/ansible",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "psf__black__5068",
+      "confirmed_labels": 2,
+      "cost_usd": 0.0200612,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1561,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 25.546999999991385,
+      "matched_findings": 1,
+      "matched_labels": [
+        "src/black/parsing.py:99"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 1,
+          "finding_target": "src/black/parsing.py:98",
+          "label_index": 0,
+          "label_target": "src/black/parsing.py:99",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3006479284
+        }
+      ],
+      "missed_labels": [
+        "src/black/parsing.py:87"
+      ],
+      "model": "gpt-5.6-sol",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 884,
+      "pr_number": 5068,
+      "provider": "openai",
+      "published": 2,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 95,
+            "evidence": "The lib2to3/tokenize locations use zero-based columns, but the new code emits only `column - 1` spaces before `^`. Since the four-space display prefix is already mirrored on both the source and caret lines, a token at column 1 needs one additional space, not zero.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The caret is placed one character to the left of the parser-reported error column for every positive column value.",
+            "line": 87,
+            "severity": "medium",
+            "source_refs": [
+              "src/black/parsing.py:87",
+              "src/black/parsing.py:99"
+            ],
+            "suggested_fix": "Use `' ' * column` when constructing the caret line, and make the same correction in the `TokenError` branch."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 88,
+            "evidence": "The existing comment explicitly says these errors typically do not have a `faulty_line`, while the new output prints `te.args[0]` (for example, an error description such as an EOF message) and then positions a caret beneath it using the source's `column` value.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The `TokenError` branch displays the exception message as though it were source text, so the caret is not pointing into the faulty source line and can be misleading.",
+            "line": 98,
+            "severity": "medium",
+            "source_refs": [
+              "src/black/parsing.py:95",
+              "src/black/parsing.py:98",
+              "src/black/parsing.py:99"
+            ],
+            "suggested_fix": "Do not render a source-style caret for `TokenError` unless the actual source line is retrieved from `lineno`; otherwise print the token error description without a caret."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 510,
+      "repo": "psf/black",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "src/black/parsing.py:87"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "3 of 3",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "5/5 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.20",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.20",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-18T22:38:38Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 2146,
+    "cases": 3,
+    "comment_precision": 0.2,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0223,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 5,
+    "input_tokens": 6931,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.2,
+    "labels": 5,
+    "matched": 1,
+    "median_latency_seconds": 25.55,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 2352,
+    "p95_latency_seconds": 36.53,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 1302,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.067,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "gpt-5.6-sol",
+  "model_policy": "openai",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 50,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 55,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 60,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 65,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 70,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 78,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    }
+  ]
+}

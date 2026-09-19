@@ -16,11 +16,15 @@ import statistics
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from .chunking import tokenize_identifiers
 from .dataset import BenchmarkCase, Label
 from .findings import ReviewedFinding, SuppressionReason
+
+if TYPE_CHECKING:
+    from .retrieval import RetrievalResult
+    from .tools import ToolRun
 
 #: A finding may sit this many lines from the human comment and still match.
 #: Reviewers often comment on the line above or below the one they mean.
@@ -146,6 +150,7 @@ class CaseOutcome:
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
     reasoning_output_tokens: int = 0
     cost_usd: float = 0.0
     provider: str | None = None
@@ -183,6 +188,7 @@ class BenchmarkMetrics:
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
     reasoning_output_tokens: int = 0
 
 
@@ -270,6 +276,7 @@ def score_case(
     input_tokens: int = 0,
     output_tokens: int = 0,
     cached_input_tokens: int = 0,
+    cache_write_input_tokens: int = 0,
     reasoning_output_tokens: int = 0,
     cost_usd: float = 0.0,
     provider: str | None = None,
@@ -366,6 +373,7 @@ def score_case(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         cached_input_tokens=cached_input_tokens,
+        cache_write_input_tokens=cache_write_input_tokens,
         reasoning_output_tokens=reasoning_output_tokens,
         cost_usd=cost_usd,
         provider=provider,
@@ -436,6 +444,7 @@ def aggregate(outcomes: Sequence[CaseOutcome]) -> BenchmarkMetrics:
         input_tokens=sum(item.input_tokens for item in outcomes),
         output_tokens=sum(item.output_tokens for item in outcomes),
         cached_input_tokens=sum(item.cached_input_tokens for item in outcomes),
+        cache_write_input_tokens=sum(item.cache_write_input_tokens for item in outcomes),
         reasoning_output_tokens=sum(item.reasoning_output_tokens for item in outcomes),
     )
 
@@ -790,7 +799,9 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"| Total cost | ${metrics['total_cost_usd']:.4f} |",
             (
                 f"| Tokens | {metrics['input_tokens']} in "
-                f"({metrics['cached_input_tokens']} cached), {metrics['output_tokens']} out "
+                f"({metrics['cached_input_tokens']} cached read, "
+                f"{metrics.get('cache_write_input_tokens', 'unknown')} cache write), "
+                f"{metrics['output_tokens']} out "
                 f"({metrics['reasoning_output_tokens']} reasoning) |"
             ),
             "",
@@ -844,10 +855,13 @@ class RawCaseRun:
     candidates: tuple[Any, ...] = ()
     valid_targets: set[tuple[str, int]] = field(default_factory=set)
     diff_index: Any = None
+    retrieval: RetrievalResult | None = None
+    tool_runs: tuple[ToolRun, ...] | None = None
     latency_seconds: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
     reasoning_output_tokens: int = 0
     cost_usd: float = 0.0
     provider: str | None = None
@@ -938,10 +952,13 @@ def execute_case(
             for line in file_diff.commentable_lines
         },
         diff_index=index,
+        retrieval=state.get("retrieval"),
+        tool_runs=state.get("tool_runs"),
         latency_seconds=time.monotonic() - started,
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
         cached_input_tokens=usage.cached_input_tokens if usage else 0,
+        cache_write_input_tokens=getattr(usage, "cache_write_input_tokens", 0) if usage else 0,
         reasoning_output_tokens=usage.reasoning_output_tokens if usage else 0,
         cost_usd=usage.cost_usd(choice.model) if usage and choice else 0.0,
         provider=choice.provider if choice else None,
@@ -974,6 +991,8 @@ def score_raw(raw: RawCaseRun, *, settings: Any, threshold: int) -> CaseOutcome:
         raw.candidates,
         diff_index=raw.diff_index,
         settings=replace(settings, min_publish_confidence=threshold),
+        retrieval=raw.retrieval,
+        tool_runs=raw.tool_runs,
     )
     return score_case(
         raw.case,
@@ -983,6 +1002,7 @@ def score_raw(raw: RawCaseRun, *, settings: Any, threshold: int) -> CaseOutcome:
         input_tokens=raw.input_tokens,
         output_tokens=raw.output_tokens,
         cached_input_tokens=raw.cached_input_tokens,
+        cache_write_input_tokens=raw.cache_write_input_tokens,
         reasoning_output_tokens=raw.reasoning_output_tokens,
         cost_usd=raw.cost_usd,
         provider=raw.provider,

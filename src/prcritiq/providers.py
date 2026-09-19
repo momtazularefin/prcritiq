@@ -64,6 +64,10 @@ _PRICES_PER_MTOK: Final[dict[str, tuple[float, float, float]]] = {
     "gpt-5.6-luna": (0.20, 0.02, 1.20),
 }
 
+_CACHE_WRITE_PREMIUM_MODELS: Final = frozenset(
+    {"gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"}
+)
+
 
 @dataclass(frozen=True)
 class Usage:
@@ -73,6 +77,7 @@ class Usage:
     output_tokens: int = 0
     cached_input_tokens: int = 0
     reasoning_output_tokens: int = 0
+    cache_write_input_tokens: int = 0
 
     def cost_usd(self, model: str) -> float:
         """Estimated cost, or zero for a model with no published price here."""
@@ -80,10 +85,21 @@ class Usage:
         prices = _PRICES_PER_MTOK.get(model)
         if prices is None:
             return 0.0
-        cached = min(max(self.cached_input_tokens, 0), self.input_tokens)
-        uncached = self.input_tokens - cached
+        input_tokens = max(self.input_tokens, 0)
+        cached = min(max(self.cached_input_tokens, 0), input_tokens)
+        # Read, write, and ordinary input are disjoint portions of total input.
+        # A write costs 1.25x ordinary input, not ordinary input plus 1.25x.
+        cache_write = (
+            min(max(self.cache_write_input_tokens, 0), input_tokens - cached)
+            if model in _CACHE_WRITE_PREMIUM_MODELS
+            else 0
+        )
+        uncached = input_tokens - cached - cache_write
         return (
-            uncached * prices[0] + cached * prices[1] + self.output_tokens * prices[2]
+            uncached * prices[0]
+            + cached * prices[1]
+            + cache_write * prices[0] * 1.25
+            + self.output_tokens * prices[2]
         ) / 1_000_000
 
 
@@ -317,6 +333,7 @@ class OpenAIProvider:
             output_tokens=int(getattr(response_usage, "output_tokens", 0) or 0),
             cached_input_tokens=int(getattr(input_details, "cached_tokens", 0) or 0),
             reasoning_output_tokens=int(getattr(output_details, "reasoning_tokens", 0) or 0),
+            cache_write_input_tokens=int(getattr(input_details, "cache_write_tokens", 0) or 0),
         )
         return DraftResult(findings=parsed, usage=usage)
 

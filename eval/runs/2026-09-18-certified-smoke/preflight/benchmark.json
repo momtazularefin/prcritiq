@@ -1,0 +1,270 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.0,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 0,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 0.031000000002677552,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "django/db/migrations/serializer.py:198",
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "model": "mock-reviewer",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 0,
+      "pr_number": 21875,
+      "provider": "mock",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 0,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=mock was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 0,
+      "case_id": "ansible__ansible__87412",
+      "confirmed_labels": 1,
+      "cost_usd": 0.0,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 0,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 0.0,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "lib/ansible/plugins/filter/core.py:574"
+      ],
+      "model": "mock-reviewer",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 0,
+      "pr_number": 87412,
+      "provider": "mock",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 0,
+      "repo": "ansible/ansible",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=mock was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 0,
+      "case_id": "psf__black__5068",
+      "confirmed_labels": 2,
+      "cost_usd": 0.0,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 0,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 0.01600000000325963,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "src/black/parsing.py:99",
+        "src/black/parsing.py:87"
+      ],
+      "model": "mock-reviewer",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 0,
+      "pr_number": 5068,
+      "provider": "mock",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 0,
+      "repo": "psf/black",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=mock was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "3 of 3",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "5/5 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.00",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.00",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-18T17:34:45Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 0,
+    "cases": 3,
+    "comment_precision": 0.0,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 0,
+    "input_tokens": 0,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.0,
+    "labels": 5,
+    "matched": 0,
+    "median_latency_seconds": 0.02,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 0,
+    "p95_latency_seconds": 0.03,
+    "quiet_runs": 3,
+    "reasoning_output_tokens": 0,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "fixture",
+  "model": "mock-reviewer",
+  "model_policy": "mock",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 50,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 55,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 60,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 65,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 3,
+      "spam_rate": 0.0
+    }
+  ]
+}

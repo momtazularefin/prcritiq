@@ -1,0 +1,378 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.027742,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 4091,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 31.968999999997322,
+      "matched_findings": 1,
+      "matched_labels": [
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 2,
+          "finding_target": "django/contrib/admindocs/utils.py:33",
+          "label_index": 1,
+          "label_target": "django/contrib/admindocs/utils.py:34",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3933613984
+        }
+      ],
+      "missed_labels": [
+        "django/db/migrations/serializer.py:198"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1630,
+      "pr_number": 21875,
+      "provider": "openai",
+      "published": 4,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "error_handling",
+            "confidence": 89,
+            "evidence": "The exception handler calls `qualname(exception_type)`, but `qualname()` explicitly raises `ValueError` when `exception_type.__qualname__` contains `<`. A task can raise an exception class declared inside a function; previously this path always constructed a string from `__module__` and `__qualname__` and appended the TaskError.",
+            "file_path": "django/tasks/backends/immediate.py",
+            "finding": "Handling a task exception can now raise a second ValueError for exceptions whose classes are local or anonymous, preventing the task failure from being recorded.",
+            "line": 63,
+            "severity": "high",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Keep exception reporting non-throwing: catch ValueError around `qualname(exception_type)` and fall back to `f\"{exception_type.__module__}.{exception_type.__qualname__}\"` (or another stable diagnostic representation)."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 84,
+            "evidence": "Previously callbacks with a `__name__` returned `callback.__module__ + \".\" + callback.__qualname__`. The new `qualname(callback)` rejects a local function or lambda because its qualname contains `<`, and the catch-all fallback returns `callback.__module__ + \".\" + callback.__class__.__name__`, which is just `...function` for every such callback.",
+            "file_path": "django/urls/resolvers.py",
+            "finding": "URL resolver lookup strings for local functions and lambdas regress from their actual qualified name to the generic `module.function` string.",
+            "line": 501,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Only use the callable-object fallback for callbacks without function naming metadata, or on a qualname failure for a function return its original `__module__`/`__qualname__` display value."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 81,
+            "evidence": "The old implementation directly used `view_func.__qualname__` for function views. `qualname(view_func)` now raises for names containing `<`, and the new `except ValueError` fallback constructs `f\"{view_func.__module__}.{view_func.__class__.__name__}\"`; for local functions and lambdas, that class name is always `function`.",
+            "file_path": "django/contrib/admindocs/utils.py",
+            "finding": "Admin documentation now identifies every local function or lambda view as `module.function` rather than preserving its qualified function name.",
+            "line": 33,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Retain the old `__qualname__`-based display fallback for function objects while using the class-name fallback only for callable instances that lack a function qualname."
+          },
+          "finding_index": 2,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 76,
+            "evidence": "This warning-only code path now calls `qualname(type(self))`. `qualname()` raises `ValueError` for a class whose `__qualname__` contains `<`, such as a backend subclass declared within a test helper or factory function. The prior interpolation of `type(self).__module__` and `type(self).__qualname__` did not reject that class.",
+            "file_path": "django/core/mail/backends/base.py",
+            "finding": "Passing unsupported kwargs to a locally defined custom email backend can now raise ValueError instead of emitting the intended deprecation warning.",
+            "line": 61,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Make warning construction tolerant of non-importable backend classes by catching ValueError and falling back to the module/qualname display string, rather than allowing the warning path to fail."
+          },
+          "finding_index": 3,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 873,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "django/tasks/backends/immediate.py:63",
+        "django/urls/resolvers.py:501",
+        "django/core/mail/backends/base.py:61"
+      ]
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "ansible__ansible__87412",
+      "confirmed_labels": 1,
+      "cost_usd": 0.0069626,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1279,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 11.046999999991385,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "lib/ansible/plugins/filter/core.py:574"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 528,
+      "pr_number": 87412,
+      "provider": "openai",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 511,
+      "repo": "ansible/ansible",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "psf__black__5068",
+      "confirmed_labels": 2,
+      "cost_usd": 0.0195386,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1561,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 28.187000000005355,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "src/black/parsing.py:99",
+        "src/black/parsing.py:87"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1529,
+      "pr_number": 5068,
+      "provider": "openai",
+      "published": 1,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 78,
+            "evidence": "The diagnostic renders `faulty_line` unchanged on line 86, then renders the caret using `{' ' * (column - 1)}` on line 87. Parser/tokenizer columns are character offsets, but a `\\t` in `faulty_line` displays as multiple columns; consequently the caret can point at a different visual location than the syntax error.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The new caret alignment is incorrect when the offending source line contains tabs before the reported column. The source is printed verbatim, so terminal tab expansion changes its visual width, while the caret prefix uses one space per parser column.",
+            "line": 87,
+            "severity": "low",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Expand tabs consistently in both the displayed source line and caret calculation (or preserve tabs in the caret prefix up to the error offset) before rendering the diagnostic."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 1318,
+      "repo": "psf/black",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "src/black/parsing.py:87"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "3 of 3",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "5/5 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.20",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.20",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-18T17:38:01Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 2146,
+    "cases": 3,
+    "comment_precision": 0.2,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0181,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 5,
+    "input_tokens": 6931,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.2,
+    "labels": 5,
+    "matched": 1,
+    "median_latency_seconds": 28.19,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 3687,
+    "p95_latency_seconds": 31.97,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 2702,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0542,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "gpt-5.6-terra",
+  "model_policy": "openai",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 50,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 55,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 60,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 65,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 70,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.25,
+      "findings": 4,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 78,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    }
+  ]
+}

@@ -957,7 +957,7 @@ class TestHumanAdjudicationArtifacts:
         assert all(label.excluded for label in labels)
         assert all(label.adjudicator == "project-owner" for label in labels)
 
-    def test_recovery_queue_is_explicitly_provisional(self) -> None:
+    def test_recovery_queue_records_project_owner_approval(self) -> None:
         decisions = self._decisions(
             REPO_ROOT / "eval" / "ground-truth-candidates" / "adjudications.jsonl"
         )
@@ -965,8 +965,17 @@ class TestHumanAdjudicationArtifacts:
         assert len(decisions) == 7
         assert sum(row["adjudication"] == "confirmed_defect" for row in decisions) == 5
         assert sum(row["adjudication"] == "excluded" for row in decisions) == 2
-        assert all(row["human_approved"] is False for row in decisions)
-        assert all(row["adjudicator"] == "" for row in decisions)
+        assert all(row["human_approved"] is True for row in decisions)
+        assert all(row["adjudicator"] == "project-owner" for row in decisions)
+
+        source = read_dataset(REPO_ROOT / "eval/ground-truth-candidates/dataset.jsonl")
+        approved = apply_adjudications(source, decisions)
+        certified = read_dataset(REPO_ROOT / "eval/ground-truth-candidates/dataset-certified.jsonl")
+        assert [case.to_json() for case in select_confirmed_cases(approved)] == [
+            case.to_json() for case in certified
+        ]
+        assert len(certified) == 3
+        assert sum(label.confirmed for case in certified for label in case.labels) == 5
 
 
 class TestDatasetCertification:
@@ -1136,6 +1145,62 @@ class TestDatasetCertification:
 
 
 class TestFixtureModeRun:
+    def test_legacy_markdown_report_marks_missing_cache_write_usage_unknown(self) -> None:
+        report = build_report(
+            [],
+            aggregate([]),
+            model_policy="mock",
+            model="mock-reviewer",
+            dataset_version="legacy.jsonl",
+            mode="fixture",
+        )
+        del report["metrics"]["cache_write_input_tokens"]
+
+        assert "0 cached read, unknown cache write" in render_markdown_report(report)
+
+    @pytest.mark.parametrize("cache_write_tokens", [0, 200])
+    def test_cache_write_usage_reaches_raw_scoring_and_reports(
+        self, cache_write_tokens: int
+    ) -> None:
+        from prcritiq.benchmark import execute_case, score_raw
+        from prcritiq.providers import Usage
+
+        cases = read_dataset(REPO_ROOT / "eval" / "dataset.jsonl")[:2]
+        usage = Usage(
+            input_tokens=1000,
+            output_tokens=500,
+            cached_input_tokens=400,
+            cache_write_input_tokens=cache_write_tokens,
+            reasoning_output_tokens=300,
+        )
+        provider = MockProvider(usage=usage)
+        settings = Settings(model_policy="openai", openai_model="gpt-5.6-terra")
+        raws = [
+            execute_case(case, root=REPO_ROOT, settings=settings, provider=provider)
+            for case in cases
+        ]
+        outcomes = [score_raw(raw, settings=settings, threshold=78) for raw in raws]
+        metrics = aggregate(outcomes)
+        report = build_report(
+            outcomes,
+            metrics,
+            model_policy="openai",
+            model="gpt-5.6-terra",
+            dataset_version="dataset.jsonl",
+            mode="fixture",
+        )
+
+        assert all(raw.error is None for raw in raws)
+        assert all(raw.cache_write_input_tokens == cache_write_tokens for raw in raws)
+        assert all(item.cache_write_input_tokens == cache_write_tokens for item in outcomes)
+        assert report["metrics"]["cache_write_input_tokens"] == 2 * cache_write_tokens
+        assert report["cases"][0]["cache_write_input_tokens"] == cache_write_tokens
+        assert metrics.total_cost_usd == round(2 * usage.cost_usd("gpt-5.6-terra"), 4)
+        rendered = render_markdown_report(report)
+        assert f"800 cached read, {2 * cache_write_tokens} cache write" in rendered
+        assert "1000 out (600 reasoning)" in rendered
+        assert len(provider.calls) == 2
+
     def test_a_mocked_run_produces_a_scored_report(self, tmp_path: Path) -> None:
         """CI proves the measurement works without a live model (NFR4)."""
 
@@ -1303,6 +1368,87 @@ class TestContextInBenchmark:
 
         assert raw.error is None
         assert any(call[0] == "download_source_archive" for call in stub_client.calls)
+
+    @pytest.mark.parametrize("evidence_kind", ["retrieval", "tool"])
+    @pytest.mark.parametrize("known_ref", [False, True])
+    def test_scoring_and_sweeps_preserve_graph_evidence(
+        self, monkeypatch: pytest.MonkeyPatch, evidence_kind: str, known_ref: bool
+    ) -> None:
+        from prcritiq.benchmark import execute_case, score_raw, threshold_sweep
+        from prcritiq.chunking import chunk_python
+        from prcritiq.github import ChangedFile, PullRequestMetadata
+        from prcritiq.graph import run_review_graph
+        from prcritiq.retrieval import RetrievalResult, RetrievedChunk
+        from prcritiq.tools import ToolRun, ToolStatus
+
+        case = self_case()
+        metadata = PullRequestMetadata(
+            repo=case.repo,
+            number=case.pr_number,
+            title="Add retry helper",
+            state="open",
+            base_sha=case.base_sha,
+            head_sha=case.head_sha,
+            author_login="author",
+            html_url="https://github.com/example/repo/pull/1",
+        )
+        changed = [
+            ChangedFile(
+                filename="src/app.py",
+                status="modified",
+                additions=2,
+                deletions=0,
+                changes=2,
+                patch="@@ -1,2 +1,4 @@\n import os\n \n+def retry(n):\n+    return 1 / n\n",
+            )
+        ]
+        monkeypatch.setattr("prcritiq.benchmark.load_case_inputs", lambda *_: (metadata, changed))
+        chunk = chunk_python("src/app.py", "def retry(n):\n    return 1 / n\n")[0]
+        retrieval = RetrievalResult(
+            focus=(RetrievedChunk(chunk, "changed_in_pull_request", 1.0),),
+            related=(),
+            total_bytes=len(chunk.text),
+            truncated=False,
+        )
+        tool_runs = (ToolRun(tool="ruff", status=ToolStatus.OK, reason="Completed"),)
+        source_ref = chunk.chunk_id if evidence_kind == "retrieval" else "ruff"
+        provider = MockProvider(
+            DraftedFindings(
+                findings=[finding(source_refs=[source_ref if known_ref else "invented"]).candidate]
+            )
+        )
+        monkeypatch.setattr("prcritiq.review.gather_evidence", lambda **_: (None, retrieval, ()))
+        graph_state = {}
+
+        def capture_graph(**kwargs):
+            # The benchmark does not request static analysis yet. Simulate tool
+            # evidence in the graph to protect retention of either evidence kind.
+            if evidence_kind == "tool":
+                kwargs["tool_runs"] = tool_runs
+            graph_state.update(run_review_graph(**kwargs))
+            return graph_state
+
+        monkeypatch.setattr("prcritiq.graph.run_review_graph", capture_graph)
+        settings = Settings()
+        raw = execute_case(
+            case,
+            root=REPO_ROOT,
+            settings=settings,
+            provider=provider,
+            include_context=evidence_kind == "retrieval",
+            client=object(),
+        )
+
+        assert raw.error is None
+        assert raw.retrieval is graph_state["retrieval"]
+        assert raw.tool_runs is graph_state["tool_runs"]
+        assert graph_state["reviewed"][0].published is known_ref
+        outcome = score_raw(raw, settings=settings, threshold=78)
+        assert outcome.published == int(known_ref)
+        assert outcome.suppressed_by_reason == ({} if known_ref else {"unknown_source_ref": 1})
+        sweep = threshold_sweep([raw], settings=settings, thresholds=[50, 78])
+        assert [row["findings"] for row in sweep] == [int(known_ref)] * 2
+        assert len(provider.calls) == 1
 
 
 class TestEvaluationFailures:

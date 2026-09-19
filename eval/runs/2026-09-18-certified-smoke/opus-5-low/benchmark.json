@@ -1,0 +1,541 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.10172,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 6769,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 35.79700000000594,
+      "matched_findings": 2,
+      "matched_labels": [
+        "django/db/migrations/serializer.py:198",
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 1,
+          "finding_target": "django/contrib/admindocs/utils.py:31",
+          "label_index": 1,
+          "label_target": "django/contrib/admindocs/utils.py:34",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3933613984
+        },
+        {
+          "finding_index": 2,
+          "finding_target": "django/db/migrations/serializer.py:195",
+          "label_index": 0,
+          "label_target": "django/db/migrations/serializer.py:198",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3933626526
+        }
+      ],
+      "missed_labels": [],
+      "model": "claude-opus-5",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 2715,
+      "pr_number": 21875,
+      "provider": "anthropic",
+      "published": 3,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 72,
+            "evidence": "Old code returned `callback.__module__ + \".\" + callback.__qualname__` unless `__name__` was missing; new code calls `qualname(callback)` which raises ValueError when `\"<\" in value.__qualname__`, and the except branch returns `callback.__module__ + \".\" + callback.__class__.__name__`, i.e. \"mod.function\" for a locally defined view.",
+            "file_path": "django/urls/resolvers.py",
+            "finding": "lookup_str now falls back to the class-name form for any callback whose qualname contains '<' (e.g. views defined inside a function or decorator closure), where previously it returned the full `__qualname__`.",
+            "line": 499,
+            "severity": "medium",
+            "source_refs": [
+              "django/urls/resolvers.py hunk",
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Keep the `not hasattr(callback, '__name__')` check for the class-name fallback and only use qualname()'s ValueError path for genuinely unnamed callables, or return `module.__qualname__` for local functions."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 68,
+            "evidence": "`try: return qualname(view_func) except ValueError: return f\"{view_func.__module__}.{view_func.__class__.__name__}\"` \u2014 qualname raises ValueError for qualnames containing '<', so a closure-defined view falls into the class-name branch yielding \"mod.function\".",
+            "file_path": "django/contrib/admindocs/utils.py",
+            "finding": "get_view_name now reports \"module.function\" for view functions whose __qualname__ includes '<locals>' instead of the previous fully qualified name.",
+            "line": 31,
+            "severity": "medium",
+            "source_refs": [
+              "django/contrib/admindocs/utils.py hunk",
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Fall back to `view_func.__qualname__` when it exists and only use `__class__.__name__` when there is no __qualname__."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "contract",
+            "confidence": 70,
+            "evidence": "Removed `if self.value.__module__ is None: raise ValueError(\"Cannot serialize function %r: No module\" % self.value)`; the new except branch formats the generic \"Could not find function %s in %s.\" using `getattr(self.value, \"__module__\", None)`.",
+            "file_path": "django/db/migrations/serializer.py",
+            "finding": "The distinct error message for functions with no module is gone; a function with `__module__ is None` now produces \"Could not find function X in None.\" instead of \"Cannot serialize function %r: No module\".",
+            "line": 195,
+            "severity": "medium",
+            "source_refs": [
+              "django/db/migrations/serializer.py hunk"
+            ],
+            "suggested_fix": "Re-raise the module-specific message when `__module__` is None, or update tests/docs that assert on the old message."
+          },
+          "finding_index": 2,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 0,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=anthropic was requested",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "low_confidence": 3
+      },
+      "suppressed_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 60,
+            "evidence": "`module = self.value.__self__.__module__` is used unconditionally for the returned imports set, while qualname() only validates the klass module inside its own branch; if it passed, fine, but the imports set is derived independently and not validated against the name returned.",
+            "file_path": "django/db/migrations/serializer.py",
+            "finding": "For bound classmethods the import statement may be built from a None module, producing \"import None\".",
+            "line": 205,
+            "severity": "low",
+            "source_refs": [
+              "django/db/migrations/serializer.py hunk"
+            ],
+            "suggested_fix": "Derive the module from the same source qualname() used, and assert it is non-empty before emitting `import %s`."
+          },
+          "finding_index": 0,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 62,
+            "evidence": "`return qualname(self.value), {\"import %s\" % module}` replaces `\"%s.%s\" % (module, self.value.__qualname__)`, and qualname raises ValueError when `\"<\" in value.__qualname__`.",
+            "file_path": "django/db/migrations/serializer.py",
+            "finding": "TypeSerializer now raises ValueError from qualname() for classes whose __qualname__ contains '<locals>' (or lacks __qualname__), where it previously returned a string; this changes migration serialization failures from a deconstruct-time string to an exception.",
+            "line": 340,
+            "severity": "medium",
+            "source_refs": [
+              "django/db/migrations/serializer.py hunk",
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Catch ValueError and raise the serializer's standard \"Cannot serialize\" error with a clear message, or keep the previous formatting for types."
+          },
+          "finding_index": 1,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 58,
+            "evidence": "The first branch returns `f\"{module}.{klass.__qualname__}.{value.__name__}\"` without checking `\"<\" in klass.__qualname__`, while the general path raises ValueError in that case.",
+            "file_path": "django/utils/module_loading.py",
+            "finding": "The bound-classmethod branch skips the '<' local-object check applied to other values, so a classmethod of a locally defined class returns a non-importable path like 'mod.outer.<locals>.C.meth' instead of raising ValueError.",
+            "line": 133,
+            "severity": "low",
+            "source_refs": [
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Apply the same `'<' in klass.__qualname__` validation in the __self__ branch."
+          },
+          "finding_index": 2,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        }
+      ],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "django/urls/resolvers.py:499"
+      ]
+    },
+    {
+      "cached_input_tokens": 0,
+      "case_id": "ansible__ansible__87412",
+      "confirmed_labels": 1,
+      "cost_usd": 0.029615,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 2373,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 11.0,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "lib/ansible/plugins/filter/core.py:574"
+      ],
+      "model": "claude-opus-5",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 710,
+      "pr_number": 87412,
+      "provider": "anthropic",
+      "published": 0,
+      "published_findings": [],
+      "reasoning_output_tokens": 0,
+      "repo": "ansible/ansible",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=anthropic was requested",
+      "spam": 0,
+      "suppressed": 2,
+      "suppressed_by_reason": {
+        "low_confidence": 2
+      },
+      "suppressed_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 62,
+            "evidence": "The string branch produces `subelement_list = subelements.split('.')`; for `subelements=''` this yields `['']`, so `if not subelement_list:` is False and no AnsibleFilterError is raised despite the input being effectively empty.",
+            "file_path": "lib/ansible/plugins/filter/core.py",
+            "finding": "The new empty check does not cover the string form of `subelements`: an empty string is split into `['']`, which is truthy as a list, so the guard is bypassed and the filter proceeds to look up an empty key.",
+            "line": 573,
+            "severity": "low",
+            "source_refs": [
+              "diff:lib/ansible/plugins/filter/core.py:573"
+            ],
+            "suggested_fix": "Validate the raw input too, e.g. raise when `not subelements` (or filter out empty path components) before/in addition to checking `subelement_list`."
+          },
+          "finding_index": 0,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 55,
+            "evidence": "The new `raise AnsibleFilterError('subelements must not be empty')` executes before the `results` loop, whereas previously execution fell through to the iteration over `element_list`.",
+            "file_path": "lib/ansible/plugins/filter/core.py",
+            "finding": "Raising for an empty subelements list is a behavioural change that previously succeeded (returning each element paired with an empty/whole value); existing playbooks or tests passing `[]` will now fail hard.",
+            "line": 574,
+            "severity": "low",
+            "source_refs": [
+              "diff:lib/ansible/plugins/filter/core.py:574"
+            ],
+            "suggested_fix": "Document the new error in the filter docs/changelog and confirm no test asserts the old empty-list behaviour."
+          },
+          "finding_index": 1,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        }
+      ],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 0,
+      "case_id": "psf__black__5068",
+      "confirmed_labels": 2,
+      "cost_usd": 0.048555,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 2811,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 17.296000000002095,
+      "matched_findings": 2,
+      "matched_labels": [
+        "src/black/parsing.py:99",
+        "src/black/parsing.py:87"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 0,
+          "finding_target": "src/black/parsing.py:102",
+          "label_index": 0,
+          "label_target": "src/black/parsing.py:99",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3006479284
+        },
+        {
+          "finding_index": 2,
+          "finding_target": "src/black/parsing.py:90",
+          "label_index": 1,
+          "label_target": "src/black/parsing.py:87",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3006468789
+        }
+      ],
+      "missed_labels": [],
+      "model": "claude-opus-5",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 1380,
+      "pr_number": 5068,
+      "provider": "anthropic",
+      "published": 3,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 95,
+            "evidence": "The TokenError branch now ends with `error_msg = (...)` and the following line `        errors[grammar.version] = InvalidInput(error_msg)` is at loop-body indentation rather than inside the `except TokenError` block.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The `errors[grammar.version] = InvalidInput(error_msg)` assignment was de-indented out of the `except TokenError` handler into the `for` loop body, so it executes on every grammar iteration \u2014 including when parsing succeeds \u2014 and will raise `NameError`/`UnboundLocalError` when no exception set `error_msg`, or record a stale error from a previous grammar.",
+            "line": 102,
+            "severity": "critical",
+            "source_refs": [
+              "src/black/parsing.py:95-102"
+            ],
+            "suggested_fix": "Re-indent `errors[grammar.version] = InvalidInput(error_msg)` back inside the `except TokenError as te:` block."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 70,
+            "evidence": "`f\"    {' ' * (column - 1)}^\\n\"` in both new error messages, with column taken directly from `err.context`/`te.args[1]`.",
+            "file_path": "src/black/parsing.py",
+            "finding": "`' ' * (column - 1)` assumes a 1-based column; if `column` is 0 (lib2to3/tokenize columns are frequently 0-based) the multiplication yields an empty string and the caret points at the wrong offset, one column left of the actual error.",
+            "line": 87,
+            "severity": "medium",
+            "source_refs": [
+              "src/black/parsing.py:83-90",
+              "src/black/parsing.py:95-101"
+            ],
+            "suggested_fix": "Confirm the column base and use `' ' * max(column, 0)` (or `column - 1` guarded by `max(..., 0)`) consistently."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "contract",
+            "confidence": 65,
+            "evidence": "Old: `f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"`; new adds newlines plus a literal `\"SyntaxError: invalid syntax\"`.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The error message format changed from a single line to a multi-line block ending with a hardcoded \"SyntaxError: invalid syntax\"; existing tests and downstream consumers matching the old `Cannot parse...: {lineno}:{column}: {faulty_line}` string will break, and the hardcoded suffix can misdescribe non-syntax failures.",
+            "line": 90,
+            "severity": "medium",
+            "source_refs": [
+              "src/black/parsing.py:83-90"
+            ],
+            "suggested_fix": "Update affected tests/docs and derive the trailing message from the actual exception rather than hardcoding it."
+          },
+          "finding_index": 2,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 0,
+      "repo": "psf/black",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=anthropic was requested",
+      "spam": 0,
+      "suppressed": 1,
+      "suppressed_by_reason": {
+        "low_confidence": 1
+      },
+      "suppressed_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 60,
+            "evidence": "`f\"    {te.args[0]}\\n\" f\"    {' ' * (column - 1)}^\\n\" \"SyntaxError: invalid syntax\"`, while the comment above notes these \"typically don't have a 'faulty_line'\".",
+            "file_path": "src/black/parsing.py",
+            "finding": "In the TokenError branch the second line printed is `te.args[0]` (the error text, e.g. \"EOF in multi-line statement\"), not source code, yet a caret line is rendered beneath it as if it were the faulty source line \u2014 producing a nonsensical pointer.",
+            "line": 98,
+            "severity": "low",
+            "source_refs": [
+              "src/black/parsing.py:95-101"
+            ],
+            "suggested_fix": "Omit the caret line for TokenError, and use the actual token error message instead of the hardcoded \"SyntaxError: invalid syntax\" trailer."
+          },
+          "finding_index": 0,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        }
+      ],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "src/black/parsing.py:87"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "3 of 3",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "5/5 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.80",
+      "name": "issue recall",
+      "passed": true,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.67",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-18T17:36:03Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 0,
+    "cases": 3,
+    "comment_precision": 0.6667,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.06,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 6,
+    "input_tokens": 11953,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.8,
+    "labels": 5,
+    "matched": 4,
+    "median_latency_seconds": 17.3,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 4805,
+    "p95_latency_seconds": 35.8,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 0,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {
+      "low_confidence": 6
+    },
+    "total_cost_usd": 0.1799,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "claude-opus-5",
+  "model_policy": "anthropic",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.4167,
+      "findings": 12,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 5,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.4167,
+      "findings": 12,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 5,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.5,
+      "findings": 10,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 5,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.6667,
+      "findings": 6,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.8,
+      "matched": 4,
+      "min_publish_confidence": 65,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.5,
+      "findings": 4,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.4,
+      "matched": 2,
+      "min_publish_confidence": 70,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 1.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 78,
+      "quiet_runs": 2,
+      "spam_rate": 0.0
+    }
+  ]
+}

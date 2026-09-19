@@ -38,17 +38,19 @@ M8 adds the benchmark that measures whether any of this actually works. On top o
 Not implemented yet:
 
 - Deployment of the public demo and its managed database.
-- A human-adjudicated benchmark corpus and a certified benchmark result.
+- A statistically sufficient human-adjudicated benchmark corpus and a passing benchmark result; the approved smoke set currently has only 3 PRs / 5 defects.
 - Per-hunk candidate generation, targeted context retrieval, and a separate semantic verification stage.
 - Webhook-triggered review execution; the webhook currently authenticates and acknowledges events.
 
-### Benchmark status: diagnostic only
+### Benchmark status: certified smoke set, no production winner
 
 The original 20-PR corpus contains 46 mechanically harvested inline comments. Independent review found author replies, bots, preferences and discussions, plus labels attached to earlier revisions that the final fixtures cannot reproduce. Those reports therefore measure mechanical agreement with a noisy comment set—not defect detection—and cannot select a model honestly.
 
 The historical diff-only Opus 5 run cost $2.06 with a 27-second median; broad repository context cost $5.98 with a 37-second median and produced worse overlap scores. These are retained as diagnostic evidence that the current global retrieval strategy wastes context, not as product-quality metrics.
 
-New reports exclude unreachable label targets, require explicit human adjudication for certification, use one-to-one matching, and retain every finding for manual review. See `docs/evaluation.md` for the repair and GPT-5.6 bake-off plan.
+New reports exclude unreachable label targets, require explicit human adjudication for certification, use one-to-one matching, and retain every finding for manual review.
+
+The approved four-way smoke comparison completed all 12 reviews for an estimated $0.372–$0.381. Sol-low is a promising lower-cost quality baseline and Terra-low the budget challenger, but three PRs cannot select a production winner. An AI evidence audit found both false matches and missed correct findings in the automatic overlap scores. See the [comparison and limitations](eval/runs/2026-09-18-certified-smoke/comparison.md) and [evaluation documentation](docs/evaluation.md).
 
 ## Quick Start
 
@@ -60,7 +62,7 @@ uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review --markdown report.md
 uv run prcritiq eval --fixture-mode          # measurement harness, mocked model
 uv run python eval/adjudicate_dataset.py --export eval/adjudications.jsonl
-uv run prcritiq eval --provider openai --model gpt-5.6-terra --effort low --limit 6
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low
 docker compose up -d   # local Postgres for --persist
 uv run ruff check .
 uv run pytest

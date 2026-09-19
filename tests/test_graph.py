@@ -461,7 +461,15 @@ class TestEffortConfiguration:
 
 
 class TestOpenAIResponses:
-    def test_typed_responses_api_receives_effort_and_returns_usage(self) -> None:
+    @pytest.mark.parametrize(
+        "input_details",
+        [
+            {"cached_tokens": 40},
+            {"cached_tokens": 40, "cache_write_tokens": None},
+            {"cached_tokens": 40, "cache_write_tokens": 20},
+        ],
+    )
+    def test_typed_responses_api_receives_effort_and_returns_usage(self, input_details) -> None:
         from types import SimpleNamespace
 
         from prcritiq.providers import ModelChoice, OpenAIProvider
@@ -478,7 +486,7 @@ class TestOpenAIResponses:
                     usage=SimpleNamespace(
                         input_tokens=100,
                         output_tokens=25,
-                        input_tokens_details=SimpleNamespace(cached_tokens=40),
+                        input_tokens_details=SimpleNamespace(**input_details),
                         output_tokens_details=SimpleNamespace(reasoning_tokens=10),
                     ),
                 )
@@ -500,8 +508,72 @@ class TestOpenAIResponses:
         assert responses.kwargs["reasoning"] == {"effort": "low", "context": "current_turn"}
         assert responses.kwargs["text_format"] is DraftedFindings
         assert result.usage.cached_input_tokens == 40
+        assert result.usage.cache_write_input_tokens == (
+            input_details.get("cache_write_tokens") or 0
+        )
         assert result.usage.reasoning_output_tokens == 10
         assert result.usage.cost_usd("gpt-5.6-terra") > 0
+
+    @pytest.mark.parametrize(
+        ("model", "expected_cost"),
+        [
+            ("gpt-5.6", 22.76),
+            ("gpt-5.6-sol", 22.76),
+            ("gpt-5.6-terra", 13.38),
+            ("gpt-5.6-luna", 1.338),
+        ],
+    )
+    def test_cache_reads_writes_and_ordinary_input_are_charged_once(
+        self, model: str, expected_cost: float
+    ) -> None:
+        from prcritiq.providers import Usage
+
+        usage = Usage(
+            input_tokens=1_000_000,
+            cached_input_tokens=400_000,
+            cache_write_input_tokens=200_000,
+            output_tokens=1_000_000,
+            reasoning_output_tokens=700_000,
+        )
+
+        # The remaining 400k input is ordinary; reasoning is already in output.
+        assert usage.cost_usd(model) == pytest.approx(expected_cost)
+
+    @pytest.mark.parametrize(
+        ("cached", "cache_write", "expected_cost"),
+        [
+            (400, 1000, 0.00158),
+            (1400, 100, 0.0002),
+            (-5, 100, 0.00205),
+            (400, -100, 0.00128),
+        ],
+    )
+    def test_malformed_cache_counters_cannot_exceed_total_input(
+        self, cached: int, cache_write: int, expected_cost: float
+    ) -> None:
+        from prcritiq.providers import Usage
+
+        usage = Usage(
+            input_tokens=1000,
+            cached_input_tokens=cached,
+            cache_write_input_tokens=cache_write,
+        )
+
+        assert usage.cost_usd("gpt-5.6-terra") == pytest.approx(expected_cost)
+
+    def test_cache_write_premium_does_not_change_anthropic_or_unknown_prices(self) -> None:
+        from prcritiq.providers import Usage
+
+        usage = Usage(
+            input_tokens=1_000_000,
+            cached_input_tokens=400_000,
+            cache_write_input_tokens=200_000,
+            output_tokens=1_000_000,
+        )
+
+        assert usage.cost_usd("claude-opus-5") == 30.0
+        assert usage.cost_usd("unknown-model") == 0.0
+        assert Usage().cache_write_input_tokens == 0
 
     def test_gpt_5_6_prices_are_registered(self) -> None:
         from prcritiq.providers import Usage

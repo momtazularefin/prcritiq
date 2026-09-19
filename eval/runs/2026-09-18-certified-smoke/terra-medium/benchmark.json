@@ -1,0 +1,381 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.036022,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 4091,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 47.67200000000594,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "django/db/migrations/serializer.py:198",
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "medium",
+      "no_evidence": 0,
+      "output_tokens": 2320,
+      "pr_number": 21875,
+      "provider": "openai",
+      "published": 3,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "error_handling",
+            "confidence": 95,
+            "evidence": "`qualname(exception_type)` rejects any qualname containing `<`, so a task that raises an exception class declared inside a function will raise from this code while it is already in `except Exception as e`. Previously this path always stored `f\"{exception_type.__module__}.{exception_type.__qualname__}\"`, even for local exception classes.",
+            "file_path": "django/tasks/backends/immediate.py",
+            "finding": "Handling a task exception can now itself raise ValueError when the exception class is local, preventing the immediate backend from recording the original task failure.",
+            "line": 63,
+            "severity": "high",
+            "source_refs": [
+              "django/tasks/backends/immediate.py changed lines 59-63",
+              "django/utils/module_loading.py changed lines 144-148"
+            ],
+            "suggested_fix": "Catch ValueError around `qualname(exception_type)` and use a non-raising diagnostic fallback (such as the previous module/qualname formatting, or module plus class name) when constructing TaskError."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 87,
+            "evidence": "`qualname(type(self))` raises ValueError for a local class because its `__qualname__` contains `<` (module_loading.py lines 144-148). This call is made only to build `class_name` for `warn_about_external_use()`; the previous direct formatting accepted such a qualname, so passing unsupported kwargs to a locally declared custom backend can now abort its construction.",
+            "file_path": "django/core/mail/backends/base.py",
+            "finding": "The deprecation-warning path now fails for an email backend subclass declared in a local scope instead of issuing the warning.",
+            "line": 61,
+            "severity": "medium",
+            "source_refs": [
+              "django/core/mail/backends/base.py changed line 61",
+              "django/utils/module_loading.py changed lines 140-151"
+            ],
+            "suggested_fix": "Do not require an importable qualname for this diagnostic message: catch ValueError and fall back to `f\"{type(self).__module__}.{type(self).__qualname__}\"` (or a class-name fallback) before issuing the warning."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 91,
+            "evidence": "For `C.m` where `C` is declared inside a function, `value.__self__` is `C`, so this branch returns `module + '.' + C.__qualname__ + '.m'`. `C.__qualname__` includes `<locals>`, but unlike the general branch at lines 144-148, this branch never checks it. Thus `qualname(C)` raises while `qualname(C.m)` returns a path that cannot be imported.",
+            "file_path": "django/utils/module_loading.py",
+            "finding": "The class-bound-method special case bypasses the local-object validation and returns an unimportable path for classmethods of local classes.",
+            "line": 138,
+            "severity": "medium",
+            "source_refs": [
+              "django/utils/module_loading.py changed lines 130-138",
+              "django/utils/module_loading.py changed lines 144-148"
+            ],
+            "suggested_fix": "Validate `klass.__qualname__` for `<` in the class-bound-method branch (and raise ValueError consistently), or route the constructed qualified name through the same local/anonymous validation."
+          },
+          "finding_index": 2,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 1656,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "django/tasks/backends/immediate.py:63",
+        "django/core/mail/backends/base.py:61",
+        "django/utils/module_loading.py:138"
+      ]
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "ansible__ansible__87412",
+      "confirmed_labels": 1,
+      "cost_usd": 0.0095426,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1279,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 1,
+      "latency_seconds": 13.46799999999348,
+      "matched_findings": 1,
+      "matched_labels": [
+        "lib/ansible/plugins/filter/core.py:574"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 0,
+          "finding_target": "lib/ansible/plugins/filter/core.py:573",
+          "label_index": 0,
+          "label_target": "lib/ansible/plugins/filter/core.py:574",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3778118024
+        }
+      ],
+      "missed_labels": [],
+      "model": "gpt-5.6-terra",
+      "model_effort": "medium",
+      "no_evidence": 0,
+      "output_tokens": 743,
+      "pr_number": 87412,
+      "provider": "openai",
+      "published": 1,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 68,
+            "evidence": "The new guard only checks `if not subelement_list`, but the preceding string normalization (shown by the existing surrounding logic) represents an empty string as a one-element list containing `''`, which is truthy. Thus `subelements=''` does not raise `AnsibleFilterError` here.",
+            "file_path": "lib/ansible/plugins/filter/core.py",
+            "finding": "The emptiness check does not reject an empty string value for `subelements`. `''.split('.')` produces `['']`, so an empty string bypasses this guard and is treated as a lookup for the empty key, despite the new error and PR intent to reject empty subelements.",
+            "line": 573,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Validate an empty string before splitting, or reject a normalized path containing only an empty component when that is not a supported key name; e.g., check `if not subelements` in the string branch before calling `split('.')`."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 516,
+      "repo": "ansible/ansible",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 1,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": []
+    },
+    {
+      "cached_input_tokens": 1073,
+      "case_id": "psf__black__5068",
+      "confirmed_labels": 2,
+      "cost_usd": 0.0249986,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 1561,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 40.26600000000326,
+      "matched_findings": 0,
+      "matched_labels": [],
+      "matched_pairs": [],
+      "missed_labels": [
+        "src/black/parsing.py:99",
+        "src/black/parsing.py:87"
+      ],
+      "model": "gpt-5.6-terra",
+      "model_effort": "medium",
+      "no_evidence": 0,
+      "output_tokens": 1984,
+      "pr_number": 5068,
+      "provider": "openai",
+      "published": 1,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 86,
+            "evidence": "Both new pointer lines use `{' ' * (column - 1)}` after the fixed four-space source indentation (lines 88 and 99). For example, a TokenError for an unterminated multiline string that starts after preceding text has a positive zero-based start column, so this renders the caret beneath the preceding character rather than the string start.",
+            "file_path": "src/black/parsing.py",
+            "finding": "The caret is offset one character to the left for nonzero columns. lib2to3/tokenize error positions use zero-based columns, but subtracting one from `column` makes a lexical or parse error at column N point at column N-1.",
+            "line": 88,
+            "severity": "medium",
+            "source_refs": [
+              "DIFF"
+            ],
+            "suggested_fix": "Use `{' ' * column}` when rendering the caret (in both exception paths), preserving the four-space display prefix."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 1777,
+      "repo": "psf/black",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=openai was requested",
+      "spam": 0,
+      "suppressed": 0,
+      "suppressed_by_reason": {},
+      "suppressed_findings": [],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "src/black/parsing.py:88"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "3 of 3",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "5/5 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.20",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.20",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-18T22:37:19Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cached_input_tokens": 2146,
+    "cases": 3,
+    "comment_precision": 0.2,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0235,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 5,
+    "input_tokens": 6931,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.2,
+    "labels": 5,
+    "matched": 1,
+    "median_latency_seconds": 40.27,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 5047,
+    "p95_latency_seconds": 47.67,
+    "quiet_runs": 0,
+    "reasoning_output_tokens": 3949,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0706,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "gpt-5.6-terra",
+  "model_policy": "openai",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.2,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.2,
+      "matched": 1,
+      "min_publish_confidence": 65,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 4,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 4,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    }
+  ]
+}

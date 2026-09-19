@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "labels": 5,
+  "quality_assessment": "AI evidence review, not human-adjudicated model-output precision; no production winner",
+  "cost_caveat": "Historical adapter dropped OpenAI cache_write_tokens. Baseline estimates omit the extra 0.25x input-rate premium on written tokens. Upper bounds assume all non-cache-read input was cache-written; no claim about retries, taxes, or billing ledger.",
+  "total_estimated_cost_usd": 0.3717348,
+  "total_estimated_cost_upper_bound_usd": 0.3813048,
+  "runs": [
+    {
+      "arm": "opus-5-low",
+      "generated_at": "2026-09-18T17:36:03Z",
+      "completed_cases": 3,
+      "failed_cases": 0,
+      "estimated_cost_usd": 0.17989,
+      "median_latency_seconds": 17.3,
+      "p95_latency_seconds": 35.8,
+      "candidates": 12,
+      "published": 6,
+      "mechanical_published_matches": 4,
+      "ai_reviewed_full_published_label_hits": 2,
+      "ai_reviewed_partial_published_label_hits": 1,
+      "ai_reviewed_full_candidate_label_hits": 3,
+      "ai_reviewed_partial_candidate_label_hits": 2,
+      "published_assessments": {
+        "supported": 3,
+        "unsupported": 1,
+        "partial": 2
+      },
+      "usage": {
+        "input": 11953,
+        "cached_input": 0,
+        "total_output": 4805,
+        "reasoning_output": null,
+        "cache_write_input": null
+      },
+      "unrecorded_cache_write_surcharge_upper_bound_usd": 0,
+      "estimated_cost_upper_bound_usd": 0.17989
+    },
+    {
+      "arm": "sol-low",
+      "generated_at": "2026-09-18T22:38:38Z",
+      "completed_cases": 3,
+      "failed_cases": 0,
+      "estimated_cost_usd": 0.0670384,
+      "median_latency_seconds": 25.55,
+      "p95_latency_seconds": 36.53,
+      "candidates": 5,
+      "published": 5,
+      "mechanical_published_matches": 1,
+      "ai_reviewed_full_published_label_hits": 2,
+      "ai_reviewed_partial_published_label_hits": 0,
+      "ai_reviewed_full_candidate_label_hits": 2,
+      "ai_reviewed_partial_candidate_label_hits": 0,
+      "published_assessments": {
+        "uncertain": 1,
+        "supported": 4
+      },
+      "usage": {
+        "input": 6931,
+        "cached_input": 2146,
+        "total_output": 2352,
+        "reasoning_output": 1302,
+        "cache_write_input": null
+      },
+      "unrecorded_cache_write_surcharge_upper_bound_usd": 0.004785,
+      "estimated_cost_upper_bound_usd": 0.0718234
+    },
+    {
+      "arm": "terra-low",
+      "generated_at": "2026-09-18T17:38:01Z",
+      "completed_cases": 3,
+      "failed_cases": 0,
+      "estimated_cost_usd": 0.054243200000000005,
+      "median_latency_seconds": 28.19,
+      "p95_latency_seconds": 31.97,
+      "candidates": 5,
+      "published": 5,
+      "mechanical_published_matches": 1,
+      "ai_reviewed_full_published_label_hits": 1,
+      "ai_reviewed_partial_published_label_hits": 0,
+      "ai_reviewed_full_candidate_label_hits": 1,
+      "ai_reviewed_partial_candidate_label_hits": 0,
+      "published_assessments": {
+        "supported": 5
+      },
+      "usage": {
+        "input": 6931,
+        "cached_input": 2146,
+        "total_output": 3687,
+        "reasoning_output": 2702,
+        "cache_write_input": null
+      },
+      "unrecorded_cache_write_surcharge_upper_bound_usd": 0.0023925,
+      "estimated_cost_upper_bound_usd": 0.056635700000000004
+    },
+    {
+      "arm": "terra-medium",
+      "generated_at": "2026-09-18T22:37:19Z",
+      "completed_cases": 3,
+      "failed_cases": 0,
+      "estimated_cost_usd": 0.07056319999999999,
+      "median_latency_seconds": 40.27,
+      "p95_latency_seconds": 47.67,
+      "candidates": 5,
+      "published": 5,
+      "mechanical_published_matches": 1,
+      "ai_reviewed_full_published_label_hits": 0,
+      "ai_reviewed_partial_published_label_hits": 0,
+      "ai_reviewed_full_candidate_label_hits": 0,
+      "ai_reviewed_partial_candidate_label_hits": 0,
+      "published_assessments": {
+        "supported": 3,
+        "uncertain": 2
+      },
+      "usage": {
+        "input": 6931,
+        "cached_input": 2146,
+        "total_output": 5047,
+        "reasoning_output": 3949,
+        "cache_write_input": null
+      },
+      "unrecorded_cache_write_surcharge_upper_bound_usd": 0.0023925,
+      "estimated_cost_upper_bound_usd": 0.0729557
+    }
+  ]
+}

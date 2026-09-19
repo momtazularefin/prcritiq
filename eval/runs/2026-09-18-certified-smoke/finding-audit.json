@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "status": "AI evidence audit; not human adjudication or calibrated precision",
+  "date": "2026-09-19",
+  "scope": "All 27 retained candidates across all 12 completed case runs; strict full and partial label coverage kept separate",
+  "rubric": {
+    "supported": "Claim supported by exact reviewed code and isolated evidence, without an identified material error; no full downstream integration certification",
+    "partial": "Real concern, but material qualification, inaccurate example, unsupported additional claim, or incomplete identification",
+    "unsupported": "Concrete premise contradicted by reviewed code/control flow",
+    "uncertain": "Behavior exists but introduced-defect status or required contract is not established"
+  },
+  "evidence": {
+    "django": "Frozen fixture helper extracted verbatim and exercised on local function/class/classmethod/module=None; changed call sites inspected, no full Django suite",
+    "black": "Pinned parsing.py plus tokenizer/driver read; AST-only function with mocked drivers verified successful and failure-then-success control flow, no full Black suite",
+    "ansible": "Pinned full function at review SHA read; prior version follows by removing added guard; no full Ansible suite"
+  },
+  "sources": [
+    "../../ground-truth-candidates/adjudications.jsonl",
+    "https://github.com/psf/black/blob/d8ae509635f9074660af241947d309279d77cef5/src/black/parsing.py",
+    "https://github.com/ansible/ansible/blob/3d0986ba745c847f1c23dbf5e7fdca7a9681def0/lib/ansible/plugins/filter/core.py"
+  ],
+  "candidates": [
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Extra resolver closure-name regression: qualname rejects local functions and fallback returns module.function.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "supported",
+      "reason": "Exactly detects approved admindocs closure display-name loss.",
+      "approved_label_id": "github-review-comment:3933613984",
+      "label_coverage": "full",
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 2,
+      "assessment": "supported",
+      "reason": "Exactly detects misleading missing-module serializer diagnostic. Alternative suggestion to update tests would not repair it.",
+      "approved_label_id": "github-review-comment:3933626526",
+      "label_coverage": "full",
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "suppressed",
+      "finding_index": 0,
+      "assessment": "unsupported",
+      "reason": "qualname rejects the bound method class's missing module before import construction; ordinary stable objects cannot reach claimed import None.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "suppressed",
+      "finding_index": 1,
+      "assessment": "uncertain",
+      "reason": "Earlier rejection of a local type is real, but old serialization already produced a non-importable locals path; actionability not established.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "django__django__21875",
+      "bucket": "suppressed",
+      "finding_index": 2,
+      "assessment": "uncertain",
+      "reason": "Local-classmethod helper inconsistency reproduces, but rejection contract/actionability is not established.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "ansible__ansible__87412",
+      "bucket": "suppressed",
+      "finding_index": 0,
+      "assessment": "uncertain",
+      "reason": "Empty string does become [''] and lookup an empty key, but this is unchanged behavior and an empty key can exist. New contract requiring its rejection is not established; not the approved empty-collection regression.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "ansible__ansible__87412",
+      "bucket": "suppressed",
+      "finding_index": 1,
+      "assessment": "partial",
+      "reason": "Flags compatibility risk from rejecting [] but does not identify required empty collection and inaccurately describes general prior success/pairing. Ordinary nonempty dict collections with [] already failed. Only partial approved-issue detection.",
+      "approved_label_id": "github-review-comment:3778118024",
+      "label_coverage": "partial",
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "unsupported",
+      "reason": "Successful parse immediately breaks before deindented assignment; both failure branches initialize error_msg. No claimed undefined/stale variable. Mechanical TokenError label match is false.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "partial",
+      "reason": "Positive zero-based columns are shifted left. Stated column-zero example is wrong and max(column-1,0) alternative does not fix positive columns. Separate caret issue.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 2,
+      "assessment": "partial",
+      "reason": "Identifies hardcoded exception suffix and recommends exception-derived text, but intended multiline formatting and alleged downstream breakage dilute the claim; does not clearly identify pe.msg/ParseError.",
+      "approved_label_id": "github-review-comment:3006468789",
+      "label_coverage": "partial",
+      "human_approved": false
+    },
+    {
+      "arm": "opus-5-low",
+      "case_id": "psf__black__5068",
+      "bucket": "suppressed",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Exactly detects TokenError error text displayed as source beneath a source-position caret; suppressed at confidence 60.",
+      "approved_label_id": "github-review-comment:3006479284",
+      "label_coverage": "full",
+      "human_approved": false
+    },
+    {
+      "arm": "terra-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Extra local exception class makes ImmediateBackend failure recording itself raise ValueError.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "supported",
+      "reason": "Extra resolver closure-name regression.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 2,
+      "assessment": "supported",
+      "reason": "Exactly detects approved admindocs closure-name regression.",
+      "approved_label_id": "github-review-comment:3933613984",
+      "label_coverage": "full",
+      "human_approved": false
+    },
+    {
+      "arm": "terra-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 3,
+      "assessment": "supported",
+      "reason": "Extra local email-backend class makes deprecation warning construction raise ValueError.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Separate tab-alignment defect: source tabs expand visually but caret prefix counts character positions.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-medium",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Extra ImmediateBackend local-exception failure.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-medium",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "supported",
+      "reason": "Extra local-email-backend warning failure.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-medium",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 2,
+      "assessment": "uncertain",
+      "reason": "Local-classmethod helper inconsistency reproduces, but rejection contract/actionability not established.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-medium",
+      "case_id": "ansible__ansible__87412",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "uncertain",
+      "reason": "Empty string lookup behavior is real but unchanged and empty dictionary keys can be valid. No established requirement to reject it. Mechanical match to approved empty-collection regression is false.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "terra-medium",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Separate positive-column off-by-one defect with correct spaces*column fix. TokenError illustration overlooks its missing-source defect; ParseError caret issue independently holds.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "sol-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "uncertain",
+      "reason": "Local-classmethod helper inconsistency reproduces; claimed invalid migration reference already occurred in old serializer and is not a new serialization regression.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "sol-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "supported",
+      "reason": "Exactly detects approved admindocs closure-name regression; mechanical matcher misses it.",
+      "approved_label_id": "github-review-comment:3933613984",
+      "label_coverage": "full",
+      "human_approved": false
+    },
+    {
+      "arm": "sol-low",
+      "case_id": "django__django__21875",
+      "bucket": "published",
+      "finding_index": 2,
+      "assessment": "supported",
+      "reason": "Extra resolver closure-name regression.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "sol-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 0,
+      "assessment": "supported",
+      "reason": "Separate positive-column off-by-one diagnostic defect, correct diagnosis and fix.",
+      "approved_label_id": null,
+      "label_coverage": null,
+      "human_approved": false
+    },
+    {
+      "arm": "sol-low",
+      "case_id": "psf__black__5068",
+      "bucket": "published",
+      "finding_index": 1,
+      "assessment": "supported",
+      "reason": "Exactly detects TokenError description masquerading as source code.",
+      "approved_label_id": "github-review-comment:3006479284",
+      "label_coverage": "full",
+      "human_approved": false
+    }
+  ]
+}

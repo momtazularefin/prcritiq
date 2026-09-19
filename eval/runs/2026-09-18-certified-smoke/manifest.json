@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "purpose": "Approved four-way certified smoke comparison; not a publishable quality benchmark",
+  "approval": {
+    "adjudicator": "project-owner",
+    "date": "2026-09-18",
+    "message": "approved, please continue",
+    "confirmed": 5,
+    "excluded": 2
+  },
+  "git_head_before_run": "1b481f83e172bfbbf30f0356062c1d1dedff4c5d",
+  "protocol": {
+    "case_order": [
+      "django__django__21875",
+      "ansible__ansible__87412",
+      "psf__black__5068"
+    ],
+    "arm_order": [
+      "opus-5-low",
+      "terra-low",
+      "terra-medium",
+      "sol-low"
+    ],
+    "repetitions": 1,
+    "scheduling": "Sequential arms, sequential cases; no parallel provider calls",
+    "include_context": false,
+    "tools": false,
+    "min_publish_confidence": 65,
+    "threshold_sweep": [
+      50,
+      55,
+      60,
+      65,
+      70,
+      78
+    ],
+    "max_output_tokens": 64000,
+    "max_files": 30,
+    "max_diff_lines": 2000,
+    "trace_provider": "none",
+    "similarity": "lexical",
+    "runtime_changed_during_matrix": false,
+    "interruption": "Opus and Terra-low completed Sep18 17:36/17:38 UTC; usage-limit pause; Terra-medium/Sol completed22:37/22:38 UTC. No randomized/interleaved repeated latency experiment."
+  },
+  "arms": [
+    {
+      "id": "opus-5-low",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "effort": "low"
+    },
+    {
+      "id": "terra-low",
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "id": "terra-medium",
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "effort": "medium"
+    },
+    {
+      "id": "sol-low",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    }
+  ],
+  "sha256": {
+    "uv.lock": "2a55cf555326d70a42eb82b8081d5171c0f4d228bc7cdba07ab019e98e918221",
+    "eval/ground-truth-candidates/adjudications.jsonl": "7e0ec6f831f9e16043e5225e58df57efbb88341ea4ca78a83104491e660f592a",
+    "eval/ground-truth-candidates/fixtures/ansible__ansible__87412.json": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+    "eval/ground-truth-candidates/fixtures/django__django__21875.json": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+    "src/prcritiq/prompts.py": "6a8b0f3f85291e3d686193c4e1ebe39a14ed0887afee766492d88b045bff4770",
+    "eval/ground-truth-candidates/fixtures/psf__black__5068.json": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a",
+    "eval/ground-truth-candidates/dataset-certified.jsonl": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+    "src/prcritiq/providers.py": "658a3f376d872b3d777c722e2e83bfbc5936824fd63fdd2b73abeb43e7050d7d"
+  },
+  "installed_versions": {
+    "openai": "3.3.1",
+    "anthropic": "1.0.0",
+    "langgraph": "1.2.11",
+    "pydantic": "2.13.4"
+  },
+  "pricing_checked": "2026-09-19",
+  "prices_per_million_tokens": {
+    "claude-opus-5": {
+      "input": 5,
+      "output": 25
+    },
+    "gpt-5.6-terra": {
+      "input": 2,
+      "cached_input": 0.2,
+      "output": 12,
+      "cache_write_input": 2.5
+    },
+    "gpt-5.6-sol": {
+      "input": 4,
+      "cached_input": 0.4,
+      "output": 20,
+      "cache_write_input": 5
+    }
+  },
+  "pricing_sources": [
+    "https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+    "https://developers.openai.com/api/docs/guides/prompt-caching"
+  ],
+  "limitations": [
+    "No controlled cold/warm-cache experiment; use actual returned cached-token counts",
+    "Anthropic adapter records total output but not separate reasoning/cache counters; no explicit cache_control requested",
+    "SDK automatic retries are not instrumented; cost estimates cover recorded successful usage, not billing ledger",
+    "Model aliases are requested IDs, not immutable backend revision attestations",
+    "Only three selected positive PRs and five labels; no clean-PR false-positive sample; no model winner certification",
+    "Run-time adapter discarded OpenAI cache-write counts. Raw costs omit a possible cache-write premium, bounded in comparison.json. Counter collection/cost calculation fixed only after all12calls; original reports unchanged."
+  ]
+}

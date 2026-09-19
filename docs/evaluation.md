@@ -29,16 +29,18 @@ author resolution. These filters only reduce adjudication noise; they do not
 certify a label.
 
 The current recovery packet contains 5 merged PRs and 7 labels under
-`eval/ground-truth-candidates/`. It was generated without a model call. An AI
-evidence pass provisionally retained 5 defects and excluded 2
-non-defects; every row still requires human sign-off. To approve a row, verify
-its evidence, set `human_approved` to `true`, and identify the approving human
-in `adjudicator`. The compact rationale and scope caveats are in the
+`eval/ground-truth-candidates/`. It was generated without a model call. On
+2026-09-18, `project-owner` approved the evidence-reviewed split of 5 confirmed
+defects and 2 exclusions. The derived certified smoke set contains 3 PRs and
+5 labels; the full adjudicated packet retains all seven decisions. Dataset
+certification establishes label provenance and explicit approval, not
+statistical sufficiency or correctness of model outputs. The rationale and
+scope caveats are in the
 [human sign-off sheet](../eval/ground-truth-candidates/adjudication-review.md).
-Then build the candidate certified dataset:
+To reproduce the approved dataset (do not re-export over the decision queue):
 
 ```powershell
-uv run python eval/adjudicate_dataset.py --dataset eval/ground-truth-candidates/dataset.jsonl --export eval/ground-truth-candidates/adjudications.jsonl
+uv run python eval/adjudicate_dataset.py --dataset eval/ground-truth-candidates/dataset.jsonl --apply eval/ground-truth-candidates/adjudications.jsonl --output eval/ground-truth-candidates/dataset-adjudicated.jsonl
 uv run python eval/adjudicate_dataset.py --dataset eval/ground-truth-candidates/dataset.jsonl --apply eval/ground-truth-candidates/adjudications.jsonl --confirmed-only --output eval/ground-truth-candidates/dataset-certified.jsonl
 uv run prcritiq eval --fixture-mode --dataset eval/ground-truth-candidates/dataset-certified.jsonl
 ```
@@ -68,15 +70,29 @@ those replies and author attribution. See the
 [one-case bake-off diagnostic](../eval/runs/model-bakeoff.md) for exact usage,
 latency, findings, and sources.
 
-Revisit the contextual adjudications before any paid expansion. Once a
-multi-case certified smoke set exists, repeat the same matrix on exactly that
-set:
+The approved recovery smoke comparison completed on 2026-09-18/19: all four
+configurations reviewed the same 3 PRs / 5 labels, with zero provider errors.
+Recorded-usage cost totals $0.3717–$0.3813 after bounding an omitted cache-write
+premium. The [full comparison and per-finding audit](../eval/runs/2026-09-18-certified-smoke/comparison.md)
+separate automatic overlap from semantic detection. Opus published two clear
+approved defects plus one partial detection, Terra-low one, Terra-medium zero,
+and Sol-low two. These are AI evidence assessments, not human precision.
+
+Sol-low is a promising lower-cost quality baseline for the next experiment;
+Terra-low is the budget challenger. No production winner or threshold change
+is justified by three PRs. The automatic matcher both credited unrelated
+claims and missed a correct one. Targeted context and semantic verification
+remain the next architectural work.
+
+To repeat the matrix after a deliberate experimental change, use the same
+dataset and separate output directories. These commands write ignored scratch
+reports, leaving the retained evidence runs untouched:
 
 ```powershell
-uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider anthropic --model claude-opus-5 --effort low --out eval/runs/opus-5-low
-uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low --out eval/runs/terra-low
-uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort medium --out eval/runs/terra-medium
-uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-sol --effort low --out eval/runs/sol-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider anthropic --model claude-opus-5 --effort low --out eval/reports/opus-5-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low --out eval/reports/terra-low
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort medium --out eval/reports/terra-medium
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-sol --effort low --out eval/reports/sol-low
 ```
 
 GPT-5.6 Luna should be evaluated as a high-recall candidate generator after generation and verification are split into separate stages. Comparing it as the sole reviewer would test a different, weaker architecture than the intended production cascade.
@@ -88,6 +104,8 @@ Choose the lowest-cost configuration among those that meet adjudicated precision
 - All model calls are mocked in CI.
 - Provider tests verify missing-key failures and no silent fallback.
 - OpenAI tests verify typed Responses API input, explicit reasoning effort, structured parsing, cached-token accounting, and GPT-5.6 prices.
+- Cache-read and cache-write input are separately accounted for; historical smoke reports lack the write counter and retain their original estimates with bounds in the comparison.
+- Benchmark rescoring and threshold sweeps preserve the graph's retrieval/tool evidence, so unknown-reference suppression cannot disappear during evaluation.
 - Benchmark tests cover one-to-one matching, invalid label exclusion, full output retention, threshold sweeps, and genuine billing fail-fast behavior.
 - Posting tests never write to a real pull request.
 - Postgres tests use a real database when `DATABASE_URL` is present and skip explicitly otherwise.
