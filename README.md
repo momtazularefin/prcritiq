@@ -15,7 +15,8 @@ M8 adds the benchmark that measures whether any of this actually works. On top o
 - Every tool is reported even when it does not run, with the reason. `eslint` is refused on repositories that configure it, because eslint loads the repository's own config as JavaScript and would execute the pull request's code. `tsc` is refused because the snapshot excludes `node_modules`, so it would report a missing module for every dependency rather than real findings.
 - LangGraph review loop: `prcritiq review --review` runs the seven-node graph from the design, `fetch_diff -> guardrail_gate -> static_analysis -> retrieve_context -> reason_and_draft -> self_critique -> post_or_summarize`. Each node is an inspectable step, not a line in a prompt.
 - Structured findings carry severity, model confidence, category, evidence, a suggested fix, and source references when retrieved or tool evidence was used.
-- Deterministic critique validates target lines and structural evidence, rejects unknown references, generic filler and exact duplicates, and applies the publication threshold. It is not a semantic verifier; that is a planned separate model stage.
+- Deterministic critique validates target lines and structural evidence, rejects unknown references, generic filler and exact duplicates, and applies the publication threshold. The production review graph still has no semantic model check.
+- Experimental semantic replay: `prcritiq verify` preserves saved published and suppressed candidates, gathers bounded base/head function context, and prepares an auditable report without model calls. Explicit `--live` enables a separate structured Sol/Terra verifier. It never posts or changes review defaults; [workflow and limitations](docs/verification.md).
 - Deterministic model routing has no silent fallback. OpenAI uses typed Responses API output with explicit reasoning effort; benchmark cases record the actual provider, model, effort, route reason, usage, latency, and cost.
 - Prompt-injection defense: diffs, retrieved code, and tool output are fenced as labelled untrusted data, the system prompt states they cannot change the instructions, and every finding is validated against the diff afterwards regardless of what the model was told.
 - Postgres run store: `prcritiq review --persist` records the run, its per-file guardrail verdicts, tool outcomes, findings, and routing decision. Suppressed findings are stored alongside published ones, because the invalid-line and no-evidence rates a benchmark reports are computed from them.
@@ -39,7 +40,7 @@ Not implemented yet:
 
 - Deployment of the public demo and its managed database.
 - A statistically sufficient human-adjudicated benchmark corpus and a passing benchmark result; the approved smoke set currently has only 3 PRs / 5 defects.
-- Per-hunk candidate generation, targeted context retrieval, and a separate semantic verification stage.
+- High-recall/per-hunk generation and production integration of candidate-local context plus semantic verification; the separate replay experiment is implemented but has not been quality-evaluated live.
 - Webhook-triggered review execution; the webhook currently authenticates and acknowledges events.
 
 ### Benchmark status: certified smoke set, no production winner

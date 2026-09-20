@@ -111,6 +111,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override PRCRITIQ_MODEL_EFFORT for this run.",
     )
 
+    verify = subparsers.add_parser(
+        "verify", help="Replay saved candidates with local source evidence"
+    )
+    verify.add_argument("--dataset", required=True, help="Certified dataset JSONL path")
+    verify.add_argument(
+        "--report", required=True, help="Saved benchmark.json containing candidates"
+    )
+    verify.add_argument("--out", required=True, help="Fresh directory for verification artifacts")
+    sources = verify.add_mutually_exclusive_group(required=True)
+    sources.add_argument("--source-bundle", help="Pinned source bundle JSON for offline replay")
+    sources.add_argument(
+        "--fetch-context", action="store_true", help="Fetch bounded base/head source from GitHub"
+    )
+    verify.add_argument(
+        "--live",
+        action="store_true",
+        help="Spend API credit on semantic verification (off by default)",
+    )
+    verify.add_argument("--model", choices=["gpt-5.6-sol", "gpt-5.6-terra"], default="gpt-5.6-sol")
+    verify.add_argument("--effort", choices=["low", "medium"], default="low")
+    verify.add_argument(
+        "--max-candidates", type=int, default=20, help="Maximum model calls (1-100)"
+    )
+
     return parser
 
 
@@ -155,6 +179,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         payload = report.model_dump()
     elif args.command == "eval":
         return _run_eval(args)
+    elif args.command == "verify":
+        return _run_verify(args)
     else:  # pragma: no cover - argparse prevents this branch.
         parser.error(f"unknown command: {args.command}")
 
@@ -164,6 +190,45 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     return run(argv)
+
+
+def _run_verify(args) -> int:
+    from .verification_replay import ReplayError, run_verification_replay
+
+    try:
+        report = run_verification_replay(
+            dataset_path=Path(args.dataset),
+            report_path=Path(args.report),
+            out_dir=Path(args.out),
+            settings=load_settings(),
+            root=Path.cwd(),
+            source_bundle_path=Path(args.source_bundle) if args.source_bundle else None,
+            fetch_context=args.fetch_context,
+            live=args.live,
+            model=args.model,
+            effort=args.effort,
+            max_candidates=args.max_candidates,
+        )
+    except (ReplayError, GitHubClientError, ConfigError, OSError) as exc:
+        print(json.dumps({"service": "prcritiq", "error": str(exc)}, indent=2))
+        return 1
+    print(
+        json.dumps(
+            {
+                "service": "prcritiq",
+                "mode": report["mode"],
+                "calls": report["calls"],
+                "cost_usd": report["cost_usd"],
+                "usage_complete": report["usage_complete"],
+                "status_counts": report["status_counts"],
+                "aborted": report["aborted"],
+                "report": str(Path(args.out) / "verification.json"),
+            },
+            indent=2,
+        )
+    )
+    incomplete = {"context_unavailable", "structural_reject", "budget_exceeded", "invalid_decision"}
+    return 1 if report["aborted"] or incomplete.intersection(report["status_counts"]) else 0
 
 
 def _run_eval(args) -> int:

@@ -1,0 +1,456 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-20",
+  "purpose": "No-paid-call preparation evidence; not semantic verification accuracy",
+  "source_origin": "Read-only GitHub base/head commit Contents fetch, then reused local bundle",
+  "limitations": [
+    "24 prepared candidates and 3 incomplete; no model verification has run",
+    "Original confidence and suppression provenance retained",
+    "Source hashes establish local snapshot identity, not Git-object attestation",
+    "Full local source bundles and replay reports are ignored scratch artifacts under eval/reports/verification-final-prep-*"
+  ],
+  "runs": [
+    {
+      "generation_arm": "opus-5-low",
+      "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+      "generation_report_sha256": "91fc3de91b2c130a0f06dad3075caf73664c7e60ab15370c096c88ddb57c9573",
+      "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+      "fixtures": {
+        "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+        "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+        "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+      },
+      "status_counts": {
+        "context_unavailable": 1,
+        "prepared": 11
+      },
+      "calls": 0,
+      "cost_usd": 0,
+      "usage_complete": true,
+      "candidates": [
+        {
+          "candidate_id": "5cdc53719c5ba39b745225f0abb11b7d48da9c449b98f1dfcfe8869580e12403",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/urls/resolvers.py:499",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+            "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "f89f5b442aa01369fe0ee44b135f8c1d910f20ac7af0461e8e89a1ab0e53fc57",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/contrib/admindocs/utils.py:31",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+            "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "c19e79786e26f0574b067a8bed4149beac04a8d667319570e93caba9e65a61b9",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/db/migrations/serializer.py:195",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+            "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:1b4622a47465ba238b5b0c33d728f209b813817f82f1e8c1d2c29a66d2631091"
+          ]
+        },
+        {
+          "candidate_id": "1dafdff619a8cebe6542593c9e2978c082a129c3acc1b38c42a6ce7c1ba15f88",
+          "case_id": "django__django__21875",
+          "origin": "suppressed",
+          "status": "prepared",
+          "target": "django/db/migrations/serializer.py:205",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+            "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "2bbe1a2e9c1cc7811f9f9d8a8d913d52ee35c9b3016f8406ef5b124b6b6d2076",
+          "case_id": "django__django__21875",
+          "origin": "suppressed",
+          "status": "prepared",
+          "target": "django/db/migrations/serializer.py:340",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:1697673669aceaf9ad201073a0c69a3fe50bac9c2b2005b9b7d3626aeb534c05",
+            "verify:base:56cef884b8deefd272265de56f3a4775ae566646dbe7e49ab6ca00ffc7df4142",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791"
+          ]
+        },
+        {
+          "candidate_id": "43679b2333a9e30813acbe51418a2b9292e61f9d58f57b7dee7cff7d79339f77",
+          "case_id": "django__django__21875",
+          "origin": "suppressed",
+          "status": "context_unavailable",
+          "target": "django/utils/module_loading.py:133",
+          "context_issues": [
+            "base_symbol_missing: django/utils/module_loading.py:qualname"
+          ],
+          "source_ids": [
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:9c238842a8783402d64762eb85333d12a7aff77b065458e697da617bed432d42",
+            "verify:head:2002a8a4b9ad2bfcaa920b9664ab03f6efc464de37ff7ffd2d747558ee00b09d"
+          ]
+        },
+        {
+          "candidate_id": "16bb6432fdaed5db4d8be6cb68c6cb7ad8ad8c563b837ba19efa44e9408dca13",
+          "case_id": "ansible__ansible__87412",
+          "origin": "suppressed",
+          "status": "prepared",
+          "target": "lib/ansible/plugins/filter/core.py:573",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+          ]
+        },
+        {
+          "candidate_id": "3fda8487581f5c3fe3c707f0048069d193cdae8665393b1620f7f19ba31e5616",
+          "case_id": "ansible__ansible__87412",
+          "origin": "suppressed",
+          "status": "prepared",
+          "target": "lib/ansible/plugins/filter/core.py:574",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+          ]
+        },
+        {
+          "candidate_id": "ca6db2846fa52717985d7ed9cf6fc9e05e4541325ab75d43edc06b665fa0bfaf",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:102",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        },
+        {
+          "candidate_id": "2592334c2fb989275a7905cb1fc1845cd6e3a9429c0d14337a46625847143bd3",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:87",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        },
+        {
+          "candidate_id": "4ab4ba52a20854da2a60627e161ba374259f16911174cd11029513fc16bde4a9",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:90",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        },
+        {
+          "candidate_id": "a59880bbe5ee71285f9dee0edb8f89029b691cb638428b8459ca721bdc9c23bf",
+          "case_id": "psf__black__5068",
+          "origin": "suppressed",
+          "status": "prepared",
+          "target": "src/black/parsing.py:98",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        }
+      ]
+    },
+    {
+      "generation_arm": "terra-low",
+      "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+      "generation_report_sha256": "dc7fcd2979c23dade7831779a57102e2a1c0b47639842dcc24d0d890b508ffab",
+      "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+      "fixtures": {
+        "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+        "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+        "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+      },
+      "status_counts": {
+        "prepared": 5
+      },
+      "calls": 0,
+      "cost_usd": 0,
+      "usage_complete": true,
+      "candidates": [
+        {
+          "candidate_id": "a164fe041272ed5584e97bf7eb4dcc4ad0224f7d396edd032249fdee854bfd30",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/tasks/backends/immediate.py:63",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+            "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474"
+          ]
+        },
+        {
+          "candidate_id": "f35d29bbd22f79ff6cdeb6d7dd2bed9a5542924a598ba8255cf6372577f6191c",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/urls/resolvers.py:501",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+            "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "876c68d7c051f57bdb2b5ad20144400d63f0f30a58013b2c9965193cb424d327",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/contrib/admindocs/utils.py:33",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+            "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "7a6791dead6207c6e61cb0132788d269e9101986d4069ca8f193e5a2b4edc98e",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/core/mail/backends/base.py:61",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+            "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791"
+          ]
+        },
+        {
+          "candidate_id": "591154da595dba67d07ee8ba7825664d36c4cfbfb946d86872974032974a2074",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:87",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        }
+      ]
+    },
+    {
+      "generation_arm": "terra-medium",
+      "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+      "generation_report_sha256": "dc1dd1fa87d4790f9f5af3c9dfb8e6ee7659323c7b5090a38d1b5b6cb1dd1538",
+      "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+      "fixtures": {
+        "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+        "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+        "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+      },
+      "status_counts": {
+        "context_unavailable": 1,
+        "prepared": 4
+      },
+      "calls": 0,
+      "cost_usd": 0,
+      "usage_complete": true,
+      "candidates": [
+        {
+          "candidate_id": "1f28d23c91a3e6209476bfc3478f39f0d16e51a8c15cf75faf531922524d2862",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/tasks/backends/immediate.py:63",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+            "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474"
+          ]
+        },
+        {
+          "candidate_id": "0ba2a91d648a264ceb903d719a53cc2c33ae2a1460d1b96d31a3a43294e8756a",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/core/mail/backends/base.py:61",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+            "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:e00205afafdd552c597c25be3a441429c587800ef000cb98715c42a4ad3e8ae9"
+          ]
+        },
+        {
+          "candidate_id": "db128a4e77c223bf720a50478c885b2d211a303863803c67f624177d019931de",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "context_unavailable",
+          "target": "django/utils/module_loading.py:138",
+          "context_issues": [
+            "base_symbol_missing: django/utils/module_loading.py:qualname"
+          ],
+          "source_ids": [
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:da5ad9fa7d73fa3817659d7b2b1f87c157f4e9975f7ebec8633e271dd45ae624"
+          ]
+        },
+        {
+          "candidate_id": "d7a8955370aa72d4a43212fb3e285f1a2578b9fe55240a25260a330bdd5f0657",
+          "case_id": "ansible__ansible__87412",
+          "origin": "published",
+          "status": "prepared",
+          "target": "lib/ansible/plugins/filter/core.py:573",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+          ]
+        },
+        {
+          "candidate_id": "4ea558b1f415ed3ebc2997a58108de60b1cc329d31c6d5ff7c0a3462b9b8e959",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:88",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        }
+      ]
+    },
+    {
+      "generation_arm": "sol-low",
+      "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+      "generation_report_sha256": "89ab5fcda064fc313323ca9a22b4a127603ba0b6b037805b87cc9f92c4a54eef",
+      "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+      "fixtures": {
+        "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+        "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+        "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+      },
+      "status_counts": {
+        "context_unavailable": 1,
+        "prepared": 4
+      },
+      "calls": 0,
+      "cost_usd": 0,
+      "usage_complete": true,
+      "candidates": [
+        {
+          "candidate_id": "0640e7b5fdfbfd41624c5a3b6403fcdf1aabef2ee6cb4c8d75a59a1f93c92344",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "context_unavailable",
+          "target": "django/utils/module_loading.py:136",
+          "context_issues": [
+            "base_symbol_missing: django/utils/module_loading.py:qualname"
+          ],
+          "source_ids": [
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:da5ad9fa7d73fa3817659d7b2b1f87c157f4e9975f7ebec8633e271dd45ae624"
+          ]
+        },
+        {
+          "candidate_id": "0d4add4ea7e3dcebe552a0be9618bbdd2dfc366e71f04653e4ed654b472211e7",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/contrib/admindocs/utils.py:33",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+            "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "a871e05f9a7c5bd48d2203656abd18cf0559372d5c8ad53fddb6f148f50b6ecc",
+          "case_id": "django__django__21875",
+          "origin": "published",
+          "status": "prepared",
+          "target": "django/urls/resolvers.py:501",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+            "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b",
+            "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae"
+          ]
+        },
+        {
+          "candidate_id": "c884ed15a1816ccecc97006d5539c8018e7153c027f03fdef1b9f1993a93c473",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:87",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        },
+        {
+          "candidate_id": "1c3ad10351229db8eb7491fd8c9d0093fd8d8e3fddbee1e1ccfd451d88d9a27c",
+          "case_id": "psf__black__5068",
+          "origin": "published",
+          "status": "prepared",
+          "target": "src/black/parsing.py:98",
+          "context_issues": [],
+          "source_ids": [
+            "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3"
+          ]
+        }
+      ]
+    }
+  ]
+}

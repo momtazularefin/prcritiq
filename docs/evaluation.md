@@ -81,8 +81,13 @@ and Sol-low two. These are AI evidence assessments, not human precision.
 Sol-low is a promising lower-cost quality baseline for the next experiment;
 Terra-low is the budget challenger. No production winner or threshold change
 is justified by three PRs. The automatic matcher both credited unrelated
-claims and missed a correct one. Targeted context and semantic verification
-remain the next architectural work.
+claims and missed a correct one. An opt-in [candidate-local semantic replay](verification.md)
+now separates verification from generation without repeating the paid drafting
+runs. Source preparation retained all 27 saved candidates: 24 had usable bounded
+context and 3 were explicitly incomplete (new helper without a base counterpart).
+This is context coverage, **not measured verification accuracy**; no live verifier
+calls have been made. Production integration and high-recall generation remain
+future work.
 
 To repeat the matrix after a deliberate experimental change, use the same
 dataset and separate output directories. These commands write ignored scratch
