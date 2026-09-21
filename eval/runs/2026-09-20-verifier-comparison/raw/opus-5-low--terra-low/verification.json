@@ -1,0 +1,967 @@
+{
+  "aborted": null,
+  "binding": "operator-selected certified dataset; legacy generation revisions not attested",
+  "calls": 11,
+  "candidates": [
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 72,
+        "evidence": "Old code returned `callback.__module__ + \".\" + callback.__qualname__` unless `__name__` was missing; new code calls `qualname(callback)` which raises ValueError when `\"<\" in value.__qualname__`, and the except branch returns `callback.__module__ + \".\" + callback.__class__.__name__`, i.e. \"mod.function\" for a locally defined view.",
+        "file_path": "django/urls/resolvers.py",
+        "finding": "lookup_str now falls back to the class-name form for any callback whose qualname contains '<' (e.g. views defined inside a function or decorator closure), where previously it returned the full `__qualname__`.",
+        "line": 499,
+        "severity": "medium",
+        "source_refs": [
+          "django/urls/resolvers.py hunk",
+          "django/utils/module_loading.py qualname"
+        ],
+        "suggested_fix": "Keep the `not hasattr(callback, '__name__')` check for the class-name fallback and only use qualname()'s ValueError path for genuinely unnamed callables, or return `module.__qualname__` for local functions."
+      },
+      "candidate_id": "5cdc53719c5ba39b745225f0abb11b7d48da9c449b98f1dfcfe8869580e12403",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 502,
+            "path": "django/urls/resolvers.py",
+            "side": "head",
+            "source_id": "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+            "start_line": 488,
+            "text": "    @cached_property\n    def lookup_str(self):\n        \"\"\"\n        A string that identifies the view (e.g. 'path.to.view_function' or\n        'path.to.ClassBasedView').\n        \"\"\"\n        callback = self.callback\n        if isinstance(callback, functools.partial):\n            callback = callback.func\n        if hasattr(callback, \"view_class\"):\n            callback = callback.view_class\n        try:\n            return qualname(callback)\n        except ValueError:\n            return callback.__module__ + \".\" + callback.__class__.__name__\n",
+            "truncated": false
+          },
+          {
+            "end_line": 500,
+            "path": "django/urls/resolvers.py",
+            "side": "base",
+            "source_id": "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b",
+            "start_line": 487,
+            "text": "    @cached_property\n    def lookup_str(self):\n        \"\"\"\n        A string that identifies the view (e.g. 'path.to.view_function' or\n        'path.to.ClassBasedView').\n        \"\"\"\n        callback = self.callback\n        if isinstance(callback, functools.partial):\n            callback = callback.func\n        if hasattr(callback, \"view_class\"):\n            callback = callback.view_class\n        elif not hasattr(callback, \"__name__\"):\n            return callback.__module__ + \".\" + callback.__class__.__name__\n        return callback.__module__ + \".\" + callback.__qualname__\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 77,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae",
+            "start_line": 75,
+            "text": "    @property\n    def name(self):\n        return self.func.__name__\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.010612,
+      "decision": {
+        "counterevidence": "`qualname()` explicitly rejects qualnames containing \"<\" as local or anonymous objects, and `lookup_str` catches that `ValueError` to provide a fallback. The base behavior did retain the local qualname, but no supplied evidence establishes that this output was required or that its replacement fails a caller.",
+        "failure_scenario": "",
+        "rationale": "The behavioral change is present: a local function's `__qualname__` contains \"<\", so `qualname()` raises and `lookup_str` returns the callback class-name fallback. However, the supplied head implementation of `qualname()` explicitly classifies such values as \"local or anonymous object\" for which a module path cannot be determined. The available `lookup_str` contract only describes an identifying string and does not require preserving a non-importable local function's full `__qualname__`. Thus the evidence supports an intentional fallback, not a supported defect.",
+        "source_refs": [
+          "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b"
+        ],
+        "verdict": "rejected"
+      },
+      "latency_seconds": 8.650882799996907,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "04fc7497aef3e63b323845c680c41d0dce096dc33655effbe0db084f331678a9",
+      "status": "rejected",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1756,
+        "cached_input_tokens": 0,
+        "input_tokens": 1759,
+        "output_tokens": 518,
+        "reasoning_output_tokens": 189
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 68,
+        "evidence": "`try: return qualname(view_func) except ValueError: return f\"{view_func.__module__}.{view_func.__class__.__name__}\"` \u2014 qualname raises ValueError for qualnames containing '<', so a closure-defined view falls into the class-name branch yielding \"mod.function\".",
+        "file_path": "django/contrib/admindocs/utils.py",
+        "finding": "get_view_name now reports \"module.function\" for view functions whose __qualname__ includes '<locals>' instead of the previous fully qualified name.",
+        "line": 31,
+        "severity": "medium",
+        "source_refs": [
+          "django/contrib/admindocs/utils.py hunk",
+          "django/utils/module_loading.py qualname"
+        ],
+        "suggested_fix": "Fall back to `view_func.__qualname__` when it exists and only use `__class__.__name__` when there is no __qualname__."
+      },
+      "candidate_id": "f89f5b442aa01369fe0ee44b135f8c1d910f20ac7af0461e8e89a1ab0e53fc57",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 34,
+            "path": "django/contrib/admindocs/utils.py",
+            "side": "head",
+            "source_id": "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+            "start_line": 28,
+            "text": "def get_view_name(view_func):\n    if hasattr(view_func, \"view_class\"):\n        return qualname(view_func.view_class)\n    try:\n        return qualname(view_func)\n    except ValueError:\n        return f\"{view_func.__module__}.{view_func.__class__.__name__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 33,
+            "path": "django/contrib/admindocs/utils.py",
+            "side": "base",
+            "source_id": "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9",
+            "start_line": 27,
+            "text": "def get_view_name(view_func):\n    if hasattr(view_func, \"view_class\"):\n        klass = view_func.view_class\n        return f\"{klass.__module__}.{klass.__qualname__}\"\n    mod_name = view_func.__module__\n    view_name = getattr(view_func, \"__qualname__\", view_func.__class__.__name__)\n    return mod_name + \".\" + view_name\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 77,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae",
+            "start_line": 75,
+            "text": "    @property\n    def name(self):\n        return self.func.__name__\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.009803,
+      "decision": {
+        "counterevidence": "",
+        "failure_scenario": "A URL/view is a function defined inside another function, with `__module__ == \"myapp.views\"` and `__qualname__ == \"make_view.<locals>.view\"`. Base returns `\"myapp.views.make_view.<locals>.view\"`; head raises from `qualname()` and returns `\"myapp.views.function\"`.",
+        "rationale": "For a local/closure function, its qualname contains \"<\", so head `qualname(view_func)` raises `ValueError`. `get_view_name()` catches that exception and formats the fallback using `view_func.__class__.__name__`; for a function object this is `function`, producing `\"<module>.function\"`. In base, the non-class-view path directly appended `view_func.__qualname__`, preserving the local function\u2019s full qualname. This is an introduced behavioral regression for such views.",
+        "source_refs": [
+          "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 6.106540799999493,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "23f7e87d8e65ff8229128a8e1dc61eda3ddd94363dc2dbdad209512baaf57730",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1634,
+        "cached_input_tokens": 0,
+        "input_tokens": 1637,
+        "output_tokens": 476,
+        "reasoning_output_tokens": 137
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "contract",
+        "confidence": 70,
+        "evidence": "Removed `if self.value.__module__ is None: raise ValueError(\"Cannot serialize function %r: No module\" % self.value)`; the new except branch formats the generic \"Could not find function %s in %s.\" using `getattr(self.value, \"__module__\", None)`.",
+        "file_path": "django/db/migrations/serializer.py",
+        "finding": "The distinct error message for functions with no module is gone; a function with `__module__ is None` now produces \"Could not find function X in None.\" instead of \"Cannot serialize function %r: No module\".",
+        "line": 195,
+        "severity": "medium",
+        "source_refs": [
+          "django/db/migrations/serializer.py hunk"
+        ],
+        "suggested_fix": "Re-raise the module-specific message when `__module__` is None, or update tests/docs that assert on the old message."
+      },
+      "candidate_id": "c19e79786e26f0574b067a8bed4149beac04a8d667319570e93caba9e65a61b9",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 207,
+            "path": "django/db/migrations/serializer.py",
+            "side": "head",
+            "source_id": "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+            "start_line": 189,
+            "text": "    def serialize(self):\n        if self.value.__name__ == \"<lambda>\":\n            raise ValueError(\"Cannot serialize function: lambda\")\n        try:\n            name = qualname(self.value)\n        except ValueError as err:\n            raise ValueError(\n                \"Could not find function %s in %s.\\n\"\n                % (self.value.__name__, getattr(self.value, \"__module__\", None))\n            ) from err\n\n        if getattr(self.value, \"__self__\", None) and isinstance(\n            self.value.__self__, type\n        ):\n            module = self.value.__self__.__module__\n        else:\n            module = self.value.__module__\n\n        return name, {\"import %s\" % module}\n",
+            "truncated": false
+          },
+          {
+            "end_line": 212,
+            "path": "django/db/migrations/serializer.py",
+            "side": "base",
+            "source_id": "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd",
+            "start_line": 188,
+            "text": "    def serialize(self):\n        if getattr(self.value, \"__self__\", None) and isinstance(\n            self.value.__self__, type\n        ):\n            klass = self.value.__self__\n            module = klass.__module__\n            return \"%s.%s.%s\" % (module, klass.__qualname__, self.value.__name__), {\n                \"import %s\" % module\n            }\n        # Further error checking\n        if self.value.__name__ == \"<lambda>\":\n            raise ValueError(\"Cannot serialize function: lambda\")\n        if self.value.__module__ is None:\n            raise ValueError(\"Cannot serialize function %r: No module\" % self.value)\n\n        module_name = self.value.__module__\n\n        if \"<\" not in self.value.__qualname__:  # Qualname can include <locals>\n            return \"%s.%s\" % (module_name, self.value.__qualname__), {\n                \"import %s\" % self.value.__module__\n            }\n\n        raise ValueError(\n            \"Could not find function %s in %s.\\n\" % (self.value.__name__, module_name)\n        )\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 41,
+            "path": "django/db/migrations/serializer.py",
+            "side": "head",
+            "source_id": "verify:head:1b4622a47465ba238b5b0c33d728f209b813817f82f1e8c1d2c29a66d2631091",
+            "start_line": 38,
+            "text": "    def serialize(self):\n        raise NotImplementedError(\n            \"Subclasses of BaseSerializer must implement the serialize() method.\"\n        )\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.008867,
+      "decision": {
+        "counterevidence": "The head generic error remains appropriate for other qualname() failures, such as local/anonymous objects, but its unconditional catch also covers the no-module failure.",
+        "failure_scenario": "Serialize a non-lambda function-like value with __name__ and __module__ set to None. Head calls qualname(), which raises for __module__ is None; the catch rethrows \"Could not find function <name> in None.\". Base instead raises \"Cannot serialize function <value>: No module\".",
+        "rationale": "In head, a value whose __module__ is None causes qualname() to raise ValueError. FunctionTypeSerializer.serialize() catches that exception and always raises the generic \"Could not find function %s in %s.\" message, interpolating None for the module. In base, the same state is checked explicitly and raises the distinct \"Cannot serialize function %r: No module\" error before qualname-related handling.",
+        "source_refs": [
+          "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 4.2156630999998015,
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "2703a427a4390ce8719b6896f4ffed2721b15a0fafbfbb867ab02d8c677ffcd9",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1946,
+        "cached_input_tokens": 0,
+        "input_tokens": 1949,
+        "output_tokens": 333,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 60,
+        "evidence": "`module = self.value.__self__.__module__` is used unconditionally for the returned imports set, while qualname() only validates the klass module inside its own branch; if it passed, fine, but the imports set is derived independently and not validated against the name returned.",
+        "file_path": "django/db/migrations/serializer.py",
+        "finding": "For bound classmethods the import statement may be built from a None module, producing \"import None\".",
+        "line": 205,
+        "severity": "low",
+        "source_refs": [
+          "django/db/migrations/serializer.py hunk"
+        ],
+        "suggested_fix": "Derive the module from the same source qualname() used, and assert it is non-empty before emitting `import %s`."
+      },
+      "candidate_id": "1dafdff619a8cebe6542593c9e2978c082a129c3acc1b38c42a6ce7c1ba15f88",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 207,
+            "path": "django/db/migrations/serializer.py",
+            "side": "head",
+            "source_id": "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+            "start_line": 189,
+            "text": "    def serialize(self):\n        if self.value.__name__ == \"<lambda>\":\n            raise ValueError(\"Cannot serialize function: lambda\")\n        try:\n            name = qualname(self.value)\n        except ValueError as err:\n            raise ValueError(\n                \"Could not find function %s in %s.\\n\"\n                % (self.value.__name__, getattr(self.value, \"__module__\", None))\n            ) from err\n\n        if getattr(self.value, \"__self__\", None) and isinstance(\n            self.value.__self__, type\n        ):\n            module = self.value.__self__.__module__\n        else:\n            module = self.value.__module__\n\n        return name, {\"import %s\" % module}\n",
+            "truncated": false
+          },
+          {
+            "end_line": 212,
+            "path": "django/db/migrations/serializer.py",
+            "side": "base",
+            "source_id": "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd",
+            "start_line": 188,
+            "text": "    def serialize(self):\n        if getattr(self.value, \"__self__\", None) and isinstance(\n            self.value.__self__, type\n        ):\n            klass = self.value.__self__\n            module = klass.__module__\n            return \"%s.%s.%s\" % (module, klass.__qualname__, self.value.__name__), {\n                \"import %s\" % module\n            }\n        # Further error checking\n        if self.value.__name__ == \"<lambda>\":\n            raise ValueError(\"Cannot serialize function: lambda\")\n        if self.value.__module__ is None:\n            raise ValueError(\"Cannot serialize function %r: No module\" % self.value)\n\n        module_name = self.value.__module__\n\n        if \"<\" not in self.value.__qualname__:  # Qualname can include <locals>\n            return \"%s.%s\" % (module_name, self.value.__qualname__), {\n                \"import %s\" % self.value.__module__\n            }\n\n        raise ValueError(\n            \"Could not find function %s in %s.\\n\" % (self.value.__name__, module_name)\n        )\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 77,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae",
+            "start_line": 75,
+            "text": "    @property\n    def name(self):\n        return self.func.__name__\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.0082905,
+      "decision": {
+        "counterevidence": "The head qualname() explicitly rejects bound classmethods whose class has no module before serialize() derives module and returns an import statement. The base implementation did not validate a bound classmethod's class module before formatting its import, but the head change adds this guard.",
+        "failure_scenario": "",
+        "rationale": "For a bound classmethod, serialize() first calls qualname(self.value). qualname() takes the same bound-classmethod condition, obtains klass.__module__ via getattr(), and raises ValueError when it is falsy (including None). Therefore execution cannot reach the later import-set construction with a None class module. If qualname() succeeds, the subsequent direct module lookup refers to that same klass.__module__ used to construct the returned name.",
+        "source_refs": [
+          "verify:head:8068d4820826c41e6efd1e9315de3087a68ba50b652d337ca40985b5693d2afc",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:056ef6a31f1fc23f7074f3d6f262cceb62227bb5ec69130cb54a29c2cf3e35bd"
+        ],
+        "verdict": "rejected"
+      },
+      "latency_seconds": 4.231831299999612,
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "1d68b44ef1bd7a995ad1a10bf5707b06f8f4a76ea6028415c9f384c54f91d8f7",
+      "status": "rejected",
+      "suppression_reason": "low_confidence",
+      "usage": {
+        "cache_write_input_tokens": 1893,
+        "cached_input_tokens": 0,
+        "input_tokens": 1896,
+        "output_tokens": 296,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 62,
+        "evidence": "`return qualname(self.value), {\"import %s\" % module}` replaces `\"%s.%s\" % (module, self.value.__qualname__)`, and qualname raises ValueError when `\"<\" in value.__qualname__`.",
+        "file_path": "django/db/migrations/serializer.py",
+        "finding": "TypeSerializer now raises ValueError from qualname() for classes whose __qualname__ contains '<locals>' (or lacks __qualname__), where it previously returned a string; this changes migration serialization failures from a deconstruct-time string to an exception.",
+        "line": 340,
+        "severity": "medium",
+        "source_refs": [
+          "django/db/migrations/serializer.py hunk",
+          "django/utils/module_loading.py qualname"
+        ],
+        "suggested_fix": "Catch ValueError and raise the serializer's standard \"Cannot serialize\" error with a clear message, or keep the previous formatting for types."
+      },
+      "candidate_id": "2bbe1a2e9c1cc7811f9f9d8a8d913d52ee35c9b3016f8406ef5b124b6b6d2076",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 340,
+            "path": "django/db/migrations/serializer.py",
+            "side": "head",
+            "source_id": "verify:head:1697673669aceaf9ad201073a0c69a3fe50bac9c2b2005b9b7d3626aeb534c05",
+            "start_line": 327,
+            "text": "    def serialize(self):\n        special_cases = [\n            (models.Model, \"models.Model\", [\"from django.db import models\"]),\n            (types.NoneType, \"types.NoneType\", [\"import types\"]),\n        ]\n        for case, string, imports in special_cases:\n            if case is self.value:\n                return string, set(imports)\n        if hasattr(self.value, \"__module__\"):\n            module = self.value.__module__\n            if module == builtins.__name__:\n                return self.value.__name__, set()\n            else:\n                return qualname(self.value), {\"import %s\" % module}\n",
+            "truncated": false
+          },
+          {
+            "end_line": 347,
+            "path": "django/db/migrations/serializer.py",
+            "side": "base",
+            "source_id": "verify:base:56cef884b8deefd272265de56f3a4775ae566646dbe7e49ab6ca00ffc7df4142",
+            "start_line": 332,
+            "text": "    def serialize(self):\n        special_cases = [\n            (models.Model, \"models.Model\", [\"from django.db import models\"]),\n            (types.NoneType, \"types.NoneType\", [\"import types\"]),\n        ]\n        for case, string, imports in special_cases:\n            if case is self.value:\n                return string, set(imports)\n        if hasattr(self.value, \"__module__\"):\n            module = self.value.__module__\n            if module == builtins.__name__:\n                return self.value.__name__, set()\n            else:\n                return \"%s.%s\" % (module, self.value.__qualname__), {\n                    \"import %s\" % module\n                }\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.01127,
+      "decision": {
+        "counterevidence": "qualname() explicitly raises ValueError for missing __qualname__ and for '<' in __qualname__, rather than silently producing a non-importable path. The base implementation directly interpolated __qualname__, so it had no successful path for objects without that attribute.",
+        "failure_scenario": "",
+        "rationale": "The head change deliberately routes non-builtin types through qualname(), whose documented purpose is to return an importable dotted module path and which explicitly rejects local or anonymous objects. A class with '<locals>' in __qualname__ is not addressable by the base serialization string as a valid dotted import path; the base merely emitted an unusable string containing '<locals>'. Also, an object lacking __qualname__ did not previously serialize successfully: the base code directly accessed self.value.__qualname__, which would raise AttributeError.",
+        "source_refs": [
+          "verify:head:1697673669aceaf9ad201073a0c69a3fe50bac9c2b2005b9b7d3626aeb534c05",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:56cef884b8deefd272265de56f3a4775ae566646dbe7e49ab6ca00ffc7df4142"
+        ],
+        "verdict": "rejected"
+      },
+      "latency_seconds": 8.768226799998956,
+      "origin": "suppressed",
+      "original_index": 1,
+      "prompt_sha256": "481d6a87f89ae5e9db2c6a16f872f6c29475dd6a8f8220908da2d1f34952edd4",
+      "status": "rejected",
+      "suppression_reason": "low_confidence",
+      "usage": {
+        "cache_write_input_tokens": 1664,
+        "cached_input_tokens": 0,
+        "input_tokens": 1667,
+        "output_tokens": 592,
+        "reasoning_output_tokens": 279
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 58,
+        "evidence": "The first branch returns `f\"{module}.{klass.__qualname__}.{value.__name__}\"` without checking `\"<\" in klass.__qualname__`, while the general path raises ValueError in that case.",
+        "file_path": "django/utils/module_loading.py",
+        "finding": "The bound-classmethod branch skips the '<' local-object check applied to other values, so a classmethod of a locally defined class returns a non-importable path like 'mod.outer.<locals>.C.meth' instead of raising ValueError.",
+        "line": 133,
+        "severity": "low",
+        "source_refs": [
+          "django/utils/module_loading.py qualname"
+        ],
+        "suggested_fix": "Apply the same `'<' in klass.__qualname__` validation in the __self__ branch."
+      },
+      "candidate_id": "43679b2333a9e30813acbe51418a2b9292e61f9d58f57b7dee7cff7d79339f77",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [
+          "base_symbol_missing: django/utils/module_loading.py:qualname"
+        ],
+        "snippets": [
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 224,
+            "path": "django/urls/resolvers.py",
+            "side": "head",
+            "source_id": "verify:head:9c238842a8783402d64762eb85333d12a7aff77b065458e697da617bed432d42",
+            "start_line": 219,
+            "text": "    def check(self):\n        warnings = []\n        warnings.extend(self._check_pattern_startswith_slash())\n        if not self._is_endpoint:\n            warnings.extend(self._check_include_trailing_dollar())\n        return warnings\n",
+            "truncated": false
+          },
+          {
+            "end_line": 364,
+            "path": "django/urls/resolvers.py",
+            "side": "head",
+            "source_id": "verify:head:2002a8a4b9ad2bfcaa920b9664ab03f6efc464de37ff7ffd2d747558ee00b09d",
+            "start_line": 349,
+            "text": "    def check(self):\n        warnings = [\n            *self._check_pattern_startswith_slash(),\n            *self._check_pattern_unmatched_angle_brackets(),\n        ]\n        route = self._route\n        if \"(?P<\" in route or route.startswith(\"^\") or route.endswith(\"$\"):\n            warnings.append(\n                Warning(\n                    \"Your URL pattern {} has a route that contains '(?P<', begins \"\n                    \"with a '^', or ends with a '$'. This was likely an oversight \"\n                    \"when migrating to django.urls.path().\".format(self.describe()),\n                    id=\"2_0.W001\",\n                )\n            )\n        return warnings\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "origin": "suppressed",
+      "original_index": 2,
+      "status": "context_unavailable",
+      "suppression_reason": "low_confidence"
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 62,
+        "evidence": "The string branch produces `subelement_list = subelements.split('.')`; for `subelements=''` this yields `['']`, so `if not subelement_list:` is False and no AnsibleFilterError is raised despite the input being effectively empty.",
+        "file_path": "lib/ansible/plugins/filter/core.py",
+        "finding": "The new empty check does not cover the string form of `subelements`: an empty string is split into `['']`, which is truthy as a list, so the guard is bypassed and the filter proceeds to look up an empty key.",
+        "line": 573,
+        "severity": "low",
+        "source_refs": [
+          "diff:lib/ansible/plugins/filter/core.py:573"
+        ],
+        "suggested_fix": "Validate the raw input too, e.g. raise when `not subelements` (or filter out empty path components) before/in addition to checking `subelement_list`."
+      },
+      "candidate_id": "16bb6432fdaed5db4d8be6cb68c6cb7ad8ad8c563b837ba19efa44e9408dca13",
+      "case_id": "ansible__ansible__87412",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 596,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "head",
+            "source_id": "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    if not subelement_list:\n        raise AnsibleFilterError('subelements must not be empty')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          },
+          {
+            "end_line": 593,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "base",
+            "source_id": "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.008538,
+      "decision": {
+        "counterevidence": "The head guard correctly rejects the list form `subelements=[]`; it does not reject the equivalent empty string form because that form has already been split into a truthy one-element list.",
+        "failure_scenario": "Calling `subelements([{'groups': ['wheel']}], '')` sets `subelement_list` to `['']`. The guard is bypassed and lookup of `element['']` raises `AnsibleFilterError` for a missing key rather than `AnsibleFilterError('subelements must not be empty')`. With `skip_missing=True`, it instead returns an empty result, also accepting the effectively empty accessor.",
+        "rationale": "In the head implementation, a string `subelements` is transformed with `split('.')` before the new emptiness guard. Python splitting an empty string produces `['']`, so `if not subelement_list` does not raise the intended `AnsibleFilterError`. The loop then treats the empty string as an accessor key. This is an incomplete behavioral change relative to the newly added empty-list guard; base had no empty-input guard at all.",
+        "source_refs": [
+          "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+          "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 4.480982799999765,
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "f8dcc5fada319db12a28c4fe046d0aa9ab64f450664514fd2b88700a6d89daf3",
+      "status": "confirmed",
+      "suppression_reason": "low_confidence",
+      "usage": {
+        "cache_write_input_tokens": 1896,
+        "cached_input_tokens": 0,
+        "input_tokens": 1899,
+        "output_tokens": 316,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 55,
+        "evidence": "The new `raise AnsibleFilterError('subelements must not be empty')` executes before the `results` loop, whereas previously execution fell through to the iteration over `element_list`.",
+        "file_path": "lib/ansible/plugins/filter/core.py",
+        "finding": "Raising for an empty subelements list is a behavioural change that previously succeeded (returning each element paired with an empty/whole value); existing playbooks or tests passing `[]` will now fail hard.",
+        "line": 574,
+        "severity": "low",
+        "source_refs": [
+          "diff:lib/ansible/plugins/filter/core.py:574"
+        ],
+        "suggested_fix": "Document the new error in the filter docs/changelog and confirm no test asserts the old empty-list behaviour."
+      },
+      "candidate_id": "3fda8487581f5c3fe3c707f0048069d193cdae8665393b1620f7f19ba31e5616",
+      "case_id": "ansible__ansible__87412",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 596,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "head",
+            "source_id": "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    if not subelement_list:\n        raise AnsibleFilterError('subelements must not be empty')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          },
+          {
+            "end_line": 593,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "base",
+            "source_id": "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.014284,
+      "decision": {
+        "counterevidence": "For a non-empty normal list of dictionaries with `subelements=[]`, the base does not generally produce pairs: `values` remains the dictionary and fails the subsequent `isinstance(values, list)` check. The prior successful behavior is therefore not universal, but the empty-object-list case demonstrably succeeded.",
+        "failure_scenario": "Call `subelements([], [])`. Base accepts both arguments, performs zero loop iterations, and returns `[]`. Head raises `AnsibleFilterError('subelements must not be empty')`.",
+        "rationale": "The head adds a non-empty guard immediately after accepting a list or string selector. Thus `subelements=[]` now raises before `results` or element iteration. In the base, the same accepted list reaches the loop. For a valid empty object list, no iterations occur and base returns `[]`; head instead raises `AnsibleFilterError`, establishing an incompatible behavioral change for that input.",
+        "source_refs": [
+          "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+          "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 11.689743500002805,
+      "origin": "suppressed",
+      "original_index": 1,
+      "prompt_sha256": "130be9c3cce27cfac4ef96c8b90a9180e5ceebe080e64899e3bdcb2c4873bc4c",
+      "status": "confirmed",
+      "suppression_reason": "low_confidence",
+      "usage": {
+        "cache_write_input_tokens": 1876,
+        "cached_input_tokens": 0,
+        "input_tokens": 1879,
+        "output_tokens": 799,
+        "reasoning_output_tokens": 516
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 95,
+        "evidence": "The TokenError branch now ends with `error_msg = (...)` and the following line `        errors[grammar.version] = InvalidInput(error_msg)` is at loop-body indentation rather than inside the `except TokenError` block.",
+        "file_path": "src/black/parsing.py",
+        "finding": "The `errors[grammar.version] = InvalidInput(error_msg)` assignment was de-indented out of the `except TokenError` handler into the `for` loop body, so it executes on every grammar iteration \u2014 including when parsing succeeds \u2014 and will raise `NameError`/`UnboundLocalError` when no exception set `error_msg`, or record a stale error from a previous grammar.",
+        "line": 102,
+        "severity": "critical",
+        "source_refs": [
+          "src/black/parsing.py:95-102"
+        ],
+        "suggested_fix": "Re-indent `errors[grammar.version] = InvalidInput(error_msg)` back inside the `except TokenError as te:` block."
+      },
+      "candidate_id": "ca6db2846fa52717985d7ed9cf6fc9e05e4541325ab75d43edc06b665fa0bfaf",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.0107745,
+      "decision": {
+        "counterevidence": "The `break` is inside the `try`, but Python executes the remainder of the loop body after the try/except statement before completing the break; the de-indented assignment is part of that remainder. No guard initializes `error_msg` or bypasses this assignment on success in the supplied head code.",
+        "failure_scenario": "With default target versions, `get_grammars()` supplies multiple grammars. For source that raises `ParseError` under the first grammar but parses successfully under a later grammar, the first iteration assigns `error_msg`; the successful iteration executes `break` and then still executes the de-indented assignment, recording the prior grammar's stale error under the successful grammar version. If the first attempted grammar parses successfully, `break` is followed by the assignment before `error_msg` has ever been assigned, raising UnboundLocalError instead of returning the parsed node.",
+        "rationale": "In head, the final `errors[grammar.version] = InvalidInput(error_msg)` is indented at the `for grammar in grammars` body level, not within either exception handler. It therefore runs after both parse failures and successful `drv.parse_string()` calls. The base version records errors only inside the respective `ParseError` and `TokenError` handlers, so this is an introduced control-flow regression.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 5.6220991000009235,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "ccdda008d28b743270d9c7b6c79cc818bc2a8633fb941ea4ba9629418c54231a",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2349,
+        "cached_input_tokens": 0,
+        "input_tokens": 2352,
+        "output_tokens": 408,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 70,
+        "evidence": "`f\"    {' ' * (column - 1)}^\\n\"` in both new error messages, with column taken directly from `err.context`/`te.args[1]`.",
+        "file_path": "src/black/parsing.py",
+        "finding": "`' ' * (column - 1)` assumes a 1-based column; if `column` is 0 (lib2to3/tokenize columns are frequently 0-based) the multiplication yields an empty string and the caret points at the wrong offset, one column left of the actual error.",
+        "line": 87,
+        "severity": "medium",
+        "source_refs": [
+          "src/black/parsing.py:83-90",
+          "src/black/parsing.py:95-101"
+        ],
+        "suggested_fix": "Confirm the column base and use `' ' * max(column, 0)` (or `column - 1` guarded by `max(..., 0)`) consistently."
+      },
+      "candidate_id": "2592334c2fb989275a7905cb1fc1845cd6e3a9429c0d14337a46625847143bd3",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.009569,
+      "decision": {
+        "counterevidence": "With `column == 0`, the generated caret line is exactly `    ^`; this aligns with the displayed faulty line's first character (`    {faulty_line}`), rather than appearing one column left. The base implementation did not render a caret, so the alleged newly introduced off-by-one behavior is not demonstrated.",
+        "failure_scenario": "",
+        "rationale": "The head code intentionally prints the reported location as `lineno:column` and then adds four display-indent spaces before the source line. For a zero-based column, `column - 1` combined with that display indentation places the caret under the first source character: the source begins after four spaces and the caret line is `\"    \" + \"\" + \"^\"`. Thus column 0 is not one column left. For positive columns, the caret is likewise placed after the four-space display prefix plus `column - 1` spaces, consistent with a one-based displayed position. The supplied evidence does not establish that either exception supplies zero-based positions in a way that makes this arithmetic incorrect.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "rejected"
+      },
+      "latency_seconds": 5.67760669999916,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "f5f3347c377a1b0501234fdc1ad0824f12b82e7385748964d10b6bdf69197226",
+      "status": "rejected",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2318,
+        "cached_input_tokens": 0,
+        "input_tokens": 2321,
+        "output_tokens": 314,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "contract",
+        "confidence": 65,
+        "evidence": "Old: `f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"`; new adds newlines plus a literal `\"SyntaxError: invalid syntax\"`.",
+        "file_path": "src/black/parsing.py",
+        "finding": "The error message format changed from a single line to a multi-line block ending with a hardcoded \"SyntaxError: invalid syntax\"; existing tests and downstream consumers matching the old `Cannot parse...: {lineno}:{column}: {faulty_line}` string will break, and the hardcoded suffix can misdescribe non-syntax failures.",
+        "line": 90,
+        "severity": "medium",
+        "source_refs": [
+          "src/black/parsing.py:83-90"
+        ],
+        "suggested_fix": "Update affected tests/docs and derive the trailing message from the actual exception rather than hardcoding it."
+      },
+      "candidate_id": "4ab4ba52a20854da2a60627e161ba374259f16911174cd11029513fc16bde4a9",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.0090105,
+      "decision": {
+        "counterevidence": "",
+        "failure_scenario": "Calling `lib2to3_parse` with syntactically invalid source (for example, `\"x =\\n\"`) causes a ParseError; if no grammar succeeds, head raises `InvalidInput` whose message is multi-line and ends in `SyntaxError: invalid syntax`, rather than the base single-line message. Consumers/tests matching the former complete message fail.",
+        "rationale": "Both ParseError and TokenError paths now construct an InvalidInput message with embedded newlines, a source/caret display, and the literal suffix \"SyntaxError: invalid syntax\". The base raised the same errors in the prior single-line `Cannot parse...: line:column: detail` format. A parsing failure reaches the `else` block and raises the saved message, so this is an observable behavioral change.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 3.8814472000012756,
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "203ff0de4888dd5b95d5340ec111922978acbe0664a5b22e3c952ce15fb7a43f",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2325,
+        "cached_input_tokens": 0,
+        "input_tokens": 2328,
+        "output_tokens": 266,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 60,
+        "evidence": "`f\"    {te.args[0]}\\n\" f\"    {' ' * (column - 1)}^\\n\" \"SyntaxError: invalid syntax\"`, while the comment above notes these \"typically don't have a 'faulty_line'\".",
+        "file_path": "src/black/parsing.py",
+        "finding": "In the TokenError branch the second line printed is `te.args[0]` (the error text, e.g. \"EOF in multi-line statement\"), not source code, yet a caret line is rendered beneath it as if it were the faulty source line \u2014 producing a nonsensical pointer.",
+        "line": 98,
+        "severity": "low",
+        "source_refs": [
+          "src/black/parsing.py:95-101"
+        ],
+        "suggested_fix": "Omit the caret line for TokenError, and use the actual token error message instead of the hardcoded \"SyntaxError: invalid syntax\" trailer."
+      },
+      "candidate_id": "a59880bbe5ee71285f9dee0edb8f89029b691cb638428b8459ca721bdc9c23bf",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.0089755,
+      "decision": {
+        "counterevidence": "",
+        "failure_scenario": "An input that reaches `except TokenError` with an error such as `te.args[0] == \"EOF in multi-line statement\"` and a nonzero source column produces output containing that message followed by spaces and `^`; the caret purports to locate a character in the message rather than in the input source.",
+        "rationale": "The head TokenError handler deliberately uses `te.args[0]`, documented immediately above as typically not being a faulty source line, as the displayed line and then appends a column-based caret beneath it. Thus the caret\u2019s column describes the original input position but is rendered against an error-message string, not source text. The base version displayed the TokenError text inline without a caret, so this misleading diagnostic presentation was introduced in head.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 4.113666500001273,
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "2df6fb8ff760136b185407ad20ee2f53d919d621e9647841011dd96038e46229",
+      "status": "confirmed",
+      "suppression_reason": "low_confidence",
+      "usage": {
+        "cache_write_input_tokens": 2335,
+        "cached_input_tokens": 0,
+        "input_tokens": 2338,
+        "output_tokens": 261,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    }
+  ],
+  "cost_usd": 0.10999400000000001,
+  "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+  "effort": "low",
+  "fixtures": {
+    "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+    "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+    "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+  },
+  "generation_metrics": {
+    "cached_input_tokens": 0,
+    "cases": 3,
+    "comment_precision": 0.6667,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.06,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 6,
+    "input_tokens": 11953,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.8,
+    "labels": 5,
+    "matched": 4,
+    "median_latency_seconds": 17.3,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 4805,
+    "p95_latency_seconds": 35.8,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 0,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {
+      "low_confidence": 6
+    },
+    "total_cost_usd": 0.1799,
+    "unadjudicated_labels": 0
+  },
+  "generation_report_sha256": "91fc3de91b2c130a0f06dad3075caf73664c7e60ab15370c096c88ddb57c9573",
+  "max_candidates": 12,
+  "mode": "live",
+  "model": "gpt-5.6-terra",
+  "schema_version": 1,
+  "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+  "source_provenance": "operator-supplied",
+  "source_validation": "all available frozen patch lines checked; no Git object attestation",
+  "status_counts": {
+    "confirmed": 7,
+    "context_unavailable": 1,
+    "rejected": 4
+  },
+  "usage_complete": true
+}

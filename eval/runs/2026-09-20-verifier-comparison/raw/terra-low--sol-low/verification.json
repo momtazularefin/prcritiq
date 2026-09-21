@@ -1,0 +1,462 @@
+{
+  "aborted": null,
+  "binding": "operator-selected certified dataset; legacy generation revisions not attested",
+  "calls": 5,
+  "candidates": [
+    {
+      "candidate": {
+        "category": "error_handling",
+        "confidence": 89,
+        "evidence": "The exception handler calls `qualname(exception_type)`, but `qualname()` explicitly raises `ValueError` when `exception_type.__qualname__` contains `<`. A task can raise an exception class declared inside a function; previously this path always constructed a string from `__module__` and `__qualname__` and appended the TaskError.",
+        "file_path": "django/tasks/backends/immediate.py",
+        "finding": "Handling a task exception can now raise a second ValueError for exceptions whose classes are local or anonymous, preventing the task failure from being recorded.",
+        "line": 63,
+        "severity": "high",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Keep exception reporting non-throwing: catch ValueError around `qualname(exception_type)` and fall back to `f\"{exception_type.__module__}.{exception_type.__qualname__}\"` (or another stable diagnostic representation)."
+      },
+      "candidate_id": "a164fe041272ed5584e97bf7eb4dcc4ad0224f7d396edd032249fdee854bfd30",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 72,
+            "path": "django/tasks/backends/immediate.py",
+            "side": "head",
+            "source_id": "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+            "start_line": 24,
+            "text": "    def _execute_task(self, task_result):\n        \"\"\"\n        Execute the Task for the given TaskResult, mutating it with the\n        outcome.\n        \"\"\"\n        object.__setattr__(task_result, \"enqueued_at\", timezone.now())\n        task_enqueued.send(type(self), task_result=task_result)\n\n        task = task_result.task\n        task_start_time = timezone.now()\n        object.__setattr__(task_result, \"status\", TaskResultStatus.RUNNING)\n        object.__setattr__(task_result, \"started_at\", task_start_time)\n        object.__setattr__(task_result, \"last_attempted_at\", task_start_time)\n        task_result.worker_ids.append(self.worker_id)\n        task_started.send(sender=type(self), task_result=task_result)\n\n        try:\n            if task.takes_context:\n                raw_return_value = task.call(\n                    TaskContext(task_result=task_result),\n                    *task_result.args,\n                    **task_result.kwargs,\n                )\n            else:\n                raw_return_value = task.call(*task_result.args, **task_result.kwargs)\n\n            object.__setattr__(\n                task_result,\n                \"_return_value\",\n                normalize_json(raw_return_value),\n            )\n        except KeyboardInterrupt:\n            # If the user tried to terminate, let them\n            raise\n        except BaseException as e:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            exception_type = type(e)\n            task_result.errors.append(\n                TaskError(\n                    exception_class_path=qualname(exception_type),\n                    traceback=\"\".join(format_exception(e)),\n                )\n            )\n            object.__setattr__(task_result, \"status\", TaskResultStatus.FAILED)\n            task_finished.send(type(self), task_result=task_result)\n        else:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            object.__setattr__(task_result, \"status\", TaskResultStatus.SUCCESSFUL)\n            task_finished.send(type(self), task_result=task_result)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 73,
+            "path": "django/tasks/backends/immediate.py",
+            "side": "base",
+            "source_id": "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+            "start_line": 23,
+            "text": "    def _execute_task(self, task_result):\n        \"\"\"\n        Execute the Task for the given TaskResult, mutating it with the\n        outcome.\n        \"\"\"\n        object.__setattr__(task_result, \"enqueued_at\", timezone.now())\n        task_enqueued.send(type(self), task_result=task_result)\n\n        task = task_result.task\n        task_start_time = timezone.now()\n        object.__setattr__(task_result, \"status\", TaskResultStatus.RUNNING)\n        object.__setattr__(task_result, \"started_at\", task_start_time)\n        object.__setattr__(task_result, \"last_attempted_at\", task_start_time)\n        task_result.worker_ids.append(self.worker_id)\n        task_started.send(sender=type(self), task_result=task_result)\n\n        try:\n            if task.takes_context:\n                raw_return_value = task.call(\n                    TaskContext(task_result=task_result),\n                    *task_result.args,\n                    **task_result.kwargs,\n                )\n            else:\n                raw_return_value = task.call(*task_result.args, **task_result.kwargs)\n\n            object.__setattr__(\n                task_result,\n                \"_return_value\",\n                normalize_json(raw_return_value),\n            )\n        except KeyboardInterrupt:\n            # If the user tried to terminate, let them\n            raise\n        except BaseException as e:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            exception_type = type(e)\n            task_result.errors.append(\n                TaskError(\n                    exception_class_path=(\n                        f\"{exception_type.__module__}.{exception_type.__qualname__}\"\n                    ),\n                    traceback=\"\".join(format_exception(e)),\n                )\n            )\n            object.__setattr__(task_result, \"status\", TaskResultStatus.FAILED)\n            task_finished.send(type(self), task_result=task_result)\n        else:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            object.__setattr__(task_result, \"status\", TaskResultStatus.SUCCESSFUL)\n            task_finished.send(type(self), task_result=task_result)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 182,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474",
+            "start_line": 153,
+            "text": "def task(\n    function=None,\n    *,\n    priority=DEFAULT_TASK_PRIORITY,\n    queue_name=DEFAULT_TASK_QUEUE_NAME,\n    backend=DEFAULT_TASK_BACKEND_ALIAS,\n    takes_context=False,\n    **kwargs,\n):\n    from . import task_backends\n\n    if \"run_after\" in kwargs:\n        raise TypeError(\n            \"run_after cannot be defined statically with the @task decorator. \"\n            \"Use .using(run_after=...) to set it dynamically.\"\n        )\n\n    def wrapper(f):\n        return task_backends[backend].task_class(\n            func=f,\n            priority=priority,\n            queue_name=queue_name,\n            backend=backend,\n            takes_context=takes_context,\n            **kwargs,\n        )\n\n    if function:\n        return wrapper(function)\n    return wrapper\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.020887,
+      "decision": {
+        "counterevidence": "The task decorator shown does not impose a restriction on exception types raised by task functions, and no guard or fallback surrounds the `qualname()` call in the supplied complete handler.",
+        "failure_scenario": "A task raises an exception whose class was declared inside a function. The immediate backend catches it, sets `finished_at`, then `qualname(exception_type)` raises `ValueError` because the class's `__qualname__` contains `<locals>`. Consequently, no `TaskError` is appended, the status remains `RUNNING`, and `task_finished` is not sent.",
+        "rationale": "The head exception path calls `qualname(type(e))` before appending the `TaskError` or setting the result status to `FAILED`. `qualname()` explicitly raises `ValueError` when the class qualname contains `<`, which includes exception classes declared inside functions (`<locals>`). The base implementation directly formatted `__module__` and `__qualname__`, so it did not raise for this case. This is an introduced behavior that interrupts failure recording.",
+        "source_refs": [
+          "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+          "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 6.065685100002156,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "23bd3a248a5f93be18cb0e009041c4d85403b8803033666c8d246119a4c2b4fc",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2595,
+        "cached_input_tokens": 0,
+        "input_tokens": 2598,
+        "output_tokens": 395,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 84,
+        "evidence": "Previously callbacks with a `__name__` returned `callback.__module__ + \".\" + callback.__qualname__`. The new `qualname(callback)` rejects a local function or lambda because its qualname contains `<`, and the catch-all fallback returns `callback.__module__ + \".\" + callback.__class__.__name__`, which is just `...function` for every such callback.",
+        "file_path": "django/urls/resolvers.py",
+        "finding": "URL resolver lookup strings for local functions and lambdas regress from their actual qualified name to the generic `module.function` string.",
+        "line": 501,
+        "severity": "medium",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Only use the callable-object fallback for callbacks without function naming metadata, or on a qualname failure for a function return its original `__module__`/`__qualname__` display value."
+      },
+      "candidate_id": "f35d29bbd22f79ff6cdeb6d7dd2bed9a5542924a598ba8255cf6372577f6191c",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 502,
+            "path": "django/urls/resolvers.py",
+            "side": "head",
+            "source_id": "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+            "start_line": 488,
+            "text": "    @cached_property\n    def lookup_str(self):\n        \"\"\"\n        A string that identifies the view (e.g. 'path.to.view_function' or\n        'path.to.ClassBasedView').\n        \"\"\"\n        callback = self.callback\n        if isinstance(callback, functools.partial):\n            callback = callback.func\n        if hasattr(callback, \"view_class\"):\n            callback = callback.view_class\n        try:\n            return qualname(callback)\n        except ValueError:\n            return callback.__module__ + \".\" + callback.__class__.__name__\n",
+            "truncated": false
+          },
+          {
+            "end_line": 500,
+            "path": "django/urls/resolvers.py",
+            "side": "base",
+            "source_id": "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b",
+            "start_line": 487,
+            "text": "    @cached_property\n    def lookup_str(self):\n        \"\"\"\n        A string that identifies the view (e.g. 'path.to.view_function' or\n        'path.to.ClassBasedView').\n        \"\"\"\n        callback = self.callback\n        if isinstance(callback, functools.partial):\n            callback = callback.func\n        if hasattr(callback, \"view_class\"):\n            callback = callback.view_class\n        elif not hasattr(callback, \"__name__\"):\n            return callback.__module__ + \".\" + callback.__class__.__name__\n        return callback.__module__ + \".\" + callback.__qualname__\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 77,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae",
+            "start_line": 75,
+            "text": "    @property\n    def name(self):\n        return self.func.__name__\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.016797,
+      "decision": {
+        "counterevidence": "",
+        "failure_scenario": "For a URL callback defined as a local function such as `def outer(): def view(request): ...`, base produces a lookup string like `app.views.outer.<locals>.view`; head rejects that qualname and produces `app.views.function`. Multiple local functions or lambdas in the same module therefore collapse to the same generic lookup string.",
+        "rationale": "The head implementation passes callbacks to `qualname()`, which explicitly raises `ValueError` whenever `__qualname__` contains `<`, covering local functions (`<locals>`) and lambdas (`<lambda>`). `lookup_str` catches that error and returns `<module>.function`, since these callbacks are instances of the `function` class. In base, callbacks having `__name__` instead returned `<module>.<__qualname__>`, so this is an introduced loss of callback identity.",
+        "source_refs": [
+          "verify:head:90b00757bf5a53dd634db6555c499441bb9eee59925aaf65704b36dc2a4e37d6",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:b59998f6b120ac93352965dc23acec9948f03fc7eae2715649b35aab3e22923b"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 6.473060800002713,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "53378f0e101617b0ddec239476367ed0e84dd1a813e38c7219dcd352235b340b",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1729,
+        "cached_input_tokens": 0,
+        "input_tokens": 1732,
+        "output_tokens": 407,
+        "reasoning_output_tokens": 86
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 81,
+        "evidence": "The old implementation directly used `view_func.__qualname__` for function views. `qualname(view_func)` now raises for names containing `<`, and the new `except ValueError` fallback constructs `f\"{view_func.__module__}.{view_func.__class__.__name__}\"`; for local functions and lambdas, that class name is always `function`.",
+        "file_path": "django/contrib/admindocs/utils.py",
+        "finding": "Admin documentation now identifies every local function or lambda view as `module.function` rather than preserving its qualified function name.",
+        "line": 33,
+        "severity": "medium",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Retain the old `__qualname__`-based display fallback for function objects while using the class-name fallback only for callable instances that lack a function qualname."
+      },
+      "candidate_id": "876c68d7c051f57bdb2b5ad20144400d63f0f30a58013b2c9965193cb424d327",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 34,
+            "path": "django/contrib/admindocs/utils.py",
+            "side": "head",
+            "source_id": "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+            "start_line": 28,
+            "text": "def get_view_name(view_func):\n    if hasattr(view_func, \"view_class\"):\n        return qualname(view_func.view_class)\n    try:\n        return qualname(view_func)\n    except ValueError:\n        return f\"{view_func.__module__}.{view_func.__class__.__name__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 33,
+            "path": "django/contrib/admindocs/utils.py",
+            "side": "base",
+            "source_id": "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9",
+            "start_line": 27,
+            "text": "def get_view_name(view_func):\n    if hasattr(view_func, \"view_class\"):\n        klass = view_func.view_class\n        return f\"{klass.__module__}.{klass.__qualname__}\"\n    mod_name = view_func.__module__\n    view_name = getattr(view_func, \"__qualname__\", view_func.__class__.__name__)\n    return mod_name + \".\" + view_name\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 77,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:7bb2efa58b8951021714ff8c41de02379a4235f680231c1d10a3c3911568e2ae",
+            "start_line": 75,
+            "text": "    @property\n    def name(self):\n        return self.func.__name__\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.017662,
+      "decision": {
+        "counterevidence": "Objects exposing `view_class` take the earlier class-based branch and are unaffected, but that does not protect ordinary local function or lambda views.",
+        "failure_scenario": "Pass a local function view such as a function whose `__qualname__` is `outer.<locals>.view` to `get_view_name()`. Base returns `<module>.outer.<locals>.view`, while head catches `qualname()`'s `ValueError` and returns `<module>.function`, losing the qualified identity and colliding with other local or lambda views in that module.",
+        "rationale": "In head, `get_view_name()` calls `qualname(view_func)`. That helper rejects any `__qualname__` containing `<`, which includes local functions (`<locals>`) and lambdas (`<lambda>`). The resulting `ValueError` is caught and the fallback uses `view_func.__class__.__name__`; for function objects this is `function`, producing `module.function`. Base instead directly appended the function\u2019s `__qualname__`, preserving names such as `module.outer.<locals>.view` or `module.<lambda>`.",
+        "source_refs": [
+          "verify:head:2b3a9d802c86fa1c0597f7049b415bb1dd1a7364d54cff13a5648d3e87fdf243",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:3eca9dcab98b7de4c91ab1f277614e528da32ca4c10c7bf30666a46d8e1c21a9"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 6.857869700001174,
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "7d58d444b4904b0468858b37523df7e687262b084ccd77b54c262176fc51439a",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1634,
+        "cached_input_tokens": 0,
+        "input_tokens": 1637,
+        "output_tokens": 474,
+        "reasoning_output_tokens": 91
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 76,
+        "evidence": "This warning-only code path now calls `qualname(type(self))`. `qualname()` raises `ValueError` for a class whose `__qualname__` contains `<`, such as a backend subclass declared within a test helper or factory function. The prior interpolation of `type(self).__module__` and `type(self).__qualname__` did not reject that class.",
+        "file_path": "django/core/mail/backends/base.py",
+        "finding": "Passing unsupported kwargs to a locally defined custom email backend can now raise ValueError instead of emitting the intended deprecation warning.",
+        "line": 61,
+        "severity": "medium",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Make warning construction tolerant of non-importable backend classes by catching ValueError and falling back to the module/qualname display string, rather than allowing the warning path to fail."
+      },
+      "candidate_id": "7a6791dead6207c6e61cb0132788d269e9101986d4069ca8f193e5a2b4edc98e",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 71,
+            "path": "django/core/mail/backends/base.py",
+            "side": "head",
+            "source_id": "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+            "start_line": 29,
+            "text": "    def __init__(\n        self,\n        fail_silently=_NOT_PROVIDED,\n        *,\n        alias=None,\n        _ignore_unknown_kwargs=None,\n        **kwargs,\n    ):\n        self.alias = alias\n\n        # RemovedInDjango2028Warning.\n        if fail_silently is _NOT_PROVIDED:\n            self._fail_silently = False\n        else:\n            self._fail_silently = fail_silently\n            # Force deprecation warning unless in _ignore_unknown_kwargs.\n            kwargs[\"fail_silently\"] = fail_silently\n        if _ignore_unknown_kwargs:\n            for ignored in _ignore_unknown_kwargs:\n                kwargs.pop(ignored, None)\n\n        if kwargs:\n            kwarg_names = \", \".join(repr(key) for key in kwargs.keys())\n\n            # RemovedInDjango2028Warning.\n            if alias is None:\n                # Not being initialized from mail.mailers. Unknown kwargs are\n                # ignored -- with a deprecation warning if they originated from\n                # outside Django (either direct construction of a built-in\n                # backend or a super.__init__() call from a custom subclass).\n                # Use something more precise than self.__class__.__name__,\n                # which is often just \"EmailBackend\".\n                class_name = qualname(type(self))\n                warn_about_external_use(\n                    f\"{class_name}.__init__() does not support {kwarg_names}. \"\n                    \"In Django 2028, BaseEmailBackend will raise a TypeError \"\n                    \"for unknown keyword arguments.\",\n                    RemovedInDjango2028Warning,\n                    skip_name_prefixes=\"django.core.mail.backends\",\n                )\n                return\n\n            raise InvalidMailer(f\"Unknown options {kwarg_names}.\", alias=alias)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 70,
+            "path": "django/core/mail/backends/base.py",
+            "side": "base",
+            "source_id": "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027",
+            "start_line": 28,
+            "text": "    def __init__(\n        self,\n        fail_silently=_NOT_PROVIDED,\n        *,\n        alias=None,\n        _ignore_unknown_kwargs=None,\n        **kwargs,\n    ):\n        self.alias = alias\n\n        # RemovedInDjango2028Warning.\n        if fail_silently is _NOT_PROVIDED:\n            self._fail_silently = False\n        else:\n            self._fail_silently = fail_silently\n            # Force deprecation warning unless in _ignore_unknown_kwargs.\n            kwargs[\"fail_silently\"] = fail_silently\n        if _ignore_unknown_kwargs:\n            for ignored in _ignore_unknown_kwargs:\n                kwargs.pop(ignored, None)\n\n        if kwargs:\n            kwarg_names = \", \".join(repr(key) for key in kwargs.keys())\n\n            # RemovedInDjango2028Warning.\n            if alias is None:\n                # Not being initialized from mail.mailers. Unknown kwargs are\n                # ignored -- with a deprecation warning if they originated from\n                # outside Django (either direct construction of a built-in\n                # backend or a super.__init__() call from a custom subclass).\n                # Use something more precise than self.__class__.__name__,\n                # which is often just \"EmailBackend\".\n                class_name = f\"{type(self).__module__}.{type(self).__qualname__}\"\n                warn_about_external_use(\n                    f\"{class_name}.__init__() does not support {kwarg_names}. \"\n                    \"In Django 2028, BaseEmailBackend will raise a TypeError \"\n                    \"for unknown keyword arguments.\",\n                    RemovedInDjango2028Warning,\n                    skip_name_prefixes=\"django.core.mail.backends\",\n                )\n                return\n\n            raise InvalidMailer(f\"Unknown options {kwarg_names}.\", alias=alias)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.018782,
+      "decision": {
+        "counterevidence": "The failure does not occur when there are no remaining unknown kwargs, when `_ignore_unknown_kwargs` removes all of them, or for a non-local class with a normal qualname. If `alias` is non-None, the code takes the separate `InvalidMailer` path.",
+        "failure_scenario": "Define a custom email backend subclass inside a helper function, have its constructor pass an unsupported keyword to `BaseEmailBackend.__init__()` with no alias, and instantiate it. Because the subclass qualname contains `<locals>`, head raises `ValueError` from `qualname(type(self))` rather than emitting the intended deprecation warning and returning.",
+        "rationale": "In head, the unsupported-kwargs branch with `alias is None` calls `qualname(type(self))` before issuing the warning. The supplied `qualname()` implementation explicitly raises `ValueError` when the class's `__qualname__` contains `<`, which Python uses for classes defined inside functions (`<locals>`). Base instead formatted `__module__` and `__qualname__` directly, so the same class reached the warning without this validation. This is an introduced behavioral change on the alleged path.",
+        "source_refs": [
+          "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 5.185018100000889,
+      "origin": "published",
+      "original_index": 3,
+      "prompt_sha256": "921c733aab48b964aa6d7920f9f7e6f996a655c60972cd0b89e5bd99342a2d20",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2190,
+        "cached_input_tokens": 0,
+        "input_tokens": 2193,
+        "output_tokens": 391,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 78,
+        "evidence": "The diagnostic renders `faulty_line` unchanged on line 86, then renders the caret using `{' ' * (column - 1)}` on line 87. Parser/tokenizer columns are character offsets, but a `\\t` in `faulty_line` displays as multiple columns; consequently the caret can point at a different visual location than the syntax error.",
+        "file_path": "src/black/parsing.py",
+        "finding": "The new caret alignment is incorrect when the offending source line contains tabs before the reported column. The source is printed verbatim, so terminal tab expansion changes its visual width, while the caret prefix uses one space per parser column.",
+        "line": 87,
+        "severity": "low",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Expand tabs consistently in both the displayed source line and caret calculation (or preserve tabs in the caret prefix up to the error offset) before rendering the diagnostic."
+      },
+      "candidate_id": "591154da595dba67d07ee8ba7825664d36c4cfbfb946d86872974032974a2074",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.021777,
+      "decision": {
+        "counterevidence": "No guard or normalization for tabs is visible, but the necessary coordinate semantics of the parser/tokenizer are absent from the evidence.",
+        "failure_scenario": "",
+        "rationale": "The head change prints `faulty_line` verbatim and constructs the caret prefix solely from `column`, so it contains no visible tab-expansion handling. The base version had no caret, making any alignment behavior new. However, the supplied evidence does not define whether `ParseError`/`TokenError` columns are character offsets, visual columns, zero- or one-based, nor provide a concrete parser result for a tab-containing invalid line. Therefore the alleged misalignment cannot be conclusively established from the supplied sources alone.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "uncertain"
+      },
+      "latency_seconds": 9.637910600002215,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "5ef0666ceaad89a08d081c584a625da118fb8ffc9e11865d62c822d25b1b7f43",
+      "status": "uncertain",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2337,
+        "cached_input_tokens": 0,
+        "input_tokens": 2340,
+        "output_tokens": 504,
+        "reasoning_output_tokens": 262
+      },
+      "validation_error": null
+    }
+  ],
+  "cost_usd": 0.095905,
+  "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+  "effort": "low",
+  "fixtures": {
+    "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+    "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+    "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+  },
+  "generation_metrics": {
+    "cached_input_tokens": 2146,
+    "cases": 3,
+    "comment_precision": 0.2,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0181,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 5,
+    "input_tokens": 6931,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.2,
+    "labels": 5,
+    "matched": 1,
+    "median_latency_seconds": 28.19,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 3687,
+    "p95_latency_seconds": 31.97,
+    "quiet_runs": 1,
+    "reasoning_output_tokens": 2702,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0542,
+    "unadjudicated_labels": 0
+  },
+  "generation_report_sha256": "dc7fcd2979c23dade7831779a57102e2a1c0b47639842dcc24d0d890b508ffab",
+  "max_candidates": 12,
+  "mode": "live",
+  "model": "gpt-5.6-sol",
+  "schema_version": 1,
+  "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+  "source_provenance": "operator-supplied",
+  "source_validation": "all available frozen patch lines checked; no Git object attestation",
+  "status_counts": {
+    "confirmed": 4,
+    "uncertain": 1
+  },
+  "usage_complete": true
+}

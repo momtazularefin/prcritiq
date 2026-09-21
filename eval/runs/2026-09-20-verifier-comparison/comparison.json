@@ -1,0 +1,541 @@
+{
+  "approved_label_ids": [
+    "github-review-comment:3006468789",
+    "github-review-comment:3006479284",
+    "github-review-comment:3778118024",
+    "github-review-comment:3933613984",
+    "github-review-comment:3933626526"
+  ],
+  "assessment_is_human_ground_truth": false,
+  "blind_audit_sha256": "07f033840182703957889350c1f6d7a587c32e2646cdc08e4f2989e4a7a4c4fa",
+  "blind_audit_status": "Independent blind AI evidence recheck before verifier calls; not human adjudication",
+  "candidates": [
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "supported",
+      "candidate_id": "5cdc53719c5ba39b745225f0abb11b7d48da9c449b98f1dfcfe8869580e12403",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "04fc7497aef3e63b323845c680c41d0dce096dc33655effbe0db084f331678a9",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "rejected"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3933613984",
+      "arm": "opus-5-low",
+      "assessment": "supported",
+      "candidate_id": "f89f5b442aa01369fe0ee44b135f8c1d910f20ac7af0461e8e89a1ab0e53fc57",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "23f7e87d8e65ff8229128a8e1dc61eda3ddd94363dc2dbdad209512baaf57730",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3933626526",
+      "arm": "opus-5-low",
+      "assessment": "supported",
+      "candidate_id": "c19e79786e26f0574b067a8bed4149beac04a8d667319570e93caba9e65a61b9",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "2703a427a4390ce8719b6896f4ffed2721b15a0fafbfbb867ab02d8c677ffcd9",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "unsupported",
+      "candidate_id": "1dafdff619a8cebe6542593c9e2978c082a129c3acc1b38c42a6ce7c1ba15f88",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "1d68b44ef1bd7a995ad1a10bf5707b06f8f4a76ea6028415c9f384c54f91d8f7",
+      "verdicts": {
+        "gpt-5.6-sol": "rejected",
+        "gpt-5.6-terra": "rejected"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "partial",
+      "candidate_id": "2bbe1a2e9c1cc7811f9f9d8a8d913d52ee35c9b3016f8406ef5b124b6b6d2076",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "suppressed",
+      "original_index": 1,
+      "prompt_sha256": "481d6a87f89ae5e9db2c6a16f872f6c29475dd6a8f8220908da2d1f34952edd4",
+      "verdicts": {
+        "gpt-5.6-sol": "rejected",
+        "gpt-5.6-terra": "rejected"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "partial",
+      "candidate_id": "43679b2333a9e30813acbe51418a2b9292e61f9d58f57b7dee7cff7d79339f77",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "suppressed",
+      "original_index": 2,
+      "prompt_sha256": null,
+      "verdicts": {
+        "gpt-5.6-sol": "context_unavailable",
+        "gpt-5.6-terra": "context_unavailable"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "uncertain",
+      "candidate_id": "16bb6432fdaed5db4d8be6cb68c6cb7ad8ad8c563b837ba19efa44e9408dca13",
+      "case_id": "ansible__ansible__87412",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "f8dcc5fada319db12a28c4fe046d0aa9ab64f450664514fd2b88700a6d89daf3",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3778118024",
+      "arm": "opus-5-low",
+      "assessment": "partial",
+      "candidate_id": "3fda8487581f5c3fe3c707f0048069d193cdae8665393b1620f7f19ba31e5616",
+      "case_id": "ansible__ansible__87412",
+      "context_caveat": null,
+      "label_coverage": "partial",
+      "origin": "suppressed",
+      "original_index": 1,
+      "prompt_sha256": "130be9c3cce27cfac4ef96c8b90a9180e5ceebe080e64899e3bdcb2c4873bc4c",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "unsupported",
+      "candidate_id": "ca6db2846fa52717985d7ed9cf6fc9e05e4541325ab75d43edc06b665fa0bfaf",
+      "case_id": "psf__black__5068",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "ccdda008d28b743270d9c7b6c79cc818bc2a8633fb941ea4ba9629418c54231a",
+      "verdicts": {
+        "gpt-5.6-sol": "rejected",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "opus-5-low",
+      "assessment": "partial",
+      "candidate_id": "2592334c2fb989275a7905cb1fc1845cd6e3a9429c0d14337a46625847143bd3",
+      "case_id": "psf__black__5068",
+      "context_caveat": "Column origin/tab-width contract is not included in the supplied parsing.py snippets; abstention may be justified.",
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "f5f3347c377a1b0501234fdc1ad0824f12b82e7385748964d10b6bdf69197226",
+      "verdicts": {
+        "gpt-5.6-sol": "rejected",
+        "gpt-5.6-terra": "rejected"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3006468789",
+      "arm": "opus-5-low",
+      "assessment": "partial",
+      "candidate_id": "4ab4ba52a20854da2a60627e161ba374259f16911174cd11029513fc16bde4a9",
+      "case_id": "psf__black__5068",
+      "context_caveat": null,
+      "label_coverage": "partial",
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "203ff0de4888dd5b95d5340ec111922978acbe0664a5b22e3c952ce15fb7a43f",
+      "verdicts": {
+        "gpt-5.6-sol": "uncertain",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3006479284",
+      "arm": "opus-5-low",
+      "assessment": "supported",
+      "candidate_id": "a59880bbe5ee71285f9dee0edb8f89029b691cb638428b8459ca721bdc9c23bf",
+      "case_id": "psf__black__5068",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "suppressed",
+      "original_index": 0,
+      "prompt_sha256": "2df6fb8ff760136b185407ad20ee2f53d919d621e9647841011dd96038e46229",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-low",
+      "assessment": "supported",
+      "candidate_id": "a164fe041272ed5584e97bf7eb4dcc4ad0224f7d396edd032249fdee854bfd30",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "23bd3a248a5f93be18cb0e009041c4d85403b8803033666c8d246119a4c2b4fc",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-low",
+      "assessment": "supported",
+      "candidate_id": "f35d29bbd22f79ff6cdeb6d7dd2bed9a5542924a598ba8255cf6372577f6191c",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "53378f0e101617b0ddec239476367ed0e84dd1a813e38c7219dcd352235b340b",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3933613984",
+      "arm": "terra-low",
+      "assessment": "supported",
+      "candidate_id": "876c68d7c051f57bdb2b5ad20144400d63f0f30a58013b2c9965193cb424d327",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "7d58d444b4904b0468858b37523df7e687262b084ccd77b54c262176fc51439a",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-low",
+      "assessment": "supported",
+      "candidate_id": "7a6791dead6207c6e61cb0132788d269e9101986d4069ca8f193e5a2b4edc98e",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 3,
+      "prompt_sha256": "921c733aab48b964aa6d7920f9f7e6f996a655c60972cd0b89e5bd99342a2d20",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-low",
+      "assessment": "supported",
+      "candidate_id": "591154da595dba67d07ee8ba7825664d36c4cfbfb946d86872974032974a2074",
+      "case_id": "psf__black__5068",
+      "context_caveat": "Column origin/tab-width contract is not included in the supplied parsing.py snippets; abstention may be justified.",
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "5ef0666ceaad89a08d081c584a625da118fb8ffc9e11865d62c822d25b1b7f43",
+      "verdicts": {
+        "gpt-5.6-sol": "uncertain",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-medium",
+      "assessment": "supported",
+      "candidate_id": "1f28d23c91a3e6209476bfc3478f39f0d16e51a8c15cf75faf531922524d2862",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "705fc1285eb7704d3fc3abcdcaf17ecfb51419155528f77ed5ab31d65b5f78f6",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-medium",
+      "assessment": "supported",
+      "candidate_id": "0ba2a91d648a264ceb903d719a53cc2c33ae2a1460d1b96d31a3a43294e8756a",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "7e030168978336b3fbaeb37b8a98b7f9a563ef43ecd0a61dfa6d71ffbdbc58a7",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-medium",
+      "assessment": "partial",
+      "candidate_id": "db128a4e77c223bf720a50478c885b2d211a303863803c67f624177d019931de",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": null,
+      "verdicts": {
+        "gpt-5.6-sol": "context_unavailable",
+        "gpt-5.6-terra": "context_unavailable"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-medium",
+      "assessment": "uncertain",
+      "candidate_id": "d7a8955370aa72d4a43212fb3e285f1a2578b9fe55240a25260a330bdd5f0657",
+      "case_id": "ansible__ansible__87412",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "05388c7d7e0606f00334f8c4186f4696b5b46a4716db295db48b55d500354cdb",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "terra-medium",
+      "assessment": "supported",
+      "candidate_id": "4ea558b1f415ed3ebc2997a58108de60b1cc329d31c6d5ff7c0a3462b9b8e959",
+      "case_id": "psf__black__5068",
+      "context_caveat": "Column origin/tab-width contract is not included in the supplied parsing.py snippets; abstention may be justified.",
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "b677c42c4070fc53ccc9f8301edb161ccc1ef01a7162412cf85ff7349aedd2f4",
+      "verdicts": {
+        "gpt-5.6-sol": "uncertain",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "sol-low",
+      "assessment": "partial",
+      "candidate_id": "0640e7b5fdfbfd41624c5a3b6403fcdf1aabef2ee6cb4c8d75a59a1f93c92344",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": null,
+      "verdicts": {
+        "gpt-5.6-sol": "context_unavailable",
+        "gpt-5.6-terra": "context_unavailable"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3933613984",
+      "arm": "sol-low",
+      "assessment": "supported",
+      "candidate_id": "0d4add4ea7e3dcebe552a0be9618bbdd2dfc366e71f04653e4ed654b472211e7",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "bf8cb354db21bd9e1200995cf61033b9ca4bee35e5da0c8170f85c8e32b35da5",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "sol-low",
+      "assessment": "supported",
+      "candidate_id": "a871e05f9a7c5bd48d2203656abd18cf0559372d5c8ad53fddb6f148f50b6ecc",
+      "case_id": "django__django__21875",
+      "context_caveat": null,
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 2,
+      "prompt_sha256": "f64ac44fbd56d47be22aa47578a5472c17affa885442c83a4c3c2ed686d4373e",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": null,
+      "arm": "sol-low",
+      "assessment": "supported",
+      "candidate_id": "c884ed15a1816ccecc97006d5539c8018e7153c027f03fdef1b9f1993a93c473",
+      "case_id": "psf__black__5068",
+      "context_caveat": "Column origin/tab-width contract is not included in the supplied parsing.py snippets; abstention may be justified.",
+      "label_coverage": null,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "466a87d3910c9a6ca78d050148e80ff744445790be4be540262336f850a91362",
+      "verdicts": {
+        "gpt-5.6-sol": "uncertain",
+        "gpt-5.6-terra": "confirmed"
+      }
+    },
+    {
+      "approved_label_id": "github-review-comment:3006479284",
+      "arm": "sol-low",
+      "assessment": "supported",
+      "candidate_id": "1c3ad10351229db8eb7491fd8c9d0093fd8d8e3fddbee1e1ccfd451d88d9a27c",
+      "case_id": "psf__black__5068",
+      "context_caveat": null,
+      "label_coverage": "full",
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "dc9247e0f45db6ef8d09bb63979dbfe3eeaac2932967799f4f55bfe3ed14a15b",
+      "verdicts": {
+        "gpt-5.6-sol": "confirmed",
+        "gpt-5.6-terra": "confirmed"
+      }
+    }
+  ],
+  "coverage_scope": "Union across four generator arms; not one pipeline's recall",
+  "manifest_sha256": "66bf211a80c0ffe823387d95bf1618f10590c221f29b3ca983ee9f99bf20d691",
+  "models": {
+    "gpt-5.6-sol": {
+      "blind_assessment_by_status": {
+        "partial": {
+          "confirmed": 1,
+          "context_unavailable": 3,
+          "rejected": 2,
+          "uncertain": 1
+        },
+        "supported": {
+          "confirmed": 13,
+          "uncertain": 3
+        },
+        "uncertain": {
+          "confirmed": 2
+        },
+        "unsupported": {
+          "rejected": 2
+        }
+      },
+      "calls": 24,
+      "candidates": 27,
+      "cost_usd": 0.469708,
+      "median_latency_seconds": 7.3584626500014565,
+      "p95_latency_seconds_nearest_rank": 12.1612189999978,
+      "status_counts": {
+        "confirmed": 16,
+        "context_unavailable": 3,
+        "rejected": 4,
+        "uncertain": 4
+      },
+      "unique_full_approved_labels_confirmed": [
+        "github-review-comment:3006479284",
+        "github-review-comment:3933613984",
+        "github-review-comment:3933626526"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 49644,
+        "cached_input_tokens": 0,
+        "input_tokens": 49716,
+        "output_tokens": 11060,
+        "reasoning_output_tokens": 3449
+      }
+    },
+    "gpt-5.6-terra": {
+      "blind_assessment_by_status": {
+        "partial": {
+          "confirmed": 2,
+          "context_unavailable": 3,
+          "rejected": 2
+        },
+        "supported": {
+          "confirmed": 15,
+          "rejected": 1
+        },
+        "uncertain": {
+          "confirmed": 2
+        },
+        "unsupported": {
+          "confirmed": 1,
+          "rejected": 1
+        }
+      },
+      "calls": 24,
+      "candidates": 27,
+      "cost_usd": 0.23481,
+      "median_latency_seconds": 4.602819649999219,
+      "p95_latency_seconds_nearest_rank": 11.689743500002805,
+      "status_counts": {
+        "confirmed": 20,
+        "context_unavailable": 3,
+        "rejected": 4
+      },
+      "unique_full_approved_labels_confirmed": [
+        "github-review-comment:3006479284",
+        "github-review-comment:3933613984",
+        "github-review-comment:3933626526"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 49644,
+        "cached_input_tokens": 0,
+        "input_tokens": 49716,
+        "output_tokens": 9213,
+        "reasoning_output_tokens": 1497
+      }
+    }
+  },
+  "paired_candidates": 27,
+  "paired_prompts": 24,
+  "purpose": "Descriptive verifier smoke results, not accuracy",
+  "schema_version": 1,
+  "total_calls": 48,
+  "total_cost_usd": 0.704518
+}

@@ -85,11 +85,28 @@ claims and missed a correct one. An opt-in [candidate-local semantic replay](ver
 now separates verification from generation without repeating the paid drafting
 runs. Source preparation retained all 27 saved candidates: 24 had usable bounded
 context and 3 were explicitly incomplete (new helper without a base counterpart).
-This is context coverage, **not measured verification accuracy**; no live verifier
-calls have been made. Production integration and high-recall generation remain
-future work.
+This preparation established context coverage, **not verification accuracy**.
+Production integration and high-recall generation remain future work.
 
-To repeat the matrix after a deliberate experimental change, use the same
+The subsequent [frozen-candidate verifier comparison](../eval/runs/2026-09-20-verifier-comparison/comparison.md)
+completed 48 calls on the same saved candidates and source bundles for an
+estimated $0.704518 in verification-only cost. Each verifier retained all
+27 candidates, assessed 24 and left 3 candidates with unavailable context uncalled.
+Sol-low's 24 calls cost $0.469708 with a 7.36-second median; Terra-low's 24 cost
+$0.234810 with a 4.60-second median. These costs are separate from the drafting
+smoke run above.
+
+Sol-low is the safer experimental verifier baseline, not a production winner.
+It rejected a false critical Black claim using the visible loop `break`, whereas
+Terra-low confirmed it despite that counterevidence. Both overconfirmed Ansible
+empty-string allegations whose behavior was pre-existing and whose alleged
+rejection contract was not established. Correct narrower examples for partial
+claims do not turn unchanged candidates into full approved-label detections.
+The AI audit also treats missing-contract abstentions separately from errors;
+verification decisions are not human-adjudicated precision. No defaults, routing,
+thresholds or posting behavior changed.
+
+To repeat the four-way drafting matrix after a deliberate experimental change, use the same
 dataset and separate output directories. These commands write ignored scratch
 reports, leaving the retained evidence runs untouched:
 

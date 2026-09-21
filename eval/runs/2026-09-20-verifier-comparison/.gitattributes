@@ -1,0 +1,6 @@
+# Preserve the paid output byte hashes across Windows/Linux checkouts.
+manifest.json -text
+blind-audit.json -text
+sources.json -text
+dataset-certified.jsonl -text
+raw/** -text

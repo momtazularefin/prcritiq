@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-20T14:27:22.405680+00:00",
+  "completed_at": "2026-09-20T14:33:01.997752+00:00",
+  "status": "completed",
+  "live": true,
+  "purpose": "Controlled verifier smoke comparison; not a publishable accuracy benchmark",
+  "openai_sdk_version": "3.3.1",
+  "api_origin": "https://api.openai.com/v1",
+  "model_identity": "Explicit requested aliases; immutable backend snapshot not attested",
+  "git_head": "da50fe80c691bf7ca61488f6793008be6aac20be",
+  "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+  "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+  "code_sha256": {
+    "src\\prcritiq\\verification.py": "f9c8ac9a191ed3ed5a80f06cd0d9edb23a46114738a239b647187936b9b5e028",
+    "src\\prcritiq\\verification_context.py": "48e922c86d2b17020a95c976e3d66b409da3e1288b267c990969f436ce499cf7",
+    "src\\prcritiq\\verification_replay.py": "3aeac0c7eddbb8b0207e546122df967e74a4355d2859a1a1251225d95d27cf52",
+    "src\\prcritiq\\providers.py": "eeea13e17aea489d1e449d69bcede5487293d3762cc11e13cd1a0a695ce2cb73",
+    "eval\\run_verifier_comparison.py": "18c7ff0d580b130ed44f1a6f3f334ccb635688baa9125ea01afc101e337a463b"
+  },
+  "generation_reports": {
+    "opus-5-low": "91fc3de91b2c130a0f06dad3075caf73664c7e60ab15370c096c88ddb57c9573",
+    "terra-low": "dc7fcd2979c23dade7831779a57102e2a1c0b47639842dcc24d0d890b508ffab",
+    "terra-medium": "dc1dd1fa87d4790f9f5af3c9dfb8e6ee7659323c7b5090a38d1b5b6cb1dd1538",
+    "sol-low": "89ab5fcda064fc313323ca9a22b4a127603ba0b6b037805b87cc9f92c4a54eef"
+  },
+  "protocol": {
+    "models": [
+      "gpt-5.6-sol",
+      "gpt-5.6-terra"
+    ],
+    "effort": "low",
+    "eligible_candidates_per_model": 24,
+    "max_api_requests": 48,
+    "working_budget_usd": 2.0,
+    "max_output_tokens": 8192,
+    "retries": 0,
+    "timeout_seconds": 60,
+    "repetitions": 1,
+    "schedule": "Sequential generator blocks; first model alternates by block",
+    "incomplete_context_candidates_per_model": 3,
+    "reserve": "UTF-8 bytes as tokens plus 2048 overhead, cache-write price, full output cap; conservative estimate, not guaranteed bill"
+  },
+  "ledger": {
+    "requests_started": 48,
+    "known_cost_usd": 0.7045180000000001,
+    "usage_complete": true,
+    "in_flight": null,
+    "stop_reason": null
+  },
+  "runs": [
+    {
+      "name": "opus-5-low--sol-low",
+      "generation_arm": "opus-5-low",
+      "model": "gpt-5.6-sol",
+      "started_at": "2026-09-20T14:27:22.490044+00:00",
+      "completed_at": "2026-09-20T14:29:02.464932+00:00",
+      "status_counts": {
+        "confirmed": 6,
+        "rejected": 4,
+        "context_unavailable": 1,
+        "uncertain": 1
+      },
+      "calls": 11,
+      "cost_usd": 0.21617199999999998,
+      "report_sha256": "351527f8e598eb1828fca512f436c58af0d69ae979309b8467f408aa5243d4aa",
+      "aborted": null
+    },
+    {
+      "name": "opus-5-low--terra-low",
+      "generation_arm": "opus-5-low",
+      "model": "gpt-5.6-terra",
+      "started_at": "2026-09-20T14:29:02.478938+00:00",
+      "completed_at": "2026-09-20T14:30:10.260928+00:00",
+      "status_counts": {
+        "rejected": 4,
+        "confirmed": 7,
+        "context_unavailable": 1
+      },
+      "calls": 11,
+      "cost_usd": 0.10999400000000001,
+      "report_sha256": "1f3ab2fae50fe6060c0e510413282a10a52ecec3ec882eeb88f4866102435653",
+      "aborted": null
+    },
+    {
+      "name": "terra-low--terra-low",
+      "generation_arm": "terra-low",
+      "model": "gpt-5.6-terra",
+      "started_at": "2026-09-20T14:30:10.273938+00:00",
+      "completed_at": "2026-09-20T14:30:50.613293+00:00",
+      "status_counts": {
+        "confirmed": 5
+      },
+      "calls": 5,
+      "cost_usd": 0.049042499999999996,
+      "report_sha256": "54e68ba9e007bb896fa1832d29420089a5d47ccf27d920b7058e665fff649879",
+      "aborted": null
+    },
+    {
+      "name": "terra-low--sol-low",
+      "generation_arm": "terra-low",
+      "model": "gpt-5.6-sol",
+      "started_at": "2026-09-20T14:30:50.633423+00:00",
+      "completed_at": "2026-09-20T14:31:25.040136+00:00",
+      "status_counts": {
+        "confirmed": 4,
+        "uncertain": 1
+      },
+      "calls": 5,
+      "cost_usd": 0.095905,
+      "report_sha256": "4abbc3783347ad075229dd4dd6086d07d82aba670749baf4c09c9816b2f30709",
+      "aborted": null
+    },
+    {
+      "name": "terra-medium--sol-low",
+      "generation_arm": "terra-medium",
+      "model": "gpt-5.6-sol",
+      "started_at": "2026-09-20T14:31:25.051649+00:00",
+      "completed_at": "2026-09-20T14:31:54.814495+00:00",
+      "status_counts": {
+        "confirmed": 3,
+        "context_unavailable": 1,
+        "uncertain": 1
+      },
+      "calls": 4,
+      "cost_usd": 0.081773,
+      "report_sha256": "a9c77b6b364ad9949e8096a9f7cf4316119e0f58c31add3fc36fb0d4c659bfcb",
+      "aborted": null
+    },
+    {
+      "name": "terra-medium--terra-low",
+      "generation_arm": "terra-medium",
+      "model": "gpt-5.6-terra",
+      "started_at": "2026-09-20T14:31:54.830005+00:00",
+      "completed_at": "2026-09-20T14:32:14.063786+00:00",
+      "status_counts": {
+        "confirmed": 4,
+        "context_unavailable": 1
+      },
+      "calls": 4,
+      "cost_usd": 0.0396445,
+      "report_sha256": "8f8a81226ea308ba00a32a90d4cae7bb16a50a9733961110c7faed697dc3116d",
+      "aborted": null
+    },
+    {
+      "name": "sol-low--terra-low",
+      "generation_arm": "sol-low",
+      "model": "gpt-5.6-terra",
+      "started_at": "2026-09-20T14:32:14.077795+00:00",
+      "completed_at": "2026-09-20T14:32:32.170900+00:00",
+      "status_counts": {
+        "context_unavailable": 1,
+        "confirmed": 4
+      },
+      "calls": 4,
+      "cost_usd": 0.036129,
+      "report_sha256": "d535058ba8d8415795fb2f4bc1268aa09935abff4b733e5ddd521c5d9ab2028e",
+      "aborted": null
+    },
+    {
+      "name": "sol-low--sol-low",
+      "generation_arm": "sol-low",
+      "model": "gpt-5.6-sol",
+      "started_at": "2026-09-20T14:32:32.187935+00:00",
+      "completed_at": "2026-09-20T14:33:01.985174+00:00",
+      "status_counts": {
+        "context_unavailable": 1,
+        "confirmed": 3,
+        "uncertain": 1
+      },
+      "calls": 4,
+      "cost_usd": 0.075858,
+      "report_sha256": "548f759b415149c4fcdbc2abac537489fb7b9a13265311faa684f2cdf21b781e",
+      "aborted": null
+    }
+  ]
+}

@@ -24,9 +24,38 @@ and 3 reported `context_unavailable`. The latter target a newly introduced
 Django helper for which no same-named base function exists. The Black snippets
 include the successful parse `break`; the Ansible snippets include the full
 function's initialization and loop. This demonstrates context coverage only.
-No verification accuracy, model ranking, or quality improvement is claimed.
+Preparation alone does not measure verification accuracy or quality improvement.
 The [preparation evidence](../eval/runs/2026-09-20-verifier-preparation.json)
 retains input hashes, source IDs, all candidate identities and coverage counts.
+
+## Completed frozen-candidate comparison
+
+The [Sol-low versus Terra-low comparison](../eval/runs/2026-09-20-verifier-comparison/comparison.md)
+subsequently replayed the same saved candidates and frozen source bundles without
+another drafting run. Each verifier retained 27 candidates: 24 received a model
+decision and 3 remained `context_unavailable`. The 48 calls cost an estimated
+**$0.704518**, separate from generation costs.
+
+| Verifier | Calls | Estimated cost | Median request latency |
+|---|---:|---:|---:|
+| GPT-5.6 Sol, low | 24 | $0.469708 | 7.36 s |
+| GPT-5.6 Terra, low | 24 | $0.234810 | 4.60 s |
+
+Sol-low is the safer **experimental baseline**, not a production recommendation.
+It rejected the false Black critical allegation by following the visible `break`;
+Terra-low confirmed it using an incorrect account of Python control flow. Both
+verifiers confirmed Ansible empty-string allegations without evidence that the
+unchanged lookup behavior violates a required contract. Both also supplied a
+correct narrower empty-collection example for a partially correct allegation;
+that does not make the unchanged original candidate fully correct or establish
+full approved-label recovery.
+
+The AI audit distinguishes sound rejection, unsupported confirmation, partial
+support, and justified abstention. In particular, Black's tokenizer coordinate
+contract was absent from the supplied context, so abstention on alignment claims
+is not automatically a verifier error. These are small, single-run findings, not
+human-adjudicated precision or a production-quality certification. No review
+defaults, routing, confidence threshold, or posting behavior changed.
 
 ## Explicit paid replay
 
@@ -46,10 +75,12 @@ Output is capped at 8,192 tokens per request; automatic SDK retries are disabled
 The verifier uses the Responses API with typed output, `store=False`, and
 current-turn reasoning context. See [official structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-The intended next experiment is identical-candidate Sol-low versus Terra-low
-verification, followed by evidence review of retained, rejected, and uncertain
-claims. It does not require another four-way drafting run. Human adjudication
-remains necessary; verifier decisions do not certify ground truth.
+The next experiment should test stricter evidence for introduced failures or
+required contracts, explicit handling of partial allegations, and targeted
+dependency evidence where context is insufficient. Preserve the frozen candidates
+for comparison rather than repeating the four-way drafting run. Human
+adjudication remains necessary; verifier decisions do not certify ground truth
+or authorize publication of an unchanged partially correct finding.
 
 ## Evidence and safety boundaries
 

@@ -40,7 +40,7 @@ Not implemented yet:
 
 - Deployment of the public demo and its managed database.
 - A statistically sufficient human-adjudicated benchmark corpus and a passing benchmark result; the approved smoke set currently has only 3 PRs / 5 defects.
-- High-recall/per-hunk generation and production integration of candidate-local context plus semantic verification; the separate replay experiment is implemented but has not been quality-evaluated live.
+- High-recall/per-hunk generation and production integration of candidate-local context plus semantic verification; the separate replay tool has completed its first frozen-candidate comparison but remains experimental.
 - Webhook-triggered review execution; the webhook currently authenticates and acknowledges events.
 
 ### Benchmark status: certified smoke set, no production winner
@@ -52,6 +52,8 @@ The historical diff-only Opus 5 run cost $2.06 with a 27-second median; broad re
 New reports exclude unreachable label targets, require explicit human adjudication for certification, use one-to-one matching, and retain every finding for manual review.
 
 The approved four-way smoke comparison completed all 12 reviews for an estimated $0.372–$0.381. Sol-low is a promising lower-cost quality baseline and Terra-low the budget challenger, but three PRs cannot select a production winner. An AI evidence audit found both false matches and missed correct findings in the automatic overlap scores. See the [comparison and limitations](eval/runs/2026-09-18-certified-smoke/comparison.md) and [evaluation documentation](docs/evaluation.md).
+
+The subsequent [frozen-candidate verifier comparison](eval/runs/2026-09-20-verifier-comparison/comparison.md) completed 48 calls for an estimated $0.704518 in verification-only cost. Each verifier retained all 27 candidates, assessed 24, and abstained on 3 with unavailable context. Sol-low was the safer experimental baseline; Terra-low was cheaper and faster but confirmed a false critical claim despite an explicit `break`. Both overconfirmed an unproven Ansible contract claim. Partial allegations remain partial even when a verifier supplies a correct narrower example. No production promotion, routing, or threshold change followed.
 
 ## Quick Start
 

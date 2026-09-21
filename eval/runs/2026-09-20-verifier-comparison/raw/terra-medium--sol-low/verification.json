@@ -1,0 +1,418 @@
+{
+  "aborted": null,
+  "binding": "operator-selected certified dataset; legacy generation revisions not attested",
+  "calls": 4,
+  "candidates": [
+    {
+      "candidate": {
+        "category": "error_handling",
+        "confidence": 95,
+        "evidence": "`qualname(exception_type)` rejects any qualname containing `<`, so a task that raises an exception class declared inside a function will raise from this code while it is already in `except Exception as e`. Previously this path always stored `f\"{exception_type.__module__}.{exception_type.__qualname__}\"`, even for local exception classes.",
+        "file_path": "django/tasks/backends/immediate.py",
+        "finding": "Handling a task exception can now itself raise ValueError when the exception class is local, preventing the immediate backend from recording the original task failure.",
+        "line": 63,
+        "severity": "high",
+        "source_refs": [
+          "django/tasks/backends/immediate.py changed lines 59-63",
+          "django/utils/module_loading.py changed lines 144-148"
+        ],
+        "suggested_fix": "Catch ValueError around `qualname(exception_type)` and use a non-raising diagnostic fallback (such as the previous module/qualname formatting, or module plus class name) when constructing TaskError."
+      },
+      "candidate_id": "1f28d23c91a3e6209476bfc3478f39f0d16e51a8c15cf75faf531922524d2862",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 72,
+            "path": "django/tasks/backends/immediate.py",
+            "side": "head",
+            "source_id": "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+            "start_line": 24,
+            "text": "    def _execute_task(self, task_result):\n        \"\"\"\n        Execute the Task for the given TaskResult, mutating it with the\n        outcome.\n        \"\"\"\n        object.__setattr__(task_result, \"enqueued_at\", timezone.now())\n        task_enqueued.send(type(self), task_result=task_result)\n\n        task = task_result.task\n        task_start_time = timezone.now()\n        object.__setattr__(task_result, \"status\", TaskResultStatus.RUNNING)\n        object.__setattr__(task_result, \"started_at\", task_start_time)\n        object.__setattr__(task_result, \"last_attempted_at\", task_start_time)\n        task_result.worker_ids.append(self.worker_id)\n        task_started.send(sender=type(self), task_result=task_result)\n\n        try:\n            if task.takes_context:\n                raw_return_value = task.call(\n                    TaskContext(task_result=task_result),\n                    *task_result.args,\n                    **task_result.kwargs,\n                )\n            else:\n                raw_return_value = task.call(*task_result.args, **task_result.kwargs)\n\n            object.__setattr__(\n                task_result,\n                \"_return_value\",\n                normalize_json(raw_return_value),\n            )\n        except KeyboardInterrupt:\n            # If the user tried to terminate, let them\n            raise\n        except BaseException as e:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            exception_type = type(e)\n            task_result.errors.append(\n                TaskError(\n                    exception_class_path=qualname(exception_type),\n                    traceback=\"\".join(format_exception(e)),\n                )\n            )\n            object.__setattr__(task_result, \"status\", TaskResultStatus.FAILED)\n            task_finished.send(type(self), task_result=task_result)\n        else:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            object.__setattr__(task_result, \"status\", TaskResultStatus.SUCCESSFUL)\n            task_finished.send(type(self), task_result=task_result)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 73,
+            "path": "django/tasks/backends/immediate.py",
+            "side": "base",
+            "source_id": "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+            "start_line": 23,
+            "text": "    def _execute_task(self, task_result):\n        \"\"\"\n        Execute the Task for the given TaskResult, mutating it with the\n        outcome.\n        \"\"\"\n        object.__setattr__(task_result, \"enqueued_at\", timezone.now())\n        task_enqueued.send(type(self), task_result=task_result)\n\n        task = task_result.task\n        task_start_time = timezone.now()\n        object.__setattr__(task_result, \"status\", TaskResultStatus.RUNNING)\n        object.__setattr__(task_result, \"started_at\", task_start_time)\n        object.__setattr__(task_result, \"last_attempted_at\", task_start_time)\n        task_result.worker_ids.append(self.worker_id)\n        task_started.send(sender=type(self), task_result=task_result)\n\n        try:\n            if task.takes_context:\n                raw_return_value = task.call(\n                    TaskContext(task_result=task_result),\n                    *task_result.args,\n                    **task_result.kwargs,\n                )\n            else:\n                raw_return_value = task.call(*task_result.args, **task_result.kwargs)\n\n            object.__setattr__(\n                task_result,\n                \"_return_value\",\n                normalize_json(raw_return_value),\n            )\n        except KeyboardInterrupt:\n            # If the user tried to terminate, let them\n            raise\n        except BaseException as e:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            exception_type = type(e)\n            task_result.errors.append(\n                TaskError(\n                    exception_class_path=(\n                        f\"{exception_type.__module__}.{exception_type.__qualname__}\"\n                    ),\n                    traceback=\"\".join(format_exception(e)),\n                )\n            )\n            object.__setattr__(task_result, \"status\", TaskResultStatus.FAILED)\n            task_finished.send(type(self), task_result=task_result)\n        else:\n            object.__setattr__(task_result, \"finished_at\", timezone.now())\n            object.__setattr__(task_result, \"status\", TaskResultStatus.SUCCESSFUL)\n            task_finished.send(type(self), task_result=task_result)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 182,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474",
+            "start_line": 153,
+            "text": "def task(\n    function=None,\n    *,\n    priority=DEFAULT_TASK_PRIORITY,\n    queue_name=DEFAULT_TASK_QUEUE_NAME,\n    backend=DEFAULT_TASK_BACKEND_ALIAS,\n    takes_context=False,\n    **kwargs,\n):\n    from . import task_backends\n\n    if \"run_after\" in kwargs:\n        raise TypeError(\n            \"run_after cannot be defined statically with the @task decorator. \"\n            \"Use .using(run_after=...) to set it dynamically.\"\n        )\n\n    def wrapper(f):\n        return task_backends[backend].task_class(\n            func=f,\n            priority=priority,\n            queue_name=queue_name,\n            backend=backend,\n            takes_context=takes_context,\n            **kwargs,\n        )\n\n    if function:\n        return wrapper(function)\n    return wrapper\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.020332,
+      "decision": {
+        "counterevidence": "The task decorator shown does not prohibit tasks from defining or raising local exception classes. KeyboardInterrupt is handled separately, but that guard does not cover this scenario.",
+        "failure_scenario": "A task defines a local exception class and raises an instance of it. The immediate backend catches the original exception, sets finished_at, then qualname(type(e)) raises ValueError because the class qualname includes '<locals>'. Execution exits the handler without appending the original error, setting status to FAILED, or sending task_finished.",
+        "rationale": "The head exception handler passes type(e) to qualname(). For an exception class declared inside a function, __qualname__ contains '<locals>', and the supplied qualname() implementation raises ValueError whenever '<' appears. That ValueError occurs before the TaskError is appended and before status is changed to FAILED. The base implementation directly formatted __module__ and __qualname__, so it did not reject local exception classes.",
+        "source_refs": [
+          "verify:head:70351a404cc49dd9254fdcd152250dc9144bfc89af0b18d471846435e8377be4",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:fd1eaaf33c996ddabcb52478a60003c7eadeb4b39ed78bb4e6cde13126e0d24e",
+          "verify:head:71387eeac049f5974ca77018bf06e5782d0f449336ee6800a2d956ef16766474"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 5.72493310000209,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "705fc1285eb7704d3fc3abcdcaf17ecfb51419155528f77ed5ab31d65b5f78f6",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2592,
+        "cached_input_tokens": 0,
+        "input_tokens": 2595,
+        "output_tokens": 368,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "regression",
+        "confidence": 87,
+        "evidence": "`qualname(type(self))` raises ValueError for a local class because its `__qualname__` contains `<` (module_loading.py lines 144-148). This call is made only to build `class_name` for `warn_about_external_use()`; the previous direct formatting accepted such a qualname, so passing unsupported kwargs to a locally declared custom backend can now abort its construction.",
+        "file_path": "django/core/mail/backends/base.py",
+        "finding": "The deprecation-warning path now fails for an email backend subclass declared in a local scope instead of issuing the warning.",
+        "line": 61,
+        "severity": "medium",
+        "source_refs": [
+          "django/core/mail/backends/base.py changed line 61",
+          "django/utils/module_loading.py changed lines 140-151"
+        ],
+        "suggested_fix": "Do not require an importable qualname for this diagnostic message: catch ValueError and fall back to `f\"{type(self).__module__}.{type(self).__qualname__}\"` (or a class-name fallback) before issuing the warning."
+      },
+      "candidate_id": "0ba2a91d648a264ceb903d719a53cc2c33ae2a1460d1b96d31a3a43294e8756a",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 71,
+            "path": "django/core/mail/backends/base.py",
+            "side": "head",
+            "source_id": "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+            "start_line": 29,
+            "text": "    def __init__(\n        self,\n        fail_silently=_NOT_PROVIDED,\n        *,\n        alias=None,\n        _ignore_unknown_kwargs=None,\n        **kwargs,\n    ):\n        self.alias = alias\n\n        # RemovedInDjango2028Warning.\n        if fail_silently is _NOT_PROVIDED:\n            self._fail_silently = False\n        else:\n            self._fail_silently = fail_silently\n            # Force deprecation warning unless in _ignore_unknown_kwargs.\n            kwargs[\"fail_silently\"] = fail_silently\n        if _ignore_unknown_kwargs:\n            for ignored in _ignore_unknown_kwargs:\n                kwargs.pop(ignored, None)\n\n        if kwargs:\n            kwarg_names = \", \".join(repr(key) for key in kwargs.keys())\n\n            # RemovedInDjango2028Warning.\n            if alias is None:\n                # Not being initialized from mail.mailers. Unknown kwargs are\n                # ignored -- with a deprecation warning if they originated from\n                # outside Django (either direct construction of a built-in\n                # backend or a super.__init__() call from a custom subclass).\n                # Use something more precise than self.__class__.__name__,\n                # which is often just \"EmailBackend\".\n                class_name = qualname(type(self))\n                warn_about_external_use(\n                    f\"{class_name}.__init__() does not support {kwarg_names}. \"\n                    \"In Django 2028, BaseEmailBackend will raise a TypeError \"\n                    \"for unknown keyword arguments.\",\n                    RemovedInDjango2028Warning,\n                    skip_name_prefixes=\"django.core.mail.backends\",\n                )\n                return\n\n            raise InvalidMailer(f\"Unknown options {kwarg_names}.\", alias=alias)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 70,
+            "path": "django/core/mail/backends/base.py",
+            "side": "base",
+            "source_id": "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027",
+            "start_line": 28,
+            "text": "    def __init__(\n        self,\n        fail_silently=_NOT_PROVIDED,\n        *,\n        alias=None,\n        _ignore_unknown_kwargs=None,\n        **kwargs,\n    ):\n        self.alias = alias\n\n        # RemovedInDjango2028Warning.\n        if fail_silently is _NOT_PROVIDED:\n            self._fail_silently = False\n        else:\n            self._fail_silently = fail_silently\n            # Force deprecation warning unless in _ignore_unknown_kwargs.\n            kwargs[\"fail_silently\"] = fail_silently\n        if _ignore_unknown_kwargs:\n            for ignored in _ignore_unknown_kwargs:\n                kwargs.pop(ignored, None)\n\n        if kwargs:\n            kwarg_names = \", \".join(repr(key) for key in kwargs.keys())\n\n            # RemovedInDjango2028Warning.\n            if alias is None:\n                # Not being initialized from mail.mailers. Unknown kwargs are\n                # ignored -- with a deprecation warning if they originated from\n                # outside Django (either direct construction of a built-in\n                # backend or a super.__init__() call from a custom subclass).\n                # Use something more precise than self.__class__.__name__,\n                # which is often just \"EmailBackend\".\n                class_name = f\"{type(self).__module__}.{type(self).__qualname__}\"\n                warn_about_external_use(\n                    f\"{class_name}.__init__() does not support {kwarg_names}. \"\n                    \"In Django 2028, BaseEmailBackend will raise a TypeError \"\n                    \"for unknown keyword arguments.\",\n                    RemovedInDjango2028Warning,\n                    skip_name_prefixes=\"django.core.mail.backends\",\n                )\n                return\n\n            raise InvalidMailer(f\"Unknown options {kwarg_names}.\", alias=alias)\n",
+            "truncated": false
+          },
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 134,
+            "path": "django/tasks/base.py",
+            "side": "head",
+            "source_id": "verify:head:e00205afafdd552c597c25be3a441429c587800ef000cb98715c42a4ad3e8ae9",
+            "start_line": 131,
+            "text": "    def call(self, *args, **kwargs):\n        if iscoroutinefunction(self.func):\n            return async_to_sync(self.func)(*args, **kwargs)\n        return self.func(*args, **kwargs)\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.019932,
+      "decision": {
+        "counterevidence": "The failure does not occur if no unknown kwargs remain, if `_ignore_unknown_kwargs` removes all of them, or if `alias` is non-None (that path raises `InvalidMailer` without calling `qualname`). These guards do not prevent the concrete local-subclass scenario.",
+        "failure_scenario": "Declare a `BaseEmailBackend` subclass inside a function and construct it with an unsupported keyword argument while leaving `alias=None`, or have it pass such an argument to `super().__init__()`. Because `kwargs` is nonempty, construction reaches `qualname(type(self))`; the subclass's `<locals>` qualname causes `ValueError`, aborting construction instead of issuing the deprecation warning and returning.",
+        "rationale": "In the head, the unknown-keyword warning path with `alias is None` calls `qualname(type(self))`. For a backend subclass declared inside a function, the class `__qualname__` contains `<locals>`, and `qualname()` explicitly raises `ValueError` whenever `\"<\"` appears in `__qualname__`. The base version directly formatted `__module__` and `__qualname__`, so it accepted the same local class and proceeded to the warning. This is an introduced behavioral regression on the alleged path.",
+        "source_refs": [
+          "verify:head:1008f7b6d2c9335d73f14b2c99ec67af66774b3a7ca7c32e12f62d6a639f7cc7",
+          "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+          "verify:base:ed9ca89d8dc520b3df36430bd815c85357a8a8b79e0141034dc661f46605b027"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 5.930255899998883,
+      "origin": "published",
+      "original_index": 1,
+      "prompt_sha256": "7e030168978336b3fbaeb37b8a98b7f9a563ef43ecd0a61dfa6d71ffbdbc58a7",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2336,
+        "cached_input_tokens": 0,
+        "input_tokens": 2339,
+        "output_tokens": 412,
+        "reasoning_output_tokens": 0
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 91,
+        "evidence": "For `C.m` where `C` is declared inside a function, `value.__self__` is `C`, so this branch returns `module + '.' + C.__qualname__ + '.m'`. `C.__qualname__` includes `<locals>`, but unlike the general branch at lines 144-148, this branch never checks it. Thus `qualname(C)` raises while `qualname(C.m)` returns a path that cannot be imported.",
+        "file_path": "django/utils/module_loading.py",
+        "finding": "The class-bound-method special case bypasses the local-object validation and returns an unimportable path for classmethods of local classes.",
+        "line": 138,
+        "severity": "medium",
+        "source_refs": [
+          "django/utils/module_loading.py changed lines 130-138",
+          "django/utils/module_loading.py changed lines 144-148"
+        ],
+        "suggested_fix": "Validate `klass.__qualname__` for `<` in the class-bound-method branch (and raise ValueError consistently), or route the constructed qualified name through the same local/anonymous validation."
+      },
+      "candidate_id": "db128a4e77c223bf720a50478c885b2d211a303863803c67f624177d019931de",
+      "case_id": "django__django__21875",
+      "context": {
+        "issues": [
+          "base_symbol_missing: django/utils/module_loading.py:qualname"
+        ],
+        "snippets": [
+          {
+            "end_line": 151,
+            "path": "django/utils/module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:10b128e4a6f88730955998182e8faacf1f2b9f353baa11a7d26267ee2e81d791",
+            "start_line": 123,
+            "text": "def qualname(value):\n    \"\"\"\n    Return the fully qualified name (dotted module path) for a class, function,\n    or type (e.g. 'django.db.models.Model').\n    \"\"\"\n    if getattr(value, \"__self__\", None) and isinstance(value.__self__, type):\n        klass = value.__self__\n        module = getattr(klass, \"__module__\", None)\n        if not module:\n            raise ValueError(\n                f\"Cannot determine module path for {value!r}: \"\n                f\"{klass!r} has no __module__.\"\n            )\n        return f\"{module}.{klass.__qualname__}.{value.__name__}\"\n\n    if not hasattr(value, \"__module__\") or value.__module__ is None:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __module__ attribute.\"\n        )\n    if not hasattr(value, \"__qualname__\"):\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: no __qualname__ attribute.\"\n        )\n    if \"<\" in value.__qualname__:\n        raise ValueError(\n            f\"Cannot determine module path for {value!r}: local or anonymous object.\"\n        )\n\n    return f\"{value.__module__}.{value.__qualname__}\"\n",
+            "truncated": false
+          },
+          {
+            "end_line": 268,
+            "path": "tests/utils_tests/test_module_loading.py",
+            "side": "head",
+            "source_id": "verify:head:da5ad9fa7d73fa3817659d7b2b1f87c157f4e9975f7ebec8633e271dd45ae624",
+            "start_line": 267,
+            "text": "        def method(self):\n            pass\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "origin": "published",
+      "original_index": 2,
+      "status": "context_unavailable",
+      "suppression_reason": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 68,
+        "evidence": "The new guard only checks `if not subelement_list`, but the preceding string normalization (shown by the existing surrounding logic) represents an empty string as a one-element list containing `''`, which is truthy. Thus `subelements=''` does not raise `AnsibleFilterError` here.",
+        "file_path": "lib/ansible/plugins/filter/core.py",
+        "finding": "The emptiness check does not reject an empty string value for `subelements`. `''.split('.')` produces `['']`, so an empty string bypasses this guard and is treated as a lookup for the empty key, despite the new error and PR intent to reject empty subelements.",
+        "line": 573,
+        "severity": "medium",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Validate an empty string before splitting, or reject a normalized path containing only an empty component when that is not a supported key name; e.g., check `if not subelements` in the string branch before calling `split('.')`."
+      },
+      "candidate_id": "d7a8955370aa72d4a43212fb3e285f1a2578b9fe55240a25260a330bdd5f0657",
+      "case_id": "ansible__ansible__87412",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 596,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "head",
+            "source_id": "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    if not subelement_list:\n        raise AnsibleFilterError('subelements must not be empty')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          },
+          {
+            "end_line": 593,
+            "path": "lib/ansible/plugins/filter/core.py",
+            "side": "base",
+            "source_id": "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae",
+            "start_line": 550,
+            "text": "def subelements(obj, subelements, skip_missing=False):\n    \"\"\"Accepts a dict or list of dicts, and a dotted accessor and produces a product\n    of the element and the results of the dotted accessor\n\n    >>> obj = [{\"name\": \"alice\", \"groups\": [\"wheel\"], \"authorized\": [\"/tmp/alice/onekey.pub\"]}]\n    >>> subelements(obj, 'groups')\n    [({'name': 'alice', 'groups': ['wheel'], 'authorized': ['/tmp/alice/onekey.pub']}, 'wheel')]\n\n    \"\"\"\n    if isinstance(obj, dict):\n        element_list = list(obj.values())\n    elif isinstance(obj, list):\n        element_list = obj[:]\n    else:\n        raise AnsibleFilterError('obj must be a list of dicts or a nested dict')\n\n    if isinstance(subelements, list):\n        subelement_list = subelements[:]\n    elif isinstance(subelements, str):\n        subelement_list = subelements.split('.')\n    else:\n        raise AnsibleTypeError('subelements must be a list or a string')\n\n    results = []\n\n    for element in element_list:\n        values = element\n        for subelement in subelement_list:\n            try:\n                values = values[subelement]\n            except KeyError:\n                if skip_missing:\n                    values = []\n                    break\n                raise AnsibleFilterError(\"could not find %r key in iterated item %r\" % (subelement, values))\n            except TypeError as ex:\n                raise AnsibleTypeError(\"the key %s should point to a dictionary, got '%s'\" % (subelement, values)) from ex\n        if not isinstance(values, list):\n            raise AnsibleTypeError(\"the key %r should point to a list, got %r\" % (subelement, values))\n\n        for value in values:\n            results.append((element, value))\n\n    return results\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.018157,
+      "decision": {
+        "counterevidence": "The guard does correctly reject an explicitly empty list (`subelements=[]`), but not an empty string after normalization.",
+        "failure_scenario": "Calling `subelements([], '')` sets `subelement_list` to `['']`, bypasses the guard, and returns `[]` instead of raising `AnsibleFilterError('subelements must not be empty')`. With `subelements([{'': [1]}], '')`, it even resolves the empty key and returns `[(({'': [1]}), 1)]`.",
+        "rationale": "In head, a string is normalized with `subelements.split('.')`; for `subelements=''`, this produces `['']`, which is truthy and bypasses the new `if not subelement_list` guard. Execution then treats the empty string as a key. The base had the same empty-string behavior, but head introduced an emptiness-validation guard that only changes the empty-list case and still fails to reject the empty-string form alleged.",
+        "source_refs": [
+          "verify:head:a84be790c89b84d73960b1ae669c1f27f7323ea2441fde626a38de665e0edf10",
+          "verify:base:edf9442854f017c167e819bbc2073dedbcd583d9d778b6998d121812533bafae"
+        ],
+        "verdict": "confirmed"
+      },
+      "latency_seconds": 7.652090999999928,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "05388c7d7e0606f00334f8c4186f4696b5b46a4716db295db48b55d500354cdb",
+      "status": "confirmed",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 1913,
+        "cached_input_tokens": 0,
+        "input_tokens": 1916,
+        "output_tokens": 429,
+        "reasoning_output_tokens": 132
+      },
+      "validation_error": null
+    },
+    {
+      "candidate": {
+        "category": "bug",
+        "confidence": 86,
+        "evidence": "Both new pointer lines use `{' ' * (column - 1)}` after the fixed four-space source indentation (lines 88 and 99). For example, a TokenError for an unterminated multiline string that starts after preceding text has a positive zero-based start column, so this renders the caret beneath the preceding character rather than the string start.",
+        "file_path": "src/black/parsing.py",
+        "finding": "The caret is offset one character to the left for nonzero columns. lib2to3/tokenize error positions use zero-based columns, but subtracting one from `column` makes a lexical or parse error at column N point at column N-1.",
+        "line": 88,
+        "severity": "medium",
+        "source_refs": [
+          "DIFF"
+        ],
+        "suggested_fix": "Use `{' ' * column}` when rendering the caret (in both exception paths), preserving the four-space display prefix."
+      },
+      "candidate_id": "4ea558b1f415ed3ebc2997a58108de60b1cc329d31c6d5ff7c0a3462b9b8e959",
+      "case_id": "psf__black__5068",
+      "context": {
+        "issues": [],
+        "snippets": [
+          {
+            "end_line": 112,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {faulty_line}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n            errors[grammar.version] = InvalidInput(error_msg)\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            error_msg = (\n                            f\"Cannot parse{tv_str}: {lineno}:{column}\\n\"\n                            f\"    {te.args[0]}\\n\"\n                            f\"    {' ' * (column - 1)}^\\n\"\n                                \"SyntaxError: invalid syntax\"\n                        )\n\n        errors[grammar.version] = InvalidInput(error_msg)\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 102,
+            "path": "src/black/parsing.py",
+            "side": "base",
+            "source_id": "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467",
+            "start_line": 55,
+            "text": "def lib2to3_parse(\n    src_txt: str, target_versions: Collection[TargetVersion] = ()\n) -> Node:\n    \"\"\"Given a string with source, return the lib2to3 Node.\"\"\"\n    if not src_txt.endswith(\"\\n\"):\n        src_txt += \"\\n\"\n\n    grammars = get_grammars(set(target_versions))\n    if target_versions:\n        max_tv = max(target_versions, key=lambda tv: tv.value)\n        tv_str = f\" for target version {max_tv.pretty()}\"\n    else:\n        tv_str = \"\"\n\n    errors = {}\n    for grammar in grammars:\n        drv = driver.Driver(grammar)\n        try:\n            result = drv.parse_string(src_txt, False)\n            break\n\n        except ParseError as pe:\n            lineno, column = pe.context[1]\n            lines = src_txt.splitlines()\n            try:\n                faulty_line = lines[lineno - 1]\n            except IndexError:\n                faulty_line = \"<line number missing in source>\"\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {faulty_line}\"\n            )\n\n        except TokenError as te:\n            # In edge cases these are raised; and typically don't have a \"faulty_line\".\n            lineno, column = te.args[1]\n            errors[grammar.version] = InvalidInput(\n                f\"Cannot parse{tv_str}: {lineno}:{column}: {te.args[0]}\"\n            )\n\n    else:\n        # Choose the latest version when raising the actual parsing error.\n        assert len(errors) >= 1\n        exc = errors[max(errors)]\n        raise exc from None\n\n    if isinstance(result, Leaf):\n        result = Node(syms.file_input, [result])\n    return result\n",
+            "truncated": false
+          },
+          {
+            "end_line": 52,
+            "path": "src/black/parsing.py",
+            "side": "head",
+            "source_id": "verify:head:dcf3bbe0b47eb39f9cce48d216d4850b494a9700e1d7e661eb200ee84ef6ddb3",
+            "start_line": 24,
+            "text": "def get_grammars(target_versions: set[TargetVersion]) -> list[Grammar]:\n    if not target_versions:\n        # No target_version specified, so try all grammars.\n        return [\n            # Python 3.7-3.9\n            pygram.python_grammar_async_keywords,\n            # Python 3.0-3.6\n            pygram.python_grammar,\n            # Python 3.10+\n            pygram.python_grammar_soft_keywords,\n        ]\n\n    grammars = []\n    # If we have to parse both, try to parse async as a keyword first\n    if not supports_feature(\n        target_versions, Feature.ASYNC_IDENTIFIERS\n    ) and not supports_feature(target_versions, Feature.PATTERN_MATCHING):\n        # Python 3.7-3.9\n        grammars.append(pygram.python_grammar_async_keywords)\n    if not supports_feature(target_versions, Feature.ASYNC_KEYWORDS):\n        # Python 3.0-3.6\n        grammars.append(pygram.python_grammar)\n    if any(Feature.PATTERN_MATCHING in VERSION_TO_FEATURES[v] for v in target_versions):\n        # Python 3.10+\n        grammars.append(pygram.python_grammar_soft_keywords)\n\n    # At least one of the above branches must have been taken, because every Python\n    # version has exactly one of the two 'ASYNC_*' flags\n    return grammars\n",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      },
+      "cost_usd": 0.023352,
+      "decision": {
+        "counterevidence": "For column 0, Python repeats the space string zero times for `-1`, placing the caret at the beginning as expected. No supplied example establishes the behavior for a positive column.",
+        "failure_scenario": "",
+        "rationale": "The head code newly renders the caret with `column - 1`, so it would be one character left if `ParseError.context` and `TokenError.args[1]` use zero-based columns. However, the supplied source does not define those exception-position contracts or provide a caller/test demonstrating a positive zero-based column. The base version did not render a caret, confirming this is a new formatting path but not proving the alleged offset.",
+        "source_refs": [
+          "verify:head:c02e3b3f320e411dfbc645aa69d0560b65a994b0dad8dd27c271d9bd810eee61",
+          "verify:base:4c5578438675d327856efe0ade7500b95006dabc92a74cf3b6b33ccd2c5f7467"
+        ],
+        "verdict": "uncertain"
+      },
+      "latency_seconds": 10.284238899999764,
+      "origin": "published",
+      "original_index": 0,
+      "prompt_sha256": "b677c42c4070fc53ccc9f8301edb161ccc1ef01a7162412cf85ff7349aedd2f4",
+      "status": "uncertain",
+      "suppression_reason": null,
+      "usage": {
+        "cache_write_input_tokens": 2340,
+        "cached_input_tokens": 0,
+        "input_tokens": 2343,
+        "output_tokens": 582,
+        "reasoning_output_tokens": 345
+      },
+      "validation_error": null
+    }
+  ],
+  "cost_usd": 0.081773,
+  "dataset_sha256": "0d13d6201d2b0cfed979bd02c5217157d804a496a69d045cf8e2fed6c7fcbd61",
+  "effort": "low",
+  "fixtures": {
+    "ansible__ansible__87412": "2b698701f720577a1683a07cc0ef051d96d46fe3af5ac8319d868a0771c957b9",
+    "django__django__21875": "b6e012e286191fcd26a1efcad0aec1196c73c08c1fe51bb41557b879b0dc68e5",
+    "psf__black__5068": "9a8c1fdad72e1852df02c37d92cadeb7116ff528c685bb181414942e1625335a"
+  },
+  "generation_metrics": {
+    "cached_input_tokens": 2146,
+    "cases": 3,
+    "comment_precision": 0.2,
+    "completed_cases": 3,
+    "confirmed_labels": 5,
+    "cost_per_pr_usd": 0.0235,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 5,
+    "input_tokens": 6931,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.2,
+    "labels": 5,
+    "matched": 1,
+    "median_latency_seconds": 40.27,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 5047,
+    "p95_latency_seconds": 47.67,
+    "quiet_runs": 0,
+    "reasoning_output_tokens": 3949,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {},
+    "total_cost_usd": 0.0706,
+    "unadjudicated_labels": 0
+  },
+  "generation_report_sha256": "dc1dd1fa87d4790f9f5af3c9dfb8e6ee7659323c7b5090a38d1b5b6cb1dd1538",
+  "max_candidates": 12,
+  "mode": "live",
+  "model": "gpt-5.6-sol",
+  "schema_version": 1,
+  "source_bundle_sha256": "04536c7bc2fc0aac9c56df09a922247992351257e6081ce08c7706e8bb867ea5",
+  "source_provenance": "operator-supplied",
+  "source_validation": "all available frozen patch lines checked; no Git object attestation",
+  "status_counts": {
+    "confirmed": 3,
+    "context_unavailable": 1,
+    "uncertain": 1
+  },
+  "usage_complete": true
+}
