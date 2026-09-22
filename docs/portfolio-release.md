@@ -30,9 +30,10 @@ This is a bounded closeout, not another research cycle. A deadline or a demo doe
 - [x] Container image built, and the full Compose stack rehearsed locally through Caddy: health, signed delivery, background execution to `summarized`, redelivery returning the same run, a bad signature refused with 401, and the demo limited on the third request with `Retry-After`.
 - [x] README and public docs agree about the demo, the webhook, paid flags, experimental verification, and the deployment.
 - [x] Remote CI job `test` passed on `main` at `9999b65`, the last pushed revision before this release work.
-- [ ] Owner commits and pushes the release work, and CI passes on that revision.
-- [ ] Owner provisions the server, the Porkbun DNS record, the GitHub App, and the server `.env`, following [deployment](deployment.md).
-- [ ] Deploy, then record public evidence: `/health` over HTTPS, one demo request, one live webhook delivery with its `run_id` and status, and one redelivery returning the same run.
+- [x] Owner committed and pushed the release work as `e645b44` and `678da08`; CI `test` passed on `678da08`.
+- [x] Owner provisioned the `cx23` server, the Porkbun A record, and the GitHub App `prcritiq-demo` (read-only contents, metadata, and pull requests; `pull_request` event; installed on this public repository). The server `.env` was filled and each credential checked against GitHub without printing it.
+- [x] Deployed `678da08` on 2026-09-22. Public evidence: `/health` answers over HTTPS with a Let's Encrypt certificate, HSTS, and an HTTP-to-HTTPS redirect; a demo review of `octocat/Hello-World#1` returned a dry-run report with nothing posted; a signed delivery through the public URL minted a real installation token, became run 1, finished `summarized`, and its redelivery returned run 1 without running it again.
+- [ ] Record one GitHub-originated `pull_request` delivery and one redelivery from the app's Advanced tab.
 - [ ] Owner sets branch protection to require `test`, adds repository topics, and tags `v0.1.0`.
 - [ ] Record the release revision and its evidence here.
 
@@ -40,10 +41,10 @@ This is a bounded closeout, not another research cycle. A deadline or a demo doe
 
 | Criterion | Current evidence | Treatment |
 | --- | --- | --- |
-| AC1: GitHub App PR events create idempotent review runs | Implemented and tested; the local rehearsal exercised it through TLS. | Met once one live delivery is recorded on the deployed app. |
+| AC1: GitHub App PR events create idempotent review runs | Implemented, tested, and exercised on the deployed app with a signed delivery using the real installation. | Met once one GitHub-originated `pull_request` delivery is recorded. |
 | AC11: certified evaluation across at least 20 real code-heavy PRs | The legacy 20-PR/46-comment corpus is diagnostic, not certified ground truth. The approved smoke set contains 3 PRs and 5 defects. | Deferred. The smoke evidence and its limits are published; the original corpus requirement is not claimed. |
 | AC12: meaningful-issue recall above 50% with precision and spam gates passing | The small smoke comparisons, mechanical matching, and AI evidence audits do not establish these gates. | Deferred. Not replaced by mock scores or verifier confirmations. |
-| AC14: public demo on Modal and managed Postgres, or an approved equivalent | The approved equivalent is built and rehearsed. | Met once `/health` and a demo request succeed at `https://prcritiq.arefin.app`. |
+| AC14: public demo on Modal and managed Postgres, or an approved equivalent | Live at `https://prcritiq.arefin.app` since 2026-09-22 (ADR-019). | Met. |
 | AC15: passing CI and release hygiene | CI passes; license, badges, and lockfile are present. | Met once branch protection and the `v0.1.0` tag exist. |
 
 ## Accepted Deferrals

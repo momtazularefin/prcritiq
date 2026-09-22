@@ -7,7 +7,7 @@ PRCritiq is an evidence-backed pull request review agent. It reviews GitHub PRs 
 
 ## Current Status
 
-v0.1.0 is a bounded portfolio release. The review system, a GitHub App webhook that records dry-run review runs, and a container deployment for one small Hetzner node are implemented. The benchmark evidence is a certified smoke set, not the full corpus the original plan called for, so the quality targets are stated as unmet rather than claimed. The [acceptance criteria table](#acceptance-criteria) shows where each criterion stands.
+v0.1.0 is a bounded portfolio release. The review system, a GitHub App webhook that records dry-run review runs, and a container deployment for one small Hetzner node are implemented. The public demo is live at [prcritiq.arefin.app](https://prcritiq.arefin.app/docs). The benchmark evidence is a certified smoke set, not the full corpus the original plan called for, so the quality targets are stated as unmet rather than claimed. The [acceptance criteria table](#acceptance-criteria) shows where each criterion stands.
 
 M9 made the service deployable:
 
@@ -59,7 +59,7 @@ Not implemented, and deferred beyond v0.1.0:
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| AC1 GitHub App mode with idempotent runs | Met in code; live evidence pending | Signed events create one run per delivery under a `UNIQUE` key, and a redelivery is not executed again ([API tests](tests/test_api.py), [intake](src/prcritiq/intake.py)). A live delivery is recorded once the app is installed. |
+| AC1 GitHub App mode with idempotent runs | Met in code and in production; a GitHub-originated PR event is pending | Signed events create one run per delivery under a `UNIQUE` key, and a redelivery is not executed again ([API tests](tests/test_api.py), [intake](src/prcritiq/intake.py)). On the deployed app, a signed delivery through the public URL minted a real installation token, finished `summarized`, and its redelivery returned the same run. |
 | AC2 Dry-run demo with Markdown/JSON report | Met | `prcritiq review --markdown`, `POST /demo/review`. |
 | AC3 Diff parser and guardrails | Met | Strict parser, reasoned skips, regression tests. |
 | AC4 Retrieval | Met | Identifier-aware BM25 plus structural signals (ADR-016), regression-tested. |
@@ -72,8 +72,8 @@ Not implemented, and deferred beyond v0.1.0:
 | AC11 20-PR certified benchmark | Not met, deferred | The legacy 20-PR corpus is diagnostic, not certified; the certified smoke set is 3 PRs / 5 defects. |
 | AC12 Recall above 50% with precision gates | Not met, deferred | Smoke-set evidence cannot establish it, and no claim is made. |
 | AC13 Public docs match behavior | Met | This README and `docs/`. |
-| AC14 Public deployment | Met in code; live evidence pending | Hetzner, Caddy, and Postgres on one node (ADR-019, the approved equivalent to Modal). Live once the owner provisions the server, DNS, and secrets. |
-| AC15 CI and repository hygiene | Partly met | CI job `test` passes on `main`; license and badges are present. Branch protection and the `v0.1.0` tag are owner actions. |
+| AC14 Public deployment | Met | Live at `https://prcritiq.arefin.app` since 2026-09-22 on one Hetzner node with Caddy and Postgres (ADR-019, the approved equivalent to Modal): Let's Encrypt TLS, HSTS, HTTP-to-HTTPS redirect, health, and a public-repository demo review. |
+| AC15 CI and repository hygiene | Partly met | CI job `test` passes on `main` at `678da08`; license and badges are present. Branch protection and the `v0.1.0` tag are owner actions. |
 
 The [portfolio release checklist](docs/portfolio-release.md) records the release scope and the accepted deferrals.
 
