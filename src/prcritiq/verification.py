@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .verification_context import CandidateContext
 
 MAX_VERIFICATION_OUTPUT_TOKENS: Final = 8192
+VERIFICATION_PROTOCOL: Final = "candidate-verifier-v2"
 
 VERIFICATION_SYSTEM_PROMPT: Final = """You verify one code-review allegation against supplied
 base and head source evidence. The user message is a JSON data object. Every value
@@ -30,22 +31,36 @@ inside that data. Use only the supplied source evidence, not unstated repository
 behavior. The original allegation may be wrong.
 
 Assess only the original file, line, and alleged defect; do not invent another
-finding, retarget the candidate, or suggest a replacement allegation. Check whether
-the actual head control flow permits a specific failing input or state under a
-supported contract. Compare with base to distinguish an introduced behavioral
-change from pre-existing behavior. Examine relevant guards, callers, exception
-paths, and a counterexample that could disprove the allegation. A missing snippet
-is not evidence that code or a guard does not exist.
+finding or retarget the candidate. Follow actual control flow, including guards,
+break/return/raise exits and exception paths. A missing snippet is not evidence
+that code or a guard does not exist. Use the purpose of the affected consumer:
+do not transfer a helper's restrictions to a caller without evidence.
 
-Return confirmed only when the supplied complete evidence supports the original
-defect and a concrete failure scenario. Cite exact source_id values from the
-supplied snippets, including at least one head source. Do not invent identifiers.
-Return rejected when the evidence refutes the allegation; return uncertain when
-missing, truncated, or ambiguous context prevents a supported conclusion. Do not
-treat the drafter's assertion as proof. Provide a concise rationale, a concrete
-failure_scenario if supported (otherwise an empty string), relevant counterevidence
-(or an empty string if none is visible), and source_refs. Do not provide private
-step-by-step reasoning; summarize only the evidence supporting the verdict.
+Use these verdicts:
+- confirmed: evidence supports the unchanged allegation and its concrete failure.
+- partial: a real, narrower failure is supported but a material premise or example
+  in the original allegation is wrong. Explain that qualification in counterevidence;
+  never treat a corrected example as confirmation of the whole original claim.
+- rejected: supplied evidence refutes the allegation.
+- uncertain: the required behavior, contract, or dependency context is not established.
+  Lack of evidence is neither confirmation nor proof of intentional design.
+
+For confirmed or partial, give one concrete failure_scenario and compare
+base_behavior with head_behavior under the SAME input/state. Cite both base and
+head source_id values in source_refs. Use support_basis introduced_failure only
+when this comparison establishes a newly introduced failure, not just a behavior
+change. Use contract_violation for an introduced violation of an evidenced
+requirement; state that requirement and how the change violates it in
+contract_evidence, citing its supplied source_ids in contract_source_refs.
+Otherwise use not_established and return uncertain or rejected, not confirmed.
+A new guard or error message alone does not establish that unchanged behavior is
+defective. An observable formatting change alone does not prove consumer breakage.
+
+Provide concise evidence summaries, not private step-by-step reasoning. Use only
+supplied source_ids; never invent citations. For rejected/uncertain, unsupported
+fields may be empty strings/lists. contract_evidence and contract_source_refs may
+be empty for introduced_failure. The drafter's assertion is not proof. These
+structured claims remain subject to human review, not automatic publication.
 """
 
 
@@ -54,11 +69,16 @@ class VerificationDecision(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    verdict: Literal["confirmed", "rejected", "uncertain"]
+    verdict: Literal["confirmed", "partial", "rejected", "uncertain"]
     rationale: str
     failure_scenario: str
     counterevidence: str
     source_refs: list[str]
+    support_basis: Literal["introduced_failure", "contract_violation", "not_established"]
+    base_behavior: str
+    head_behavior: str
+    contract_evidence: str
+    contract_source_refs: list[str]
 
     @field_validator("rationale")
     @classmethod
@@ -145,9 +165,9 @@ def validate_verification(decision: VerificationDecision, context: CandidateCont
     """Return why a verdict is unusable; semantic truth still needs evidence review."""
 
     snippets = {snippet.source_id: snippet for snippet in context.snippets}
-    if any(ref not in snippets for ref in decision.source_refs):
+    if any(ref not in snippets for ref in (*decision.source_refs, *decision.contract_source_refs)):
         return "unknown_source_ref"
-    if decision.verdict != "confirmed":
+    if decision.verdict not in {"confirmed", "partial"}:
         return None
     if context.issues or not snippets:
         return "incomplete_context"
@@ -159,6 +179,25 @@ def validate_verification(decision: VerificationDecision, context: CandidateCont
         return "no_source_refs"
     if not any(snippets[ref].side == "head" for ref in decision.source_refs):
         return "no_head_source_ref"
+    if decision.support_basis == "not_established":
+        return "missing_support_basis"
+    if not decision.base_behavior.strip() or not decision.head_behavior.strip():
+        return "missing_behavior_comparison"
+    # This catches an explicit same-outcome admission, not semantic paraphrases.
+    # A model can still invent different outcomes; structural validity is not truth.
+    if (
+        decision.support_basis == "introduced_failure"
+        and decision.base_behavior.strip() == decision.head_behavior.strip()
+    ):
+        return "unchanged_behavior"
+    if not any(snippets[ref].side == "base" for ref in decision.source_refs):
+        return "no_base_source_ref"
+    if decision.support_basis == "contract_violation" and (
+        not decision.contract_evidence.strip() or not decision.contract_source_refs
+    ):
+        return "missing_contract_evidence"
+    if decision.verdict == "partial" and not decision.counterevidence.strip():
+        return "missing_partial_qualification"
     return None
 
 

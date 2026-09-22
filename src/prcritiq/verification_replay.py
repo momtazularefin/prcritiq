@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -20,6 +20,7 @@ from .github import GitHubClient
 from .guardrails import apply_guardrails, reviewable_files
 from .providers import ModelChoice, ProviderBillingError, ProviderError
 from .verification import (
+    VERIFICATION_PROTOCOL,
     OpenAIVerifier,
     SemanticVerifier,
     build_verification_prompt,
@@ -321,7 +322,8 @@ def run_verification_replay(
     out_dir.mkdir(parents=True, exist_ok=False)
     (out_dir / "sources.json").write_bytes(source_bytes)
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "verification_protocol": VERIFICATION_PROTOCOL,
         "mode": "live" if live else "prepare",
         "model": model,
         "effort": effort,
@@ -370,6 +372,10 @@ def run_verification_replay(
             related_paths=prepared.head_paths,
             base_absent=diff.status == "added",
         )
+        if not context.issues and not any(s.side == "base" for s in context.snippets):
+            # V2 cannot support a positive verdict without a cited base comparison.
+            # Added-file/symbol reasoning needs an explicit absence model later.
+            context = replace(context, issues=("base_evidence_missing_for_v2",))
         row["context"] = asdict(context)
         if context.issues or context.truncated or not context.snippets:
             row["status"] = "context_unavailable"

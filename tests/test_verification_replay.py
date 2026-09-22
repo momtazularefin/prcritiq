@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import pytest
@@ -180,11 +180,14 @@ def make_replay(tmp_path: Path):
 
 
 class RecordingVerifier:
-    def __init__(self, *, verdict="confirmed", error=None, invented_refs=False):
+    def __init__(
+        self, *, verdict="confirmed", error=None, invented_refs=False, decision_overrides=None
+    ):
         self.calls = []
         self.verdict = verdict
         self.error = error
         self.invented_refs = invented_refs
+        self.decision_overrides = decision_overrides or {}
         self.usage = Usage(input_tokens=100, output_tokens=25, cache_write_input_tokens=20)
 
     def verify(self, *, system, user, choice):
@@ -193,14 +196,28 @@ class RecordingVerifier:
             raise self.error
         payload = json.loads(user)
         refs = [item["source_id"] for item in payload["context"]["snippets"]]
-        return VerificationResult(
-            decision=VerificationDecision(
-                verdict=self.verdict,
-                rationale="The supplied source supports this verdict about the allegation.",
-                failure_scenario="retry(0) raises in head but returned zero in base.",
-                counterevidence="No head guard prevents the division.",
-                source_refs=["invented-source"] if self.invented_refs else refs,
+        positive = self.verdict in {"confirmed", "partial"}
+        values = {
+            "verdict": self.verdict,
+            "rationale": "The supplied source supports this verdict about the allegation.",
+            "failure_scenario": "retry(0) raises in head but returned zero in base."
+            if positive
+            else "",
+            "counterevidence": (
+                "The zero-input failure holds, but the allegation's wider scope is not established."
+                if self.verdict == "partial"
+                else "No head guard prevents the division."
             ),
+            "source_refs": ["invented-source"] if self.invented_refs else refs,
+            "support_basis": "introduced_failure" if positive else "not_established",
+            "base_behavior": "retry(0) returns zero without dividing." if positive else "",
+            "head_behavior": "retry(0) raises ZeroDivisionError." if positive else "",
+            "contract_evidence": "",
+            "contract_source_refs": [],
+        }
+        values.update(self.decision_overrides)
+        return VerificationResult(
+            decision=VerificationDecision(**values),
             usage=self.usage,
         )
 
@@ -333,6 +350,8 @@ def test_dry_run_prepares_context_without_provider_and_preserves_inputs(make_rep
     report = _run(paths, verifier=verifier)
 
     assert report["calls"] == 0
+    assert report["schema_version"] == 2
+    assert report["verification_protocol"] == "candidate-verifier-v2"
     assert report["cost_usd"] == 0
     assert report["aborted"] is None
     assert report["candidates"][0]["status"] == "prepared"
@@ -353,6 +372,41 @@ def test_missing_primary_source_is_context_unavailable_without_provider(make_rep
     assert report["candidates"][0]["status"] == "context_unavailable"
     assert report["calls"] == 0
     assert verifier.calls == []
+
+
+@pytest.mark.parametrize("live", [False, True])
+def test_complete_head_only_added_file_is_unavailable_before_any_paid_call(
+    make_replay, live
+) -> None:
+    paths = make_replay()
+    fixture_path = paths["root"] / "case-1.json"
+    fixture = _read(fixture_path)
+    fixture["files"][0].update(
+        status="added",
+        additions=2,
+        deletions=0,
+        changes=2,
+        patch="@@ -0,0 +1,2 @@\n+def retry(n):\n+    return 1 / n\n",
+    )
+    _write(fixture_path, fixture)
+    bundle = _read(paths["source_bundle_path"])
+    bundle["cases"][0]["base"] = {}
+    _write(paths["source_bundle_path"], bundle)
+    verifier = RecordingVerifier()
+
+    report = _run(paths, live=live, verifier=verifier)
+
+    row = report["candidates"][0]
+    assert row["status"] == "context_unavailable"
+    assert row["context"]["snippets"]
+    assert {snippet["side"] for snippet in row["context"]["snippets"]} == {"head"}
+    assert "base_evidence_missing_for_v2" in row["context"]["issues"]
+    assert row["context"]["truncated"] is False
+    assert report["calls"] == 0
+    assert report["cost_usd"] == 0
+    assert verifier.calls == []
+    assert "usage" not in row
+    assert "prompt_sha256" not in row
 
 
 def test_structurally_invalid_target_is_retained_but_not_verified(make_replay) -> None:
@@ -556,7 +610,7 @@ def test_invalid_references_fail_closed_but_usage_is_still_charged(make_replay) 
     assert report["cost_usd"] == pytest.approx(verifier.usage.cost_usd("gpt-5.6-sol"))
 
 
-@pytest.mark.parametrize("verdict", ["confirmed", "rejected", "uncertain"])
+@pytest.mark.parametrize("verdict", ["confirmed", "partial", "rejected", "uncertain"])
 def test_decisions_keep_original_candidate_and_do_not_leak_labels(make_replay, verdict) -> None:
     paths = make_replay()
     verifier = RecordingVerifier(verdict=verdict)
@@ -567,6 +621,12 @@ def test_decisions_keep_original_candidate_and_do_not_leak_labels(make_replay, v
     assert row["status"] == verdict
     assert row["candidate"] == _candidate()
     assert row["decision"]["verdict"] == verdict
+    assert report["schema_version"] == 2
+    assert report["verification_protocol"] == "candidate-verifier-v2"
+    assert report["status_counts"] == {verdict: 1}
+    assert row["usage"] == asdict(verifier.usage)
+    assert row["cost_usd"] == pytest.approx(verifier.usage.cost_usd("gpt-5.6-sol"))
+    assert _read(paths["out_dir"] / "verification.json") == json.loads(json.dumps(report))
     system, user, choice = verifier.calls[0]
     assert choice.provider == "openai"
     assert choice.model == "gpt-5.6-sol"
@@ -574,6 +634,72 @@ def test_decisions_keep_original_candidate_and_do_not_leak_labels(make_replay, v
         assert marker not in system
         assert marker not in user
     assert "labels" not in json.loads(user)
+
+
+@pytest.mark.parametrize(
+    ("verdict", "overrides", "reason"),
+    [
+        ("confirmed", {"support_basis": "not_established"}, "missing_support_basis"),
+        ("confirmed", {"base_behavior": ""}, "missing_behavior_comparison"),
+        (
+            "confirmed",
+            {
+                "base_behavior": "Looks up the empty key.",
+                "head_behavior": "Looks up the empty key.",
+            },
+            "unchanged_behavior",
+        ),
+        ("confirmed", {"support_basis": "contract_violation"}, "missing_contract_evidence"),
+        ("confirmed", {"contract_source_refs": ["invented-contract"]}, "unknown_source_ref"),
+        ("partial", {"counterevidence": " \n"}, "missing_partial_qualification"),
+    ],
+)
+def test_v2_invalid_decision_preserves_raw_decision_candidate_and_usage(
+    make_replay, verdict, overrides, reason
+) -> None:
+    paths = make_replay()
+    verifier = RecordingVerifier(verdict=verdict, decision_overrides=overrides)
+
+    report = _run(paths, live=True, model="gpt-5.6-sol", verifier=verifier)
+
+    row = report["candidates"][0]
+    assert row["status"] == "invalid_decision"
+    assert row["validation_error"] == reason
+    assert row["candidate"] == _candidate()
+    assert row["decision"]["verdict"] == verdict
+    assert all(row["decision"][key] == value for key, value in overrides.items())
+    assert row["usage"] == asdict(verifier.usage)
+    assert report["calls"] == len(verifier.calls) == 1
+    assert report["usage_complete"] is True
+    assert report["aborted"] is None
+    assert report["cost_usd"] == row["cost_usd"]
+    assert report["cost_usd"] == pytest.approx(verifier.usage.cost_usd("gpt-5.6-sol"))
+    assert report["status_counts"] == {"invalid_decision": 1}
+    assert _read(paths["out_dir"] / "verification.json") == json.loads(json.dumps(report))
+
+
+def test_partial_does_not_rewrite_or_promote_original_suppressed_candidate(make_replay) -> None:
+    paths = make_replay()
+    original = _read(paths["report_path"])
+    wrapper = original["cases"][0]["published_findings"].pop()
+    wrapper["candidate"]["confidence"] = 20
+    wrapper["publish_decision"] = "suppress"
+    wrapper["suppression_reason"] = "low_confidence"
+    original["cases"][0]["suppressed_findings"].append(wrapper)
+    _write(paths["report_path"], original)
+    before = paths["report_path"].read_bytes()
+    verifier = RecordingVerifier(verdict="partial")
+
+    report = _run(paths, live=True, verifier=verifier)
+
+    row = report["candidates"][0]
+    assert row["status"] == "partial"
+    assert row["origin"] == "suppressed"
+    assert row["suppression_reason"] == "low_confidence"
+    assert row["candidate"] == wrapper["candidate"]
+    assert row["decision"]["counterevidence"]
+    assert row["usage"] == asdict(verifier.usage)
+    assert paths["report_path"].read_bytes() == before
 
 
 def test_any_existing_output_directory_is_refused_without_overwriting(make_replay) -> None:

@@ -75,12 +75,37 @@ Output is capped at 8,192 tokens per request; automatic SDK retries are disabled
 The verifier uses the Responses API with typed output, `store=False`, and
 current-turn reasoning context. See [official structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-The next experiment should test stricter evidence for introduced failures or
-required contracts, explicit handling of partial allegations, and targeted
-dependency evidence where context is insufficient. Preserve the frozen candidates
-for comparison rather than repeating the four-way drafting run. Human
-adjudication remains necessary; verifier decisions do not certify ground truth
-or authorize publication of an unchanged partially correct finding.
+## V2 evidence refinement (2026-09-21)
+
+New reports use `schema_version: 2` and
+`verification_protocol: candidate-verifier-v2`. The retained September comparison
+is V1 evidence and is not rewritten or re-scored as though V2 ran then.
+
+V2 separates `partial` from `confirmed`: a valid narrower example does not confirm
+an allegation whose material premise was wrong. Both positive verdicts require a
+concrete scenario, explicit `base_behavior` and `head_behavior`, and citations to
+both source sides. `support_basis` must be `introduced_failure` or
+`contract_violation`, not `not_established`. A contract-based verdict also needs
+`contract_evidence` describing the introduced violation and `contract_source_refs`
+pointing to supplied evidence. A partial verdict needs its material qualification
+in `counterevidence`. These fields are required in the response schema but may be
+empty when unsupported for rejected/uncertain responses.
+
+Identical base/head outcome summaries cannot establish an introduced failure.
+A newly evidenced contract can change while behavior stays unchanged, so that
+case instead requires the contract evidence. Prompt instructions reject inferred
+contracts from guard/error wording alone, follow actual control-flow exits, and
+distinguish consumer purpose from helper restrictions. These remain **model
+assertions**: the validator cannot prove different prose describes a real failure
+or that a cited snippet entails a contract. Structurally incomplete assertions
+become `invalid_decision`, retaining usage and the original decision for review.
+Head-only context is now skipped before a model call; explicit added-symbol
+absence reasoning remains deferred.
+
+This refinement has offline regression coverage, not a new measured accuracy
+gain. No live rerun or production integration is part of the portfolio closeout.
+Future quality research needs held-out evaluation; these observed failure cases
+are development examples, not an independent test set.
 
 ## Evidence and safety boundaries
 
@@ -106,10 +131,10 @@ or authorize publication of an unchanged partially correct finding.
   Other languages use bounded windows. Total snippet text is capped at 24 KB,
   with at most 160 lines per snippet. Truncation or missing/ambiguous context
   prevents a model call; newly added functions in existing files currently abstain.
-- The structured verdict is `confirmed`, `rejected`, or `uncertain`, with a short
-  rationale, failure scenario, counterevidence and exact source IDs. A confirmed
-  verdict requires complete supplied context, a failure scenario and head-source
-  citation. Unknown references invalidate any verdict. These checks establish
+- The structured verdict is `confirmed`, `partial`, `rejected`, or `uncertain`,
+  with the V2 evidence requirements above. Neither confirmed nor partial is a
+  publication authorization. Unknown references in either citation field
+  invalidate any verdict. These checks establish
   provenance, **not semantic truth or complete dependency coverage**.
 - Inputs are untrusted JSON data separated from verifier instructions. This
   reduces prompt-injection risk but does not prove model immunity.
@@ -153,6 +178,6 @@ is checkpointed; a process kill or disk failure can still leave pending rows or
 lose the most recent response. A live report is not automatically resumable.
 
 Exit status is nonzero for preflight/provider failure, missing context, structural
-rejects, exhausted budget or invalid decisions. A semantic rejection or uncertain
-verdict is a completed assessment, not a command failure. An empty set of
+rejects, exhausted budget or invalid decisions. A semantic partial, rejected, or
+uncertain verdict is a completed assessment, not a command failure. An empty set of
 confirmed findings must never be interpreted as a clean-PR guarantee.

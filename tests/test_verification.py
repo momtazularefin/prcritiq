@@ -35,6 +35,11 @@ def decision(**overrides) -> VerificationDecision:
         "failure_scenario": "Calling retry(0) now raises ZeroDivisionError.",
         "counterevidence": "The old implementation returned zero for this input.",
         "source_refs": ["head:src/app.py:1-4", "base:src/app.py:1-4"],
+        "support_basis": "introduced_failure",
+        "base_behavior": "retry(0) returns zero without dividing.",
+        "head_behavior": "retry(0) divides by zero and raises ZeroDivisionError.",
+        "contract_evidence": "",
+        "contract_source_refs": [],
     }
     values.update(overrides)
     return VerificationDecision(**values)
@@ -72,7 +77,19 @@ def candidate(**overrides) -> CandidateFinding:
 
 class TestDecisionSchema:
     @pytest.mark.parametrize(
-        "field", ["verdict", "rationale", "failure_scenario", "counterevidence", "source_refs"]
+        "field",
+        [
+            "verdict",
+            "rationale",
+            "failure_scenario",
+            "counterevidence",
+            "source_refs",
+            "support_basis",
+            "base_behavior",
+            "head_behavior",
+            "contract_evidence",
+            "contract_source_refs",
+        ],
     )
     def test_every_field_is_required(self, field: str) -> None:
         payload = decision().model_dump()
@@ -89,6 +106,30 @@ class TestDecisionSchema:
     def test_blank_rationale_is_invalid(self, rationale: str) -> None:
         with pytest.raises(ValidationError, match="rationale must not be blank"):
             decision(rationale=rationale)
+
+    def test_schema_declares_all_ten_fields_required_without_retargeting_fields(self) -> None:
+        schema = VerificationDecision.model_json_schema()
+        assert set(schema["required"]) == set(decision().model_dump())
+        assert len(schema["required"]) == 10
+        assert schema["additionalProperties"] is False
+
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial", "rejected", "uncertain"])
+    def test_all_supported_verdicts_round_trip(self, verdict) -> None:
+        value = decision(verdict=verdict)
+        assert VerificationDecision.model_validate_json(value.model_dump_json()) == value
+
+    @pytest.mark.parametrize(
+        "basis", ["introduced_failure", "contract_violation", "not_established"]
+    )
+    def test_support_basis_is_an_explicit_enum(self, basis) -> None:
+        assert decision(support_basis=basis).support_basis == basis
+
+    @pytest.mark.parametrize(
+        "changes", [{"verdict": "approve"}, {"support_basis": "observable_change"}]
+    )
+    def test_unknown_verdict_or_support_basis_is_rejected(self, changes) -> None:
+        with pytest.raises(ValidationError):
+            decision(**changes)
 
 
 class TestVerificationPrompt:
@@ -129,11 +170,15 @@ class TestValidation:
     def test_confirmed_decision_has_supported_failure_and_head_reference(self, context) -> None:
         assert validate_verification(decision(), context) is None
 
-    @pytest.mark.parametrize("verdict", ["confirmed", "rejected", "uncertain"])
-    def test_invented_references_are_invalid_for_every_verdict(self, context, verdict) -> None:
-        result = decision(verdict=verdict, source_refs=[context.snippets[0].source_id, "invented"])
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial", "rejected", "uncertain"])
+    @pytest.mark.parametrize("field", ["source_refs", "contract_source_refs"])
+    def test_invented_references_are_invalid_for_every_verdict(
+        self, context, verdict, field
+    ) -> None:
+        result = decision(verdict=verdict, **{field: [context.snippets[0].source_id, "invented"]})
         assert validate_verification(result, context) == "unknown_source_ref"
 
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
     @pytest.mark.parametrize(
         ("changes", "reason"),
         [
@@ -142,21 +187,31 @@ class TestValidation:
             ({"source_refs": ["base:src/app.py:1-4"]}, "no_head_source_ref"),
         ],
     )
-    def test_confirmed_requires_failure_and_head_evidence(self, context, changes, reason) -> None:
-        assert validate_verification(decision(**changes), context) == reason
+    def test_positive_verdict_requires_failure_and_head_evidence(
+        self, context, verdict, changes, reason
+    ) -> None:
+        assert validate_verification(decision(verdict=verdict, **changes), context) == reason
 
-    def test_context_issues_prevent_confirmation(self, context) -> None:
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    def test_context_issues_prevent_positive_verdicts(self, context, verdict) -> None:
         assert (
-            validate_verification(decision(), replace(context, issues=("missing base",)))
+            validate_verification(
+                decision(verdict=verdict), replace(context, issues=("missing base",))
+            )
             == "incomplete_context"
         )
         assert (
-            validate_verification(decision(source_refs=[]), CandidateContext(snippets=()))
+            validate_verification(
+                decision(verdict=verdict, source_refs=[]), CandidateContext(snippets=())
+            )
             == "incomplete_context"
         )
 
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
     @pytest.mark.parametrize("at_context_level", [True, False])
-    def test_truncation_prevents_confirmation(self, context, at_context_level) -> None:
+    def test_truncation_prevents_positive_verdicts(
+        self, context, verdict, at_context_level
+    ) -> None:
         truncated = (
             replace(context, truncated=True)
             if at_context_level
@@ -165,7 +220,142 @@ class TestValidation:
                 snippets=(replace(context.snippets[0], truncated=True), *context.snippets[1:]),
             )
         )
-        assert validate_verification(decision(), truncated) == "truncated_context"
+        assert validate_verification(decision(verdict=verdict), truncated) == "truncated_context"
+
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    @pytest.mark.parametrize(
+        ("changes", "reason"),
+        [
+            ({"support_basis": "not_established"}, "missing_support_basis"),
+            ({"base_behavior": " \n"}, "missing_behavior_comparison"),
+            ({"head_behavior": " \n"}, "missing_behavior_comparison"),
+            (
+                {"base_behavior": "same lookup", "head_behavior": "same lookup"},
+                "unchanged_behavior",
+            ),
+            (
+                {"base_behavior": " same lookup \n", "head_behavior": "same lookup"},
+                "unchanged_behavior",
+            ),
+            ({"source_refs": ["head:src/app.py:1-4"]}, "no_base_source_ref"),
+        ],
+    )
+    def test_positive_verdict_requires_supported_base_head_comparison(
+        self, context, verdict, changes, reason
+    ) -> None:
+        assert validate_verification(decision(verdict=verdict, **changes), context) == reason
+
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    @pytest.mark.parametrize(
+        ("evidence", "refs"),
+        [("", []), (" \n", ["head:src/app.py:1-4"]), ("Documented guard contract.", [])],
+    )
+    def test_contract_violation_requires_named_evidence_and_sources(
+        self, context, verdict, evidence, refs
+    ) -> None:
+        result = decision(
+            verdict=verdict,
+            support_basis="contract_violation",
+            contract_evidence=evidence,
+            contract_source_refs=refs,
+        )
+        assert validate_verification(result, context) == "missing_contract_evidence"
+
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    def test_complete_contract_evidence_can_support_positive_verdict(
+        self, context, verdict
+    ) -> None:
+        # This tests the structural gate, not whether a model's contract claim is true.
+        result = decision(
+            verdict=verdict,
+            support_basis="contract_violation",
+            contract_evidence="The supplied base establishes the zero-input return behavior.",
+            contract_source_refs=["base:src/app.py:1-4"],
+        )
+        assert validate_verification(result, context) is None
+
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    def test_new_contract_can_be_violated_despite_unchanged_outcome(self, context, verdict) -> None:
+        # Structural validation only: the caller must still assess contract truth.
+        result = decision(
+            verdict=verdict,
+            support_basis="contract_violation",
+            base_behavior="The empty accessor string looks up an empty dictionary key.",
+            head_behavior="The empty accessor string looks up an empty dictionary key.",
+            contract_evidence="The supplied new contract requires rejecting an empty accessor.",
+            contract_source_refs=["head:src/app.py:1-4"],
+        )
+        assert validate_verification(result, context) is None
+
+    @pytest.mark.parametrize(
+        ("before", "after"), [("returns ValueError", "returns valueerror"), ("a  b", "a b")]
+    )
+    def test_behavior_comparison_preserves_case_and_internal_spaces(
+        self, context, before, after
+    ) -> None:
+        # Case/spacing can be meaningful; this gate is not semantic-equivalence detection.
+        result = decision(base_behavior=before, head_behavior=after)
+        assert validate_verification(result, context) is None
+
+    @pytest.mark.parametrize("qualification", ["", " \n\t"])
+    def test_partial_requires_material_qualification(self, context, qualification) -> None:
+        result = decision(verdict="partial", counterevidence=qualification)
+        assert validate_verification(result, context) == "missing_partial_qualification"
+
+    def test_partial_keeps_original_allegation_and_records_qualification(self, context) -> None:
+        result = decision(
+            verdict="partial",
+            counterevidence=(
+                "The zero-input failure is supported, "
+                "but the alleged failure for all inputs is not."
+            ),
+        )
+        assert validate_verification(result, context) is None
+        assert result.verdict == "partial"
+
+    def test_existing_error_order_precedes_new_support_checks(self, context) -> None:
+        result = decision(
+            failure_scenario="",
+            source_refs=[],
+            support_basis="not_established",
+            base_behavior="",
+            head_behavior="",
+        )
+        assert validate_verification(result, context) == "missing_failure_scenario"
+        assert (
+            validate_verification(result, replace(context, truncated=True)) == "truncated_context"
+        )
+
+    def test_unchanged_empty_string_behavior_is_not_an_introduced_failure(self, context) -> None:
+        # Encodes the observed failure shape; it does not test live model accuracy.
+        result = decision(
+            failure_scenario="An empty accessor string looks up the empty dictionary key.",
+            base_behavior="An empty accessor string becomes [''] and looks up key ''.",
+            head_behavior="An empty accessor string becomes [''] and looks up key ''.",
+        )
+        assert validate_verification(result, context) == "unchanged_behavior"
+
+    def test_format_change_alone_cannot_supply_a_missing_downstream_contract(self, context) -> None:
+        result = decision(
+            support_basis="contract_violation",
+            base_behavior="The parser reports a single-line diagnostic.",
+            head_behavior="The parser reports a multiline diagnostic.",
+            contract_evidence="",
+            contract_source_refs=[],
+        )
+        assert validate_verification(result, context) == "missing_contract_evidence"
+
+    def test_break_counterexample_is_a_rejection_not_a_replacement_finding(self, context) -> None:
+        result = decision(
+            verdict="rejected",
+            rationale="Successful parsing breaks out before the deindented assignment.",
+            failure_scenario="",
+            support_basis="not_established",
+            base_behavior="",
+            head_behavior="",
+            counterevidence="The visible break prevents fallthrough.",
+        )
+        assert validate_verification(result, context) is None
 
     @pytest.mark.parametrize("verdict", ["rejected", "uncertain"])
     def test_nonconfirmation_does_not_need_a_failure_scenario(self, context, verdict) -> None:
@@ -173,6 +363,9 @@ class TestValidation:
             verdict=verdict,
             failure_scenario="",
             rationale="A guard refutes the allegation, or missing evidence prevents deciding.",
+            support_basis="not_established",
+            base_behavior="",
+            head_behavior="",
         )
         assert validate_verification(result, context) is None
         assert validate_verification(result, replace(context, truncated=True)) is None
@@ -464,7 +657,10 @@ class TestActualSDKWithMockTransport:
         return instance
 
     @pytest.mark.parametrize("valid", [True, False])
-    def test_typed_success_or_parser_failure_preserves_real_response_usage(self, valid) -> None:
+    @pytest.mark.parametrize("verdict", ["confirmed", "partial"])
+    def test_typed_success_or_parser_failure_preserves_real_response_usage(
+        self, valid, verdict
+    ) -> None:
         calls = []
 
         def handler(request):
@@ -490,7 +686,7 @@ class TestActualSDKWithMockTransport:
                                 {
                                     "type": "output_text",
                                     "annotations": [],
-                                    "text": decision().model_dump_json()
+                                    "text": decision(verdict=verdict).model_dump_json()
                                     if valid
                                     else "secret-not-json",
                                 }
@@ -511,7 +707,7 @@ class TestActualSDKWithMockTransport:
         try:
             if valid:
                 result = instance.verify(system="system", user="data", choice=CHOICE)
-                assert result.decision == decision()
+                assert result.decision == decision(verdict=verdict)
                 usage = result.usage
             else:
                 with pytest.raises(VerificationProviderError) as caught:
@@ -523,6 +719,9 @@ class TestActualSDKWithMockTransport:
             body = json.loads(calls[0].content)
             assert body["text"]["format"]["type"] == "json_schema"
             assert body["text"]["format"]["strict"] is True
+            schema = body["text"]["format"]["schema"]
+            assert set(schema["required"]) == set(decision().model_dump())
+            assert len(schema["required"]) == 10
         finally:
             instance._client.close()
 
