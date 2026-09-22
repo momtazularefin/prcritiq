@@ -60,6 +60,41 @@ def _int_from_env(name: str, default: int) -> int:
         raise ConfigError(f"{name} must be an integer") from exc
 
 
+_TRUE = frozenset({"1", "true", "yes", "on"})
+_FALSE = frozenset({"0", "false", "no", "off"})
+
+
+def _bool_from_env(name: str, default: bool) -> bool:
+    """Parse a boolean flag, refusing anything that is not clearly on or off.
+
+    A typo such as `ture` must not silently leave a safety switch in whichever
+    state the default happens to be.
+    """
+
+    value = getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    normalized = value.strip().lower()
+    if normalized in _TRUE:
+        return True
+    if normalized in _FALSE:
+        return False
+    raise ConfigError(f"{name} must be one of: true, false (got {value!r})")
+
+
+def _pem_from_env(name: str) -> str | None:
+    """Read a PEM block that may arrive with literal backslash-n separators.
+
+    Env files and container secret stores often carry a private key on one
+    line; the escaped form is restored so the key parses either way.
+    """
+
+    value = getenv(name)
+    if not value or not value.strip():
+        return None
+    return value.replace("\\n", "\n").strip() + "\n"
+
+
 @dataclass(frozen=True)
 class Settings:
     """Runtime settings loaded from environment variables."""
@@ -94,6 +129,16 @@ class Settings:
     github_token: str | None = None
     github_api_base_url: str = "https://api.github.com"
     github_request_timeout_seconds: int = 15
+    github_app_id: str | None = None
+    github_private_key: str | None = None
+    # Webhook runs are dry-run: they are recorded, never posted. Model review is
+    # opt-in because a public webhook URL must not spend credit by default.
+    webhook_review: bool = False
+    # A public deployment reviews public repositories only. Opting in exposes
+    # private repository names through run status, so it is an explicit choice.
+    allow_private_repos: bool = False
+    demo_enabled: bool = True
+    demo_requests_per_minute: int = 6
 
 
 def load_settings() -> Settings:
@@ -135,4 +180,10 @@ def load_settings() -> Settings:
         github_token=getenv("GITHUB_TOKEN") or None,
         github_api_base_url=getenv("GITHUB_API_BASE_URL", "https://api.github.com"),
         github_request_timeout_seconds=_int_from_env("GITHUB_REQUEST_TIMEOUT_SECONDS", 15),
+        github_app_id=getenv("GITHUB_APP_ID") or None,
+        github_private_key=_pem_from_env("GITHUB_PRIVATE_KEY"),
+        webhook_review=_bool_from_env("PRCRITIQ_WEBHOOK_REVIEW", False),
+        allow_private_repos=_bool_from_env("PRCRITIQ_ALLOW_PRIVATE_REPOS", False),
+        demo_enabled=_bool_from_env("PRCRITIQ_DEMO_ENABLED", True),
+        demo_requests_per_minute=_int_from_env("PRCRITIQ_DEMO_REQUESTS_PER_MINUTE", 6),
     )

@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field, HttpUrl, PositiveInt
 
 #: How far the implementation has actually progressed. Declared once so the
 #: label cannot go stale in one surface while another still reports it.
-IMPLEMENTATION_STATUS = "m8_benchmark"
-ImplementationStatus = Literal["m8_benchmark"]
+IMPLEMENTATION_STATUS = "m9_deployment"
+ImplementationStatus = Literal["m9_deployment"]
 
 
 class HealthResponse(BaseModel):
@@ -177,4 +177,30 @@ class WebhookAck(BaseModel):
     delivery_id: str
     action: str | None = None
     idempotency_key: str | None = None
+    run_id: int | None = None
+    run_status: str | None = None
     message: str
+
+
+class RunStatusResponse(BaseModel):
+    """Where one webhook or CLI run stands, without the report body.
+
+    Counts rather than findings: the status endpoint is public, and a count says
+    whether the run did its work without republishing what it found.
+    """
+
+    service: Literal["prcritiq"] = "prcritiq"
+    run_id: int
+    repo: str
+    pr_number: int
+    head_sha: str
+    mode: str
+    status: str
+    summary: str | None = None
+    error: str | None = None
+    files: int = 0
+    reviewable_files: int = 0
+    findings: int = 0
+    publishable_findings: int = 0
+    created_at: str
+    updated_at: str

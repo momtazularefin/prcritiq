@@ -17,6 +17,11 @@ PRCritiq verifies GitHub webhook signatures, reads pull requests through the RES
 ## Current Behavior
 
 - `/webhooks/github` requires `GITHUB_WEBHOOK_SECRET` and rejects unsigned or mis-signed requests.
+- An accepted `pull_request` event becomes one recorded run, keyed by installation, repository, pull request, head SHA, and delivery id under a `UNIQUE` constraint. A redelivery resolves to the same run and is not executed again. Webhook runs are dry-run: nothing in the webhook path can post.
+- With `GITHUB_APP_ID` and `GITHUB_PRIVATE_KEY`, a webhook run reads through a short-lived installation token minted from a signed app JWT. A failure to mint one fails the run; it never falls back to another credential. The private key stays in the process and is never logged or stored.
+- Private repositories are refused by default on every public surface. The webhook ignores an event whose repository is private or whose payload omits visibility, execution re-checks visibility from the API before reading any changed file, and the demo checks it before reading files. `PRCRITIQ_ALLOW_PRIVATE_REPOS=true` is the only way to change that.
+- Model review on webhook runs is off unless `PRCRITIQ_WEBHOOK_REVIEW=true`, so an event cannot spend model credit by default.
+- `GET /runs/{id}` is public and reports status, the count-only summary, errors, and file and finding counts. It never returns finding text, diffs, or code.
 - The dry run makes outbound authenticated or anonymous GET requests to the GitHub REST API for pull-request metadata and patches.
 - With `--context`, it additionally downloads a source archive at the head commit. Archive members are read individually rather than through `extractall`, so the archive never drives a filesystem write directly. Only regular files are considered, which drops symlinks, hardlinks, and device entries; member names that are absolute or contain `..` are rejected; every resolved target is confirmed to sit under the workspace root before the write; and extraction is capped by file count, total bytes, and per-file size.
 - The workspace is a temporary directory removed when retrieval finishes. Nothing from a pull request is executed.
@@ -33,5 +38,6 @@ PRCritiq verifies GitHub webhook signatures, reads pull requests through the RES
 - A stored body hash prevents ordinary repeat posting within one run. It is not a transactional exactly-once guarantee across GitHub and Postgres: concurrent workers or a crash after GitHub accepts a comment but before the database records it can still duplicate a post. Deployment must serialize posting or add reconciliation before claiming exactly-once behavior.
 - Every target line is re-validated immediately before the write, because GitHub accepts a comment on any line it considers part of the diff, which is wider than the lines the pull request added.
 - Markdown rendering escapes pipes and newlines in pull request text, so untrusted content cannot forge table structure in a published report.
-- The demo endpoint does not post comments.
+- The demo endpoint does not post comments or call a model. It is rate limited per client address, reviews public repositories only by default, and can be switched off with `PRCRITIQ_DEMO_ENABLED=false`. Behind the deployment's Caddy proxy, the client address is the one Caddy observed; Caddy discards a client-supplied `X-Forwarded-For`.
+- The deployed containers run as non-root, with every Linux capability dropped and `no-new-privileges`. Only the reverse proxy publishes ports; the app and Postgres are reachable only on the private Compose network. See [deployment](deployment.md).
 - Invalid `ACCELERATION` configuration fails explicitly.

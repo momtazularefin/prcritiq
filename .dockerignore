@@ -1,0 +1,15 @@
+# Only pyproject.toml, uv.lock, README.md, and src/ reach the image. Everything
+# else stays out of the build context, secrets above all.
+.env
+.env.*
+**/.env
+.git
+.venv
+.pytest_cache
+.ruff_cache
+**/__pycache__
+eval
+tests
+docs
+deploy
+.github

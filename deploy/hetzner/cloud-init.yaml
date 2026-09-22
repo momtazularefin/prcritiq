@@ -1,0 +1,37 @@
+#cloud-config
+#
+# First-boot setup for the PRCritiq node (ADR-019). Paste into the "Cloud
+# config" field when creating the server, with an Ubuntu 24.04 image and your
+# SSH key selected.
+#
+# Docker comes from the Ubuntu archive rather than a piped install script.
+# The Hetzner cloud firewall is the network control, so ufw is not installed:
+# two firewalls with one owner is a way to lock yourself out, the rule the
+# TrueBearing node followed too. Docker publishes only Caddy's 80 and 443.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker.io
+  - docker-compose-v2
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-prcritiq.conf
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+
+runcmd:
+  - systemctl enable --now docker
+  - systemctl restart ssh || systemctl restart sshd
+  # An unprivileged deploy user with the same SSH key as root. Membership of
+  # the docker group is root-equivalent on this host, which is acceptable for
+  # a single-purpose node and keeps day-to-day work off the root account.
+  - id deploy >/dev/null 2>&1 || useradd --create-home --shell /bin/bash --groups docker deploy
+  - install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+  - install -m 600 -o deploy -g deploy /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+  - install -d -m 750 -o deploy -g deploy /opt/prcritiq

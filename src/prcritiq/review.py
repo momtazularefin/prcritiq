@@ -15,7 +15,7 @@ from . import store as run_store
 from .config import Settings
 from .diff import FileDiff, build_diff_index, file_diff_from_changed_file
 from .findings import ReviewedFinding
-from .github import GitHubClient, parse_repo_reference
+from .github import GitHubClient, PrivateRepositoryError, parse_repo_reference
 from .graph import run_review_graph
 from .guardrails import apply_guardrails, reviewable_files
 from .posting import post_findings
@@ -74,11 +74,14 @@ def run_dry_run(
     persist: bool = False,
     post: bool = False,
     provider: ModelProvider | None = None,
+    public_only: bool = False,
 ) -> ReviewReport:
     """Review one pull request without calling a model or posting anything.
 
     Raises `RepoReferenceError` for an unusable repository reference and
     `GitHubClientError` when GitHub does not return what the review needs.
+    With `public_only`, raises `PrivateRepositoryError` before reading any
+    changed file of a private repository.
     """
 
     repo_full_name = parse_repo_reference(repo)
@@ -91,6 +94,10 @@ def run_dry_run(
     )
     with resolved if owned else nullcontext(resolved):
         metadata = resolved.get_pull_request(repo_full_name, pr_number)
+        if public_only and metadata.repo_private:
+            raise PrivateRepositoryError(
+                "This PRCritiq deployment reviews public repositories only."
+            )
         changed_files = resolved.list_changed_files(repo_full_name, pr_number)
 
         file_diffs = [file_diff_from_changed_file(changed) for changed in changed_files]

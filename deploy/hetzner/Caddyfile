@@ -1,0 +1,25 @@
+# TLS termination and reverse proxy for PRCritiq (ADR-019).
+#
+# Caddy obtains and renews the certificate for the site address on its own, as
+# soon as the domain's A record points at this server and ports 80 and 443 are
+# open. Caddy replaces any client-supplied X-Forwarded-For with the real peer
+# address, so the app's rate limit cannot be dodged by forging that header.
+
+{$PRCRITIQ_DOMAIN} {
+	encode zstd gzip
+
+	# GitHub caps webhook payloads at 25 MB; pull_request events are a few
+	# hundred KB at most, and demo requests are tiny.
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	reverse_proxy app:8000
+}

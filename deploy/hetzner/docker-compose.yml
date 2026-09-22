@@ -1,0 +1,74 @@
+# PRCritiq on one small Hetzner node (ADR-019).
+#
+# Caddy terminates TLS with an automatic Let's Encrypt certificate and is the
+# only service with published ports. The app and Postgres are reachable only on
+# the private Compose network.
+#
+# deploy.sh places this file at /opt/prcritiq/app/deploy/hetzner/ with a
+# symlink to /opt/prcritiq/.env beside it, then runs:
+#
+#   docker compose up -d --build --remove-orphans
+#
+# The fixed project name keeps the named volumes across releases, because each
+# release is extracted into a fresh directory.
+name: prcritiq
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: prcritiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in /opt/prcritiq/.env}
+      POSTGRES_DB: prcritiq
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prcritiq -d prcritiq"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: ../..
+    image: prcritiq:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Composed here so the password lives in one place.
+      DATABASE_URL: postgresql://prcritiq:${POSTGRES_PASSWORD}@postgres:5432/prcritiq
+      PRCRITIQ_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1536m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      PRCRITIQ_DOMAIN: ${PRCRITIQ_DOMAIN:?Set PRCRITIQ_DOMAIN in /opt/prcritiq/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  # Certificates and the ACME account. Keeping them across releases avoids
+  # re-issuing on every deploy and running into Let's Encrypt rate limits.
+  caddy_data:
+  caddy_config:

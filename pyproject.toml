@@ -29,6 +29,7 @@ dependencies = [
   "psycopg[binary]>=3.2.0",
   "python-dotenv>=1.0.0",
   "pydantic>=2.8.0",
+  "pyjwt[crypto]>=2.8.0",
   "uvicorn[standard]>=0.30.0",
 ]
 
@@ -36,10 +37,15 @@ dependencies = [
 prcritiq = "prcritiq.cli:main"
 
 [dependency-groups]
+# Executables the review runs as allowlisted static analysis. The container
+# image installs this group, so the deployed ruff is the locked one.
+tools = [
+  "ruff>=0.6.0",
+]
 dev = [
+  { include-group = "tools" },
   "httpx2>=2.5.0",
   "pytest>=8.2.0",
-  "ruff>=0.6.0",
 ]
 
 [tool.hatch.build.targets.wheel]

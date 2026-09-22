@@ -32,10 +32,16 @@ The configuration surface is validated at load. Guardrail and retrieval budgets,
 | `ACCELERATION` | `none` | Strict acceleration mode: `none`, `gpu`, or `npu`. |
 | `GITHUB_API_BASE_URL` | `https://api.github.com` | GitHub REST API base URL, overridden only for tests or enterprise installations. |
 | `GITHUB_REQUEST_TIMEOUT_SECONDS` | `15` | Timeout for GitHub API requests. |
+| `PRCRITIQ_WEBHOOK_REVIEW` | `false` | Run the model review on accepted webhook events. Off by default, because a public webhook URL must not spend model credit on its own. Webhook runs never post either way. |
+| `PRCRITIQ_ALLOW_PRIVATE_REPOS` | `false` | Let the demo and webhook review private repositories. Off by default, because run status is public and the demo is unauthenticated. |
+| `PRCRITIQ_DEMO_ENABLED` | `true` | Serve `POST /demo/review`. `false` makes it answer 404. |
+| `PRCRITIQ_DEMO_REQUESTS_PER_MINUTE` | `6` | Demo requests allowed per client address in any 60-second window. `0` turns the limit off, which suits local use only. |
 
 ## Secret Settings
 
 `.env` is loaded automatically when present, and a real environment variable always wins over it, so an export or a CI secret is never overridden by a stale local file.
+
+Boolean settings accept `true`/`false`, `1`/`0`, `yes`/`no`, or `on`/`off`. Anything else fails at load rather than leaving a safety switch at its default.
 
 These variables are listed in `.env.example` but must remain blank in committed files:
 
@@ -47,6 +53,11 @@ These variables are listed in `.env.example` but must remain blank in committed 
 - `OPENAI_API_KEY`
 - `DATABASE_URL`
 - `LANGSMITH_API_KEY`
+
+`GITHUB_APP_ID` and `GITHUB_PRIVATE_KEY` go together. With both set, a webhook run reads through a short-lived installation token for the event's installation. With only one set, the run fails and names the missing half; it does not fall back to `GITHUB_TOKEN`. The private key may be written on one line with `
+` for each line break, which is how env files and container secret stores usually carry it.
+
+The production template is `deploy/hetzner/.env.example`; see [deployment](deployment.md).
 
 ## Acceleration Semantics
 

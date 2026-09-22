@@ -18,6 +18,15 @@ class RepoReferenceError(ValueError):
     """Raised when a repository reference cannot be resolved to owner/name."""
 
 
+class PrivateRepositoryError(RuntimeError):
+    """Raised when a public surface is asked to review a private repository.
+
+    The public demo runs with whatever GitHub credential the operator
+    configured. If that credential can read private repositories, an anonymous
+    visitor must still not be able to turn it on one.
+    """
+
+
 _REPO_SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
@@ -77,6 +86,7 @@ class PullRequestMetadata:
     head_sha: str
     author_login: str
     html_url: str
+    repo_private: bool = False
 
 
 @dataclass(frozen=True)
@@ -146,6 +156,9 @@ class GitHubClient:
             head_sha=payload["head"]["sha"],
             author_login=payload["user"]["login"],
             html_url=payload["html_url"],
+            # Missing visibility is treated as private: a guard that fails open on
+            # an unexpected payload is not a guard.
+            repo_private=bool(((payload.get("base") or {}).get("repo") or {}).get("private", True)),
         )
 
     def list_changed_files(self, repo: str, number: int) -> list[ChangedFile]:
