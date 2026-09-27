@@ -1,0 +1,307 @@
+{
+  "aborted": null,
+  "cases": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 0,
+      "case_id": "django__django__21875",
+      "confirmed_labels": 2,
+      "cost_usd": 0.09212,
+      "error": null,
+      "excluded_labels": [],
+      "input_tokens": 6769,
+      "invalid_label_targets": [],
+      "invalid_line": 0,
+      "labels": 2,
+      "latency_seconds": 30.094000000011874,
+      "matched_findings": 1,
+      "matched_labels": [
+        "django/contrib/admindocs/utils.py:34"
+      ],
+      "matched_pairs": [
+        {
+          "finding_index": 1,
+          "finding_target": "django/contrib/admindocs/utils.py:31",
+          "label_index": 1,
+          "label_target": "django/contrib/admindocs/utils.py:34",
+          "rule": "same file, nearby line, distinctive-token overlap",
+          "source_comment_id": 3933613984
+        }
+      ],
+      "missed_labels": [
+        "django/db/migrations/serializer.py:198"
+      ],
+      "model": "claude-opus-5",
+      "model_effort": "low",
+      "no_evidence": 0,
+      "output_tokens": 2331,
+      "pr_number": 21875,
+      "provider": "anthropic",
+      "published": 2,
+      "published_findings": [
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 72,
+            "evidence": "Old code: `elif not hasattr(callback, '__name__'): return callback.__module__ + '.' + callback.__class__.__name__; return callback.__module__ + '.' + callback.__qualname__`. New code catches ValueError from qualname(), which is raised when `'<' in value.__qualname__`, so a locally defined view function now yields e.g. 'mymod.function' instead of 'mymod.outer.<locals>.view'.",
+            "file_path": "django/urls/resolvers.py",
+            "finding": "lookup_str now falls back to `module + '.' + callback.__class__.__name__` whenever qualname() raises, which includes views whose __qualname__ contains '<locals>'. Previously those returned the full dotted qualname.",
+            "line": 499,
+            "severity": "medium",
+            "source_refs": [
+              "django/urls/resolvers.py hunk",
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Only use the class-name fallback when the callback lacks __name__/__qualname__; for locals-qualified callables keep returning f\"{callback.__module__}.{callback.__qualname__}\"."
+          },
+          "finding_index": 0,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        },
+        {
+          "candidate": {
+            "category": "regression",
+            "confidence": 68,
+            "evidence": "`try: return qualname(view_func) except ValueError: return f\"{view_func.__module__}.{view_func.__class__.__name__}\"` \u2014 qualname raises ValueError for '<' in __qualname__, whereas the old code returned `mod_name + '.' + view_name` using __qualname__ directly.",
+            "file_path": "django/contrib/admindocs/utils.py",
+            "finding": "get_view_name() falls back to the class name for any ValueError from qualname(), including views defined inside a function (qualname containing '<locals>'), producing a misleading name like 'module.function'.",
+            "line": 31,
+            "severity": "medium",
+            "source_refs": [
+              "django/contrib/admindocs/utils.py hunk"
+            ],
+            "suggested_fix": "Fall back to __qualname__ when present and only use __class__.__name__ when __qualname__ is missing."
+          },
+          "finding_index": 1,
+          "publish_decision": "publish",
+          "suppression_reason": null
+        }
+      ],
+      "reasoning_output_tokens": 0,
+      "repo": "django/django",
+      "route_reason": "PRCRITIQ_MODEL_POLICY=anthropic was requested",
+      "spam": 0,
+      "suppressed": 3,
+      "suppressed_by_reason": {
+        "low_confidence": 3
+      },
+      "suppressed_findings": [
+        {
+          "candidate": {
+            "category": "contract",
+            "confidence": 63,
+            "evidence": "Removed `if self.value.__module__ is None: raise ValueError(\"Cannot serialize function %r: No module\" % self.value)`; new code raises \"Could not find function %s in %s.\" with getattr(self.value, '__module__', None) -> None.",
+            "file_path": "django/db/migrations/serializer.py",
+            "finding": "The error message for a function with no __module__ changed from \"Cannot serialize function %r: No module\" to \"Could not find function X in None.\", which is less accurate and may break callers/tests relying on the old message.",
+            "line": 196,
+            "severity": "low",
+            "source_refs": [
+              "django/db/migrations/serializer.py hunk"
+            ],
+            "suggested_fix": "Preserve the distinct 'No module' error by checking __module__ before calling qualname, or tailor the message based on the underlying ValueError."
+          },
+          "finding_index": 0,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "error_handling",
+            "confidence": 55,
+            "evidence": "`return qualname(self.func)` replaces `f\"{self.func.__module__}.{self.func.__qualname__}\"`; qualname raises ValueError when '<' in __qualname__.",
+            "file_path": "django/tasks/base.py",
+            "finding": "Task.module_path can now raise ValueError (for functions with '<locals>' or missing __qualname__) where it previously always returned a string, changing behaviour for callers that only expect a string.",
+            "line": 150,
+            "severity": "low",
+            "source_refs": [
+              "django/tasks/base.py hunk",
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Catch ValueError and raise a task-specific error, or document/validate that task funcs must be module-level."
+          },
+          "finding_index": 1,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        },
+        {
+          "candidate": {
+            "category": "bug",
+            "confidence": 50,
+            "evidence": "The `__self__` branch returns f\"{module}.{klass.__qualname__}.{value.__name__}\" before the `if '<' in value.__qualname__` check is reached.",
+            "file_path": "django/utils/module_loading.py",
+            "finding": "The bound-classmethod branch skips the '<locals>' validation applied to other values, so a classmethod of a locally defined class returns an unimportable path instead of raising ValueError.",
+            "line": 133,
+            "severity": "low",
+            "source_refs": [
+              "django/utils/module_loading.py qualname"
+            ],
+            "suggested_fix": "Apply the '<' in klass.__qualname__ check inside the __self__ branch too."
+          },
+          "finding_index": 2,
+          "publish_decision": "suppress",
+          "suppression_reason": "low_confidence"
+        }
+      ],
+      "total_labels": 2,
+      "unadjudicated_labels": 0,
+      "unmatched_findings": [
+        "django/urls/resolvers.py:499"
+      ]
+    }
+  ],
+  "dataset_certified": true,
+  "dataset_version": "dataset-certified.jsonl",
+  "gates": [
+    {
+      "actual": "1 of 1",
+      "name": "corpus size",
+      "passed": false,
+      "target": ">= 20 reviewed cases"
+    },
+    {
+      "actual": "0 failed",
+      "name": "run completeness",
+      "passed": true,
+      "target": "0 failed cases"
+    },
+    {
+      "actual": "2/2 confirmed, 0 invalid targets",
+      "name": "dataset certification",
+      "passed": true,
+      "target": "all scored labels adjudicated and revision-valid"
+    },
+    {
+      "actual": "0.50",
+      "name": "issue recall",
+      "passed": false,
+      "target": "> 0.50"
+    },
+    {
+      "actual": "0.50",
+      "name": "comment precision",
+      "passed": false,
+      "target": ">= 0.70"
+    },
+    {
+      "actual": "0.00",
+      "name": "invalid-line rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "no-evidence rate",
+      "passed": true,
+      "target": "= 0.00"
+    },
+    {
+      "actual": "0.00",
+      "name": "candidate-noise rate",
+      "passed": true,
+      "target": "<= 0.10"
+    }
+  ],
+  "generated_at": "2026-09-24T23:41:57Z",
+  "limitations": [
+    "A label remains provisional until a named human records a final verdict and explicit approval; provisional labels force the dataset-certification gate to fail.",
+    "Finding-to-label matching is mechanical: same file, a line within 5, and at least 18% shared distinctive vocabulary. The eval plan asks for manual adjudication of ambiguous matches, which this run does not perform.",
+    "Label-overlap precision is a matching proxy, not adjudicated correctness. The report retains full findings so a human can assess unmatched output."
+  ],
+  "metrics": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 0,
+    "cases": 1,
+    "comment_precision": 0.5,
+    "completed_cases": 1,
+    "confirmed_labels": 2,
+    "cost_per_pr_usd": 0.0921,
+    "dataset_certified": true,
+    "failed_cases": 0,
+    "findings": 2,
+    "input_tokens": 6769,
+    "invalid_label_targets": 0,
+    "invalid_line_rate": 0.0,
+    "issue_recall": 0.5,
+    "labels": 2,
+    "matched": 1,
+    "median_latency_seconds": 30.09,
+    "no_evidence_rate": 0.0,
+    "output_tokens": 2331,
+    "p95_latency_seconds": 30.09,
+    "quiet_runs": 0,
+    "reasoning_output_tokens": 0,
+    "spam_rate": 0.0,
+    "suppressed_by_reason": {
+      "low_confidence": 3
+    },
+    "total_cost_usd": 0.0921,
+    "unadjudicated_labels": 0
+  },
+  "min_publish_confidence": 65,
+  "mode": "live",
+  "model": "claude-opus-5",
+  "model_policy": "anthropic",
+  "passed": false,
+  "threshold_sweep": [
+    {
+      "comment_precision": 0.4,
+      "findings": 5,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 2,
+      "min_publish_confidence": 50,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.5,
+      "findings": 4,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 2,
+      "min_publish_confidence": 55,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.6667,
+      "findings": 3,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 1.0,
+      "matched": 2,
+      "min_publish_confidence": 60,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.5,
+      "findings": 2,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.5,
+      "matched": 1,
+      "min_publish_confidence": 65,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 1,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 70,
+      "quiet_runs": 0,
+      "spam_rate": 0.0
+    },
+    {
+      "comment_precision": 0.0,
+      "findings": 0,
+      "invalid_line_rate": 0.0,
+      "issue_recall": 0.0,
+      "matched": 0,
+      "min_publish_confidence": 78,
+      "quiet_runs": 1,
+      "spam_rate": 0.0
+    }
+  ]
+}

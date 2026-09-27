@@ -57,4 +57,4 @@ The [frozen verifier comparison](../eval/runs/2026-09-20-verifier-comparison/com
 - Reclaiming webhook runs interrupted by a restart. A run left `pending` or `running` is reported, not retried.
 - Crash- and concurrency-safe posting claims across the GitHub/database boundary.
 
-The service deploys to one Hetzner node behind Caddy (ADR-019); see [deployment](deployment.md). The [portfolio release checklist](portfolio-release.md) records the approved release scope and which original acceptance criteria remain unmet.
+The service was verified on one Hetzner node behind Caddy (ADR-019), then retired to avoid continuing hosting charges. The stack can be [reactivated on request](deployment.md#reactivate-the-demo). The [portfolio release checklist](portfolio-release.md) records the approved release scope and which original acceptance criteria remain unmet.

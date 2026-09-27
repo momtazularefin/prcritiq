@@ -1,6 +1,12 @@
 # Deployment
 
-PRCritiq's public demo runs on one small Hetzner Cloud server with Docker Compose. Caddy terminates TLS with an automatic Let's Encrypt certificate at `prcritiq.arefin.app`, the app runs behind it, and Postgres keeps the run store on a local volume. ADR-019 records the choice. It replaces the earlier Modal plan.
+PRCritiq's public demo ran on one small Hetzner Cloud server with Docker Compose. Caddy terminated TLS with an automatic Let's Encrypt certificate at `prcritiq.arefin.app`, the app ran behind it, and Postgres kept the run store on a local volume. ADR-019 records the choice, which replaced the earlier Modal plan. The deployment was publicly verified in September 2026 and then retired to stop continuous billing. **The URL is not currently a live demo.** The stack remains reproducible for a requested demonstration.
+
+## Reactivate the demo
+
+Reactivation requires a **new** server, not just a DNS switch: the retired server and its local Postgres volume are gone. Follow the setup, deploy, and verification sections below. The deployment code contains no old server IP. Give `deploy/hetzner/deploy.sh` the new IPv4 address in `PRCRITIQ_HOST`, point the `prcritiq` DNS A record (and optional AAAA record) at the new server before deploying, and update any local SSH alias that still names the old IP. GitHub's repository Website field uses the hostname, not an IP. The App webhook was configured for that hostname during the hosted trial; confirm its current setting before reactivation, because the available GitHub token could not inspect it.
+
+Recreate `/opt/prcritiq/.env` on the new server. Set a new Postgres password; use the existing GitHub App ID and a retained or newly generated private key; make its webhook secret match the server setting, rotating both sides if the old secret was lost. The old run rows return only if a database backup exists. Before accepting deliveries, confirm the retained App is installed only on the intended public repositories. While the demo is offline, any active webhook deliveries will fail rather than create runs.
 
 ```text
 GitHub App webhook ─┐
@@ -10,11 +16,11 @@ demo visitors ──────┼─> Caddy :443 (TLS, headers, 5 MB body cap)
                     └─ only Caddy publishes ports; app and Postgres stay on the Compose network
 ```
 
-The deployment only runs dry runs. Webhook runs are recorded and never posted, the app's GitHub permissions are read-only so it could not post anyway, and model review for webhook runs is off unless the owner turns it on.
+When active, the deployment runs only dry runs. Webhook runs are recorded and never posted, the app's GitHub permissions are read-only so it could not post anyway, and model review for webhook runs is off unless the owner turns it on.
 
 ## What it costs
 
-One shared-vCPU `cx23` server (2 vCPU, 4 GB; successor to the retired `cx22`) with a public IPv4 address. At the time of writing that is about €4 a month; check Hetzner's current price list. Webhook runs make no model calls while `PRCRITIQ_WEBHOOK_REVIEW=false`, so hosting is the only running cost.
+The verified deployment used one shared-vCPU `cx23` server (2 vCPU, 4 GB) with a public IPv4 address. Check Hetzner's current server, IP, and retained-resource prices before reactivating. Webhook runs make no model calls while `PRCRITIQ_WEBHOOK_REVIEW=false`, so no model credit is consumed by ordinary deliveries.
 
 ## Files
 
@@ -27,9 +33,9 @@ One shared-vCPU `cx23` server (2 vCPU, 4 GB; successor to the retired `cx22`) wi
 | `deploy/hetzner/.env.example` | Production configuration template. The filled-in copy lives only on the server. |
 | `deploy/hetzner/deploy.sh` | Ships `git archive` of a commit, rebuilds, and checks public health. |
 
-## One-time setup (owner)
+## Setup for a requested live session (owner)
 
-These steps need the owner's accounts, so they are written for the owner to run.
+These steps need the owner's accounts. They are a reactivation procedure, not a claim that a server is currently running.
 
 ### 1. Create the server
 
@@ -55,7 +61,9 @@ An AAAA record for the IPv6 address is optional. `arefin.app` has a wildcard `*.
 nslookup prcritiq.arefin.app 1.1.1.1
 ```
 
-### 3. Create the GitHub App
+### 3. Reuse or create the GitHub App
+
+The owner retained the `prcritiq-demo` GitHub App for on-request reactivation. If it remains installed, confirm it has only the intended public-repository access, the read-only permissions below, and a webhook URL at `https://prcritiq.arefin.app/webhooks/github`, not the old server IP. If the app or installation no longer exists, create it as follows.
 
 At **GitHub → Settings → Developer settings → GitHub Apps → New GitHub App**:
 
@@ -66,7 +74,7 @@ At **GitHub → Settings → Developer settings → GitHub Apps → New GitHub A
 - **Subscribe to events**: Pull request.
 - **Where can this GitHub App be installed?** Only on this account.
 
-After creating it, note the **App ID**, generate a **private key** (a `.pem` download), and install the app on one or more **public** repositories. The server stores the key on one line, with each line break written as `\n`:
+Note the **App ID**, generate a new **private key** if the previous key is unavailable, and install the app only on the intended **public** repositories. The server stores the key on one line, with each line break written as `\n`:
 
 ```bash
 awk 'NF {sub(/\r/, ""); printf "%s\\n", $0}' prcritiq.private-key.pem
@@ -84,19 +92,19 @@ scp deploy/hetzner/.env.example deploy@<server IPv4>:/opt/prcritiq/.env
 ssh deploy@<server IPv4> "chmod 600 /opt/prcritiq/.env && nano /opt/prcritiq/.env"
 ```
 
-Set `POSTGRES_PASSWORD` (`openssl rand -hex 24`), `GITHUB_APP_ID`, `GITHUB_WEBHOOK_SECRET`, and `GITHUB_PRIVATE_KEY`. For `GITHUB_TOKEN`, create a fine-grained personal access token with **Public repositories (read-only)** access. The demo reads through it, so a private repository cannot be read at all, whatever the app-level guard says. Leave it blank to read anonymously, which GitHub limits to 60 requests an hour.
+Set a fresh `POSTGRES_PASSWORD` (`openssl rand -hex 24`), `GITHUB_APP_ID`, `GITHUB_WEBHOOK_SECRET`, and `GITHUB_PRIVATE_KEY`. The webhook secret must match the retained App's setting; if the old value is unavailable, rotate it in the App and set the new value here. For `GITHUB_TOKEN`, create a fine-grained personal access token with **Public repositories (read-only)** access. The demo reads through it, so a private repository cannot be read at all, whatever the app-level guard says. Leave it blank to read anonymously, which GitHub limits to 60 requests an hour.
 
 Leave the safety switches at their written defaults unless you mean to change them.
 
 ## Deploy
 
-From the repository root on your machine, after committing what you want to ship:
+From the repository root on your machine, after committing what you want to ship and pointing DNS to the new server:
 
 ```bash
 PRCRITIQ_HOST=<server IPv4> bash deploy/hetzner/deploy.sh
 ```
 
-The script ships only the committed revision, which it writes to `/opt/prcritiq/app/REVISION`. It keeps the previous release as `app.prev`, rebuilds, and waits for `https://prcritiq.arefin.app/health`. The first deploy also obtains the certificate, which takes up to a minute. A later deploy of a specific ref is `deploy.sh <ref>`.
+The script ships only the committed revision, which it writes to `/opt/prcritiq/app/REVISION`. It keeps the previous release as `app.prev`, rebuilds, and waits for `https://prcritiq.arefin.app/health`. The first deploy also obtains the certificate, which takes up to a minute. To reproduce the tagged runtime rather than current `main`, pass `v0.1.0` as the ref: `bash deploy/hetzner/deploy.sh v0.1.0` with `PRCRITIQ_HOST` set.
 
 ## Verify
 
@@ -156,11 +164,11 @@ Ubuntu security updates install automatically through `unattended-upgrades`. For
 
 A webhook run interrupted by a restart stays `pending` or `running`, and a redelivery reports it rather than retrying it. That is a stated limitation of the single-process design. The fix is a worker that reclaims stale runs, and it is not needed for a demo.
 
-## Tear down
+## Retire a future live session
 
 Order matters. The server's IPv4 address returns to Hetzner's pool when the server is deleted and can be assigned to a stranger. Until the DNS record is gone, `prcritiq.arefin.app` would point at their machine, and anyone connecting would get a host-key warning from a server they do not own.
 
 1. Delete the `prcritiq` A (and AAAA) record at Porkbun. Wait for the TTL to expire.
-2. Uninstall the GitHub App from its repositories, or delete the app.
+2. Either pause webhook delivery or uninstall the GitHub App. If retaining the App for another demonstration, keep its installation scoped to the intended public repositories; active deliveries fail while the endpoint is offline.
 3. Delete the server, then the `prcritiq` firewall, in the Hetzner Console.
 4. Remove the old host key locally: `ssh-keygen -R <server IPv4>`.

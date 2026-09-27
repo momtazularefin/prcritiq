@@ -4,7 +4,7 @@
 
 The project owner decided the v0.1.0 scope on 2026-09-22:
 
-- **Hosting is required.** The public demo runs on one small Hetzner node with Docker Compose, Caddy TLS at `prcritiq.arefin.app`, and Postgres on the node. ADR-019 records this as the approved equivalent to the original Modal and managed-Postgres plan. See [deployment](deployment.md).
+- **Hosting was required for verification, not perpetual operation.** The public demo ran on one small Hetzner node with Docker Compose, Caddy TLS at `prcritiq.arefin.app`, and Postgres on the node. ADR-019 records this as the approved equivalent to the original Modal and managed-Postgres plan. After the live evidence was captured, the owner retired the server to stop continuous billing. The endpoint is currently offline and can be [reactivated on request](deployment.md#reactivate-the-demo).
 - **Webhook execution is in scope, dry-run only.** A GitHub App `pull_request` event creates a persisted, idempotent review run and records its report. It never posts.
 - **The benchmark ships with a documented deferral.** The retained smoke and verifier evidence is published as it is. AC11 and AC12 are stated as unmet, and no further paid runs are part of the release.
 
@@ -33,19 +33,24 @@ This is a bounded closeout, not another research cycle. A deadline or a demo doe
 - [x] Owner committed and pushed the release work as `e645b44` and `678da08`; CI `test` passed on `678da08`.
 - [x] Owner provisioned the `cx23` server, the Porkbun A record, and the GitHub App `prcritiq-demo` (read-only contents, metadata, and pull requests; `pull_request` event; installed on this public repository). The server `.env` was filled and each credential checked against GitHub without printing it.
 - [x] Deployed `678da08` on 2026-09-22. Public evidence: `/health` answers over HTTPS with a Let's Encrypt certificate, HSTS, and an HTTP-to-HTTPS redirect; a demo review of `octocat/Hello-World#1` returned a dry-run report with nothing posted; a signed delivery through the public URL minted a real installation token, became run 1, finished `summarized`, and its redelivery returned run 1 without running it again.
-- [ ] Record one GitHub-originated `pull_request` delivery and one redelivery from the app's Advanced tab.
-- [ ] Owner sets branch protection to require `test`, adds repository topics, and tags `v0.1.0`.
-- [ ] Record the release revision and its evidence here.
+- [x] GitHub-originated delivery and redelivery (AC1). On 2026-09-24, opening `momtazularefin/persistentcontext#16` delivered `pull_request.opened` (delivery `492ba730-b853-11f1-967f-5b06a23499a8`); the deployed app answered 200, recorded run 3, and finished it `summarized` in about a second with 8 of 21 files reviewable and nothing posted. A redelivery of the same delivery from the app's Advanced tab 2.5 hours later answered 200 with "already run 3 (summarized); it was not run again", and the run row was untouched.
+- [x] Owner added repository topics and the website link `https://prcritiq.arefin.app`, and pushed the annotated tag `v0.1.0` on `d5ca5e9`. CI `test` passed on that commit. It differs from the deployed `678da08` only in `README.md` and this checklist, so the hosted service ran the tagged runtime code.
+- [x] After live verification, the owner deleted the Hetzner server and removed the `prcritiq` DNS record to stop continuous billing; the owner reports checking for retained billable resources. The endpoint is offline. The GitHub App installation and About website link are retained for possible on-request reactivation, not evidence of a current service.
+- [x] Release notes written: [docs/releases/v0.1.0.md](releases/v0.1.0.md).
+- [ ] Owner commits and pushes the post-tag README, release notes, evidence images and raw report, and dry-run footer correction. The `v0.1.0` tag remains on the tested runtime commit `d5ca5e9`; the release note's image and raw-report links intentionally target `main` and will work only after this push.
+- [ ] Owner publishes the `v0.1.0` GitHub release from those notes.
+- [ ] Agent re-enables the `branch-protection` ruleset requiring `test` after the owner's commit and GitHub Release, which ends the build-phase direct-to-`main` exception.
+- [ ] Owner confirms the retained `prcritiq-demo` GitHub App installation is limited to intended public repositories. It was widened to all repositories on 2026-09-24; the current scope could not be independently read with the available GitHub token. Until a new server is deployed, active webhook deliveries will fail.
 
-## Original Acceptance Criteria Not Fully Met
+## Acceptance Criteria Needing Evidence Or Deferral
 
 | Criterion | Current evidence | Treatment |
 | --- | --- | --- |
-| AC1: GitHub App PR events create idempotent review runs | Implemented, tested, and exercised on the deployed app with a signed delivery using the real installation. | Met once one GitHub-originated `pull_request` delivery is recorded. |
+| AC1: GitHub App PR events create idempotent review runs | A real `pull_request.opened` delivery became run 3, and GitHub's redelivery returned run 3 without running it again. | Met. |
 | AC11: certified evaluation across at least 20 real code-heavy PRs | The legacy 20-PR/46-comment corpus is diagnostic, not certified ground truth. The approved smoke set contains 3 PRs and 5 defects. | Deferred. The smoke evidence and its limits are published; the original corpus requirement is not claimed. |
 | AC12: meaningful-issue recall above 50% with precision and spam gates passing | The small smoke comparisons, mechanical matching, and AI evidence audits do not establish these gates. | Deferred. Not replaced by mock scores or verifier confirmations. |
-| AC14: public demo on Modal and managed Postgres, or an approved equivalent | Live at `https://prcritiq.arefin.app` since 2026-09-22 (ADR-019). | Met. |
-| AC15: passing CI and release hygiene | CI passes; license, badges, and lockfile are present. | Met once branch protection and the `v0.1.0` tag exist. |
+| AC14: public demo on Modal and managed Postgres, or an approved equivalent | Verified live on the approved Hetzner equivalent from 2026-09-22 through at least 2026-09-27, then retired. | Demonstrated historically; currently offline. |
+| AC15: passing CI and release hygiene | CI passes on the `v0.1.0` tag; license, badges, lockfile, topics, and website link are present. | Met once branch protection is active. |
 
 ## Accepted Deferrals
 

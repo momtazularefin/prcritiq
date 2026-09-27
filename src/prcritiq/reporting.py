@@ -28,7 +28,7 @@ from .webhooks import build_dry_run_key
 
 _FINDINGS_CAVEAT = (
     "No model was called and no comment was posted, so the empty findings list "
-    "means not-yet-implemented rather than nothing-to-report."
+    "means no review was run, not that there is nothing to report. Add --review to run one."
 )
 
 _NOT_POSTED_CAVEAT = (

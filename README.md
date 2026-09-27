@@ -3,11 +3,17 @@
 [![CI](https://github.com/momtazularefin/prcritiq/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/momtazularefin/prcritiq/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-PRCritiq is an evidence-backed pull request review agent. It reviews GitHub PRs with diff-aware context, safe tool evidence, a LangGraph review loop, and measured benchmark results, and it prefers silence over weak comments.
+PRCritiq is an evidence-backed pull request review agent. It reviews GitHub PRs with diff-aware context, safe tool evidence, a LangGraph review loop, and an auditable certified smoke comparison. It prefers silence over weak comments; general review accuracy has not been established.
+
+Offline replay at a deliberately lower evaluation threshold—not posted GitHub comments or a claim about the shipped setting:
+
+![PRCritiq reviewing a Django pull request: two published findings, three suppressed with their reasons, and the two human-confirmed defects](docs/media/review-django-21875.png)
+
+One paid, model-assisted benchmark replay of `django/django#21875`, at the frozen revision a human reviewer commented on. The evaluator marked two findings publishable at a threshold of 65, and its mechanical matcher credits one against a human-confirmed defect. It also drafted the second confirmed defect, then withheld it at 63% confidence. At the shipped threshold of 78, the run would have been quiet. No comment was posted to GitHub; “published” in the image means only that a finding passed the replay threshold. It is one case, not a quality claim; [the raw report and settings](eval/runs/2026-09-24-django-evidence-image/README.md) are kept with it.
 
 ## Current Status
 
-v0.1.0 is a bounded portfolio release. The review system, a GitHub App webhook that records dry-run review runs, and a container deployment for one small Hetzner node are implemented. The public demo is live at [prcritiq.arefin.app](https://prcritiq.arefin.app/docs). The benchmark evidence is a certified smoke set, not the full corpus the original plan called for, so the quality targets are stated as unmet rather than claimed. The [acceptance criteria table](#acceptance-criteria) shows where each criterion stands.
+v0.1.0 is a bounded, development-frozen portfolio release. The review system, a GitHub App webhook that records dry-run review runs, and a one-node deployment were implemented and tested in public. The hosted demo was retired after verification to stop continuous billing; `prcritiq.arefin.app` is not currently a working demo. A live session can be reactivated on request using the [deployment walkthrough](docs/deployment.md#reactivate-the-demo). The benchmark evidence is a certified smoke set, not the full corpus the original plan called for, so the quality targets are stated as unmet rather than claimed. The [acceptance criteria table](#acceptance-criteria) shows where each criterion stands.
 
 M9 made the service deployable:
 
@@ -52,14 +58,14 @@ Not implemented, and deferred beyond v0.1.0:
 
 - A statistically sufficient human-adjudicated benchmark corpus and a passing benchmark result; the approved smoke set has only 3 PRs / 5 defects.
 - High-recall/per-hunk generation and production integration of candidate-local context plus semantic verification; the separate replay tool has completed its first frozen-candidate comparison but remains experimental.
-- Posting from webhook runs. The deployed service is dry-run only, and its GitHub App has read-only pull request access.
+- Posting from webhook runs. The hosted service was dry-run only, and its GitHub App has read-only pull request access.
 - Reclaiming a webhook run interrupted by a restart, distributed workers, and crash-safe exactly-once posting.
 
 ## Acceptance Criteria
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| AC1 GitHub App mode with idempotent runs | Met in code and in production; a GitHub-originated PR event is pending | Signed events create one run per delivery under a `UNIQUE` key, and a redelivery is not executed again ([API tests](tests/test_api.py), [intake](src/prcritiq/intake.py)). On the deployed app, a signed delivery through the public URL minted a real installation token, finished `summarized`, and its redelivery returned the same run. |
+| AC1 GitHub App mode with idempotent runs | Met | Signed events create one run per delivery under a `UNIQUE` key, and a redelivery is not executed again ([API tests](tests/test_api.py), [intake](src/prcritiq/intake.py)). During the hosted trial, a real `pull_request.opened` delivery for `momtazularefin/persistentcontext#16` became run 3 and finished `summarized`; GitHub's redelivery of it returned run 3 without running it again. |
 | AC2 Dry-run demo with Markdown/JSON report | Met | `prcritiq review --markdown`, `POST /demo/review`. |
 | AC3 Diff parser and guardrails | Met | Strict parser, reasoned skips, regression tests. |
 | AC4 Retrieval | Met | Identifier-aware BM25 plus structural signals (ADR-016), regression-tested. |
@@ -72,8 +78,12 @@ Not implemented, and deferred beyond v0.1.0:
 | AC11 20-PR certified benchmark | Not met, deferred | The legacy 20-PR corpus is diagnostic, not certified; the certified smoke set is 3 PRs / 5 defects. |
 | AC12 Recall above 50% with precision gates | Not met, deferred | Smoke-set evidence cannot establish it, and no claim is made. |
 | AC13 Public docs match behavior | Met | This README and `docs/`. |
-| AC14 Public deployment | Met | Live at `https://prcritiq.arefin.app` since 2026-09-22 on one Hetzner node with Caddy and Postgres (ADR-019, the approved equivalent to Modal): Let's Encrypt TLS, HSTS, HTTP-to-HTTPS redirect, health, and a public-repository demo review. |
-| AC15 CI and repository hygiene | Partly met | CI job `test` passes on `main` at `678da08`; license and badges are present. Branch protection and the `v0.1.0` tag are owner actions. |
+| AC14 Public deployment | Demonstrated; currently offline | One Hetzner node with Caddy and Postgres (ADR-019, the approved equivalent to Modal) served the public demo from 2026-09-22 through at least 2026-09-27. HTTPS, Let's Encrypt TLS, HSTS, HTTP-to-HTTPS redirect, health, and a public-repository demo review were verified before the server was retired. |
+| AC15 CI and repository hygiene | Partly met | CI job `test` passed on the `v0.1.0` tag (`d5ca5e9`); license, badges, and topics are present. The GitHub Release and restoration of branch protection remain release steps. |
+
+![The GitHub App's delivery log: the pull_request.opened delivery for persistentcontext#16 and its redelivery, both answered successfully](docs/media/github-app-deliveries.png)
+
+The AC1 evidence as GitHub recorded it. The `pull_request.opened` delivery became run 3, and the redelivery of the same delivery, marked `redelivery`, returned run 3 without running it again. GitHub's displayed timestamps are September 25 in the local time zone, corresponding to the September 24 UTC event record. The two failed deliveries at the bottom arrived before the service was deployed.
 
 The [portfolio release checklist](docs/portfolio-release.md) records the release scope and the accepted deferrals.
 
@@ -111,13 +121,13 @@ Public repositories work without a token. Set `GITHUB_TOKEN` to raise the API ra
 
 ## Deployment
 
-The public demo runs on one Hetzner node with Docker Compose: Caddy for TLS, the app, and Postgres. The owner creates the server, adds one DNS record, registers the GitHub App, and fills in the server's `.env`. One command then ships a committed revision:
+The public demo was verified on one Hetzner node with Docker Compose: Caddy for TLS, the app, and Postgres. It is offline by default to avoid a continuing hosting bill. To reactivate it for a requested demonstration, create a new server, point the DNS record to its new address, restore server-only credentials, and deploy a committed revision:
 
 ```bash
 PRCRITIQ_HOST=<server IPv4> bash deploy/hetzner/deploy.sh
 ```
 
-[docs/deployment.md](docs/deployment.md) covers setup, verification, the public surface, operations, and teardown.
+[docs/deployment.md](docs/deployment.md#reactivate-the-demo) covers the reactivation sequence, verification, the public surface, operations, and teardown. The deployment script accepts a new IPv4 address; the retired server's IP is not embedded in the repository.
 
 ## Project Shape
 
@@ -147,10 +157,11 @@ PRCritiq prefers silence over weak comments. Every reportable finding must inclu
 - [Architecture](docs/architecture.md) - components and what is built today.
 - [Configuration](docs/configuration.md) - environment variables.
 - [Security](docs/security.md) - security posture and current limits.
-- [Deployment](docs/deployment.md) - the Hetzner deployment, public surface, and teardown.
+- [Deployment](docs/deployment.md) - the historical Hetzner deployment and on-demand reactivation walkthrough.
 - [Evaluation](docs/evaluation.md) - benchmark plan and current evidence status.
 - [Verification](docs/verification.md) - the experimental semantic verifier replay.
 - [Portfolio release](docs/portfolio-release.md) - release scope, evidence, and deferrals.
+- [Release notes for 0.1.0](docs/releases/v0.1.0.md) - what the first release contains, its evidence, and its limitations.
 
 ## License
 
