@@ -5,6 +5,13 @@
 
 PRCritiq is an evidence-backed pull request review agent. It reviews GitHub PRs with diff-aware context, safe tool evidence, a LangGraph review loop, and an auditable certified smoke comparison. It prefers silence over weak comments; general review accuracy has not been established.
 
+## At a Glance
+
+- **What it does:** reviews changed PR lines with bounded context and safe static checks, then records findings and reasons for suppressing weak ones. The hosted GitHub App was dry-run only; posting is an explicit CLI opt-in.
+- **What was verified:** a real GitHub PR webhook created one persisted run, and redelivery returned that run without executing it again. The [v0.1.0 release](https://github.com/momtazularefin/prcritiq/releases/tag/v0.1.0) and CI are published.
+- **What remains unproven:** the certified smoke set has 3 PRs and 5 human-confirmed defects, not enough for general precision or recall claims. The hosted demo was retired after verification and is available only by [reactivation on request](docs/deployment.md#reactivate-the-demo).
+- **Try it without model credit:** `uv sync --dev`, then `uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run`. This does not call a model or post a comment; [more commands and paid-call warnings](#quick-start) are below.
+
 Offline replay at a deliberately lower evaluation threshold—not posted GitHub comments or a claim about the shipped setting:
 
 ![PRCritiq reviewing a Django pull request: two published findings, three suppressed with their reasons, and the two human-confirmed defects](docs/media/review-django-21875.png)
@@ -79,7 +86,7 @@ Not implemented, and deferred beyond v0.1.0:
 | AC12 Recall above 50% with precision gates | Not met, deferred | Smoke-set evidence cannot establish it, and no claim is made. |
 | AC13 Public docs match behavior | Met | This README and `docs/`. |
 | AC14 Public deployment | Demonstrated; currently offline | One Hetzner node with Caddy and Postgres (ADR-019, the approved equivalent to Modal) served the public demo from 2026-09-22 through at least 2026-09-27. HTTPS, Let's Encrypt TLS, HSTS, HTTP-to-HTTPS redirect, health, and a public-repository demo review were verified before the server was retired. |
-| AC15 CI and repository hygiene | Partly met | CI job `test` passed on the `v0.1.0` tag (`d5ca5e9`); license, badges, and topics are present. The GitHub Release and restoration of branch protection remain release steps. |
+| AC15 CI and repository hygiene | Met | CI job `test` passed on the `v0.1.0` tag (`d5ca5e9`) and post-tag `main` (`cc9b31f`); the GitHub Release is published, the `branch-protection` ruleset is active, and license, badges, and topics are present. The retained Website link points to the retired demo by owner choice. |
 
 ![The GitHub App's delivery log: the pull_request.opened delivery for persistentcontext#16 and its redelivery, both answered successfully](docs/media/github-app-deliveries.png)
 
@@ -101,21 +108,28 @@ The subsequent [frozen-candidate verifier comparison](eval/runs/2026-09-20-verif
 
 ## Quick Start
 
+The following commands are dry-run or local checks. They do not spend model credit or post GitHub comments:
+
 ```powershell
 uv sync --dev
 uv run prcritiq health
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --mode dry-run
 uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools
-uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review --markdown report.md
 uv run prcritiq eval --fixture-mode          # measurement harness, mocked model
 uv run python eval/adjudicate_dataset.py --export eval/adjudications.jsonl
-uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low
 docker compose up -d   # local Postgres for --persist
 uv run ruff check .
 uv run pytest
 ```
 
-Without `--review` the command reads the pull request and reports parsed diffs and guardrail decisions without calling a model. With `--review` it drafts and critiques findings using the routed provider, which requires an API key and spends credits. Nothing reaches GitHub unless you add `--post`, which is the only flag that writes. The report always names which stages actually ran, so an empty findings list is never mistaken for a clean bill of health.
+**Optional paid calls:** the next commands require an API key and spend model credit. `--review` drafts and critiques findings; live `eval` calls the named provider. Neither posts comments without `--post`:
+
+```powershell
+uv run prcritiq review --repo pydantic/pydantic --pr 13680 --context --tools --review --markdown report.md
+uv run prcritiq eval --dataset eval/ground-truth-candidates/dataset-certified.jsonl --provider openai --model gpt-5.6-terra --effort low
+```
+
+Without `--review`, a review command reads the pull request and reports parsed diffs and guardrail decisions without calling a model. Nothing reaches GitHub unless you add `--post`, which is the only flag that writes. The report always names which stages actually ran, so an empty findings list is never mistaken for a clean bill of health.
 
 Public repositories work without a token. Set `GITHUB_TOKEN` to raise the API rate limit or to reach a private repository.
 

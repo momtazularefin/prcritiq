@@ -37,10 +37,10 @@ This is a bounded closeout, not another research cycle. A deadline or a demo doe
 - [x] Owner added repository topics and the website link `https://prcritiq.arefin.app`, and pushed the annotated tag `v0.1.0` on `d5ca5e9`. CI `test` passed on that commit. It differs from the deployed `678da08` only in `README.md` and this checklist, so the hosted service ran the tagged runtime code.
 - [x] After live verification, the owner deleted the Hetzner server and removed the `prcritiq` DNS record to stop continuous billing; the owner reports checking for retained billable resources. The endpoint is offline. The GitHub App installation and About website link are retained for possible on-request reactivation, not evidence of a current service.
 - [x] Release notes written: [docs/releases/v0.1.0.md](releases/v0.1.0.md).
-- [ ] Owner commits and pushes the post-tag README, release notes, evidence images and raw report, and dry-run footer correction. The `v0.1.0` tag remains on the tested runtime commit `d5ca5e9`; the release note's image and raw-report links intentionally target `main` and will work only after this push.
-- [ ] Owner publishes the `v0.1.0` GitHub release from those notes.
-- [ ] Agent re-enables the `branch-protection` ruleset requiring `test` after the owner's commit and GitHub Release, which ends the build-phase direct-to-`main` exception.
-- [ ] Owner confirms the retained `prcritiq-demo` GitHub App installation is limited to intended public repositories. It was widened to all repositories on 2026-09-24; the current scope could not be independently read with the available GitHub token. Until a new server is deployed, active webhook deliveries will fail.
+- [x] Owner committed and pushed the post-tag README, release notes, evidence images and raw report, and dry-run footer correction as `cc9b31f`. The `v0.1.0` tag remains on tested runtime commit `d5ca5e9`; the release note's image and raw-report links to `main` resolve publicly.
+- [x] Owner published the `v0.1.0` GitHub release from those notes.
+- [x] Owner re-enabled the `branch-protection` ruleset requiring `test` after the commit and GitHub Release, ending the build-phase direct-to-`main` exception.
+- [x] Owner reports restricting the retained `prcritiq-demo` GitHub App installation to PRCritiq only. The current scope could not be independently read with the available GitHub token. Until a new server is deployed, active webhook deliveries will fail.
 
 ## Acceptance Criteria Needing Evidence Or Deferral
 
@@ -50,7 +50,7 @@ This is a bounded closeout, not another research cycle. A deadline or a demo doe
 | AC11: certified evaluation across at least 20 real code-heavy PRs | The legacy 20-PR/46-comment corpus is diagnostic, not certified ground truth. The approved smoke set contains 3 PRs and 5 defects. | Deferred. The smoke evidence and its limits are published; the original corpus requirement is not claimed. |
 | AC12: meaningful-issue recall above 50% with precision and spam gates passing | The small smoke comparisons, mechanical matching, and AI evidence audits do not establish these gates. | Deferred. Not replaced by mock scores or verifier confirmations. |
 | AC14: public demo on Modal and managed Postgres, or an approved equivalent | Verified live on the approved Hetzner equivalent from 2026-09-22 through at least 2026-09-27, then retired. | Demonstrated historically; currently offline. |
-| AC15: passing CI and release hygiene | CI passes on the `v0.1.0` tag; license, badges, lockfile, topics, and website link are present. | Met once branch protection is active. |
+| AC15: passing CI and release hygiene | CI passes on the `v0.1.0` tag and post-tag `main`; license, badges, lockfile, topics, and the published GitHub Release are present. Branch protection is active. The retained Website link points to the retired demo. | Met. |
 
 ## Accepted Deferrals
 
